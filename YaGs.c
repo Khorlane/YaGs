@@ -31,13 +31,15 @@ char                LogMsg[100];        // Log Message
 char                LogFileName[25];    // Log File Name
 
 // Messages
-char               *GameStartMsg = "YaGs v1.0.0 Starting";                // Game starting message
+char               *GameStartMsg = "YaGs v1.0.1 Starting";                // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Macros
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+#define DEBUGIT(x)      if (DEBUGIT_LVL >= x) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);}
+#define DEBUGIT_LVL     1               // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
 #define YAGS_HOME_DIR   "YaGs"          // YaGs home directory
 #define LOG_DIR         "Logs"          // Log directory
 #define LOG_FILE        "Log.txt"       // Log file
@@ -48,6 +50,7 @@ char               *GameStopMsg  = "YaGs has shutdown";                   // Gam
 
 void CloseLog();
 void GetTime();
+void HeartBeat();
 void LogIt(char *LogMsg);
 void OpenLog();
 void ShutItDown();
@@ -60,6 +63,7 @@ void StartItUp();
 int main(int argc, char **argv)
 {
   StartItUp();
+  HeartBeat();
   ShutItDown();
 }
 
@@ -71,9 +75,17 @@ void StartItUp()
   OpenLog();
 }
 
+// Heart beat
+void HeartBeat()
+{
+  DEBUGIT(1)
+  x = 1;
+}
+
 // Shut the game down
 void ShutItDown()
 {
+  DEBUGIT(1)
   CloseLog();
 }
 
