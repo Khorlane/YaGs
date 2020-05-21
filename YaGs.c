@@ -8,12 +8,17 @@
 //$$ Includes
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+#include <errno.h>                  // errors
+#include <fcntl.h>                  // fcntl(), F_SETFL, FNDELAY
+#include <netinet/in.h>             // sockaddr_in
 #include <pwd.h>                    // getpwuid()
 #include <stdbool.h>                // bool data type
 #include <stdio.h>                  // sprintf(), fopen(), fprintf(), fclose()
+#include <stdlib.h>                 // exit()
 #include <string.h>                 // strlen()
-#include <time.h>                   // time()
-#include <unistd.h>                 // getuid()
+#include <sys/socket.h>             // Sockets
+#include <time.h>                   // time(), ctime()
+#include <unistd.h>                 // getuid(), usleep()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Global variables
@@ -25,6 +30,13 @@ bool                NoPlayers;          // True when we have no players
 
 // Numbers
 long int            CurrentTimeSec;     // Current time in seconds
+socklen_t           LingerSize;         // Size of Linger stucture
+int                 Listen;             // Listening socket
+int                 OptVal;             // Set socket option value
+socklen_t           OptValSize;         // Size of socket option value
+int                 ReturnValue;        // Return value
+socklen_t           SocketSize;         // Size of Socket structure
+extern int          errno;              // Error number set by fopen(), for example
 long unsigned int   x;                  // a short lived number
 
 //Pointers
@@ -39,9 +51,13 @@ char                LogFileName[25];    // Log File Name
 
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
-char               *GameStartMsg = "YaGs v1.0.2 Starting";                // Game starting message
+char               *GameStartMsg = "YaGs v1.0.3 Starting";                // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
+
+// Structures
+struct linger       Linger;
+struct sockaddr_in  Socket;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Macros
@@ -52,6 +68,7 @@ char               *GameWakeMsg  = "Waking up";                           // Gam
 #define YAGS_HOME_DIR   "YaGs"          // YaGs home directory
 #define LOG_DIR         "Logs"          // Log directory
 #define LOG_FILE        "Log.txt"       // Log file
+#define PORT            7777            // Port number
 #define SLEEP_TIME      0400000         // Sleep for a short period of time
 #define USE_USLEEP      'N'             // Use usleep() Y or N
 
@@ -69,6 +86,7 @@ void OpenLog();
 void SendPlayerOutput();
 void ShutItDown();
 void Sleep();
+void SocketListen();
 void StartItUp();
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -107,6 +125,7 @@ void StartItUp()
   pw = getpwuid(getuid());
   HomeDir = pw->pw_dir;
   OpenLog();
+  SocketListen();
 }
 
 // Heart beat
@@ -145,6 +164,11 @@ void OpenLog()
 {
   sprintf(LogFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",LOG_DIR,"/",LOG_FILE);
   LogFile = fopen(LogFileName, "w");
+  if (LogFile == NULL)
+  {
+    printf("Error opening %s : %s\r\n", LOG_FILE, strerror(errno));
+    exit(1);
+  }
   LogIt(GameStartMsg);
 }
 
@@ -187,4 +211,64 @@ void Sleep()
     TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should  
     select(0, NULL, NULL, NULL, &TimeOut);  //   adjust SLEEP_TIME until you are happy.
   }
+}
+
+// Establish listening socket
+void SocketListen()
+{
+  DEBUGIT(1)
+  // Create listening socket
+  Listen = socket(AF_INET, SOCK_STREAM, 0);
+  if (Listen < 0)
+  {
+    LogIt("Create listening socket failed");
+    exit(1);
+  }
+  // Make Listen non-blocking
+  ReturnValue = fcntl(Listen, F_SETFL, FNDELAY);
+  if (ReturnValue < 0)
+  {
+    LogIt("Set listening socket to non-blocking failed");
+    exit(1);
+  }
+  // Set SO_LINGER
+  Linger.l_onoff  = 0;
+  Linger.l_linger = 0;
+  LingerSize      = sizeof(Linger);
+  ReturnValue = setsockopt(Listen, SOL_SOCKET, SO_LINGER, &Linger, LingerSize);
+  if (ReturnValue < 0)
+  {
+    LogIt("Set SO_LINGER failed");
+    exit(1);
+  }
+  // Set SO_REUSEADDR
+  OptVal = 1;
+  OptValSize = sizeof(OptVal);
+  ReturnValue = setsockopt(Listen, SOL_SOCKET, SO_REUSEADDR, &OptVal, OptValSize);
+  if (ReturnValue < 0)
+  {
+    LogIt("Set SO_REUSEADDR failed");
+    exit(1);
+  }
+  // Bind
+  Socket.sin_family      = AF_INET;
+  Socket.sin_addr.s_addr = INADDR_ANY;
+  Socket.sin_port        = htons(PORT);
+  SocketSize             = sizeof(Socket);
+  ReturnValue = bind(Listen, (struct sockaddr *) &Socket, SocketSize);
+  if (ReturnValue < 0)
+  {
+    LogIt("Bind failed");
+    exit(1);
+  }
+  // Listen on PORT for connections
+  ReturnValue = listen(Listen, 20);
+  if (ReturnValue < 0)
+  {
+    LogIt("Listen failed");
+    exit(1);
+  }
+  // YaGs is listening!!
+  sprintf(LogMsg,"%s %d","YaGs is Listening on port", PORT);
+  LogIt(LogMsg);
 }
