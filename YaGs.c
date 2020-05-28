@@ -2,23 +2,23 @@
 //* Yet Another Game Server *
 //***************************
 
-#define _DEFAULT_SOURCE           // Required for usleep() in my development environment
+#define _DEFAULT_SOURCE                 // Required for usleep() in my development environment
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Includes
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-#include <errno.h>                  // errors
-#include <fcntl.h>                  // fcntl(), F_SETFL, FNDELAY
-#include <netinet/in.h>             // sockaddr_in
-#include <pwd.h>                    // getpwuid()
-#include <stdbool.h>                // bool data type
-#include <stdio.h>                  // sprintf(), fopen(), fprintf(), fclose()
-#include <stdlib.h>                 // exit()
-#include <string.h>                 // strlen()
-#include <sys/socket.h>             // Sockets
-#include <time.h>                   // time(), ctime()
-#include <unistd.h>                 // getuid(), usleep()
+#include <arpa/inet.h>                  // This and sys/socket.h - a whole plethora of socket related stuff
+#include <errno.h>                      // EINTR
+#include <fcntl.h>                      // fcntl(), F_SETFL, FNDELAY
+#include <pwd.h>                        // getpwuid()
+#include <stdbool.h>                    // bool data type
+#include <stdio.h>                      // Standard I/O
+#include <stdlib.h>                     // exit() malloc()
+#include <string.h>                     // strcpy(), strcmp(), strlen()
+#include <sys/socket.h>                 // This and arpa/inet - a whole plethora of socket related stuff
+#include <time.h>                       // time(), ctime()
+#include <unistd.h>                     // getpwuid(), getuid(), read(), usleep()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Global variables
@@ -29,25 +29,53 @@ bool                GameShutDown;       // Set this to true to stop the game
 bool                NoPlayers;          // True when we have no players
 
 // Numbers
+size_t              BufferLen;          // Number of bytes in the buffer
+long int            BytesRead;          // Number of bytes read
 long int            CurrentTimeSec;     // Current time in seconds
 socklen_t           LingerSize;         // Size of Linger stucture
 int                 Listen;             // Listening socket
+int                 MaxSocket;          // Maximum socket value
 int                 OptVal;             // Set socket option value
 socklen_t           OptValSize;         // Size of socket option value
 int                 ReturnValue;        // Return value
+long int            SendResult;         // Number of bytes sent to player
+int                 Socket;             // Socket value
 socklen_t           SocketSize;         // Size of Socket structure
 extern int          errno;              // Error number set by fopen(), for example
-long unsigned int   x;                  // a short lived number
+int                 i;                  // Just a number
+size_t              x;                  // Just a number
 
 //Pointers
 char               *CurrentTime;        // Current timestamp
-FILE               *LogFile;            // Log File
-struct passwd      *pw;                 // Password struct (used to get $HOME)
 char               *HomeDir;            // Value of $HOME
+FILE               *LogFile;            // Log File
+struct Players     *pPlayer;            // Pointer to player
+struct Players     *pPlayerCurr;        // Pointer to current player in the player list
+struct Players     *pPlayerHead;        // Pointer to head of player list
+struct Players     *pPlayerTail;        // Pointer to tail of player list
+struct passwd      *pw;                 // Password struct (used to get $HOME)
 
 // Strings
-char                LogMsg[100];        // Log Message
+char                Buffer[1024];       // Just a buffer
+char                Command[1024];      // The command
 char                LogFileName[25];    // Log File Name
+char                LogMsg[100];        // Log Message
+
+// Structures
+fd_set              InpSet;             // File Descriptor Set structure
+struct linger       Linger;             // Linger structure
+struct sockaddr_in  SocketAddr;         // Socket Address structure
+struct timeval      TimeOut;            // Time value structure
+
+struct Players                          // Player structure
+{
+  int   Socket;   
+  char  Name[50];
+  char  Afk;
+  char  Input[1024];
+  char  Output[1024];
+  struct Players *pPlayerNext;
+};
 
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
@@ -55,34 +83,34 @@ char               *GameStartMsg = "YaGs v1.0.3 Starting";                // Gam
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
 
-// Structures
-struct linger       Linger;
-struct sockaddr_in  Socket;
-
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Macros
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-#define DEBUGIT(x)      if (DEBUGIT_LVL >= x) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);}
+#define DEBUGIT(dl)     if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
 #define DEBUGIT_LVL     1               // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
-#define YAGS_HOME_DIR   "YaGs"          // YaGs home directory
 #define LOG_DIR         "Logs"          // Log directory
 #define LOG_FILE        "Log.txt"       // Log file
 #define PORT            7777            // Port number
 #define SLEEP_TIME      0400000         // Sleep for a short period of time
 #define USE_USLEEP      'N'             // Use usleep() Y or N
+#define YAGS_HOME_DIR   "YaGs"          // YaGs home directory
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Functions
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+void AbortIt();
+void AcceptNewPlayer();
 void CheckForNewPlayers();
 void CloseLog();
+void DoCmd();
 void GetPlayerInput();
 void GetTime();
 void HeartBeat();
 void LogIt(char *LogMsg);
 void OpenLog();
+void ProcessPlayerInput();
 void SendPlayerOutput();
 void ShutItDown();
 void Sleep();
@@ -111,6 +139,7 @@ int main(int argc, char **argv)
       LogIt(GameWakeMsg);
     }
     GetPlayerInput();
+    ProcessPlayerInput();
     SendPlayerOutput();
     Sleep();
   }
@@ -126,6 +155,9 @@ void StartItUp()
   HomeDir = pw->pw_dir;
   OpenLog();
   SocketListen();
+  pPlayerHead = NULL;
+  pPlayerTail = NULL;
+  pPlayerCurr = NULL;
 }
 
 // Heart beat
@@ -138,18 +170,126 @@ void HeartBeat()
 void CheckForNewPlayers()
 {
   DEBUGIT(1)
+  FD_ZERO(&InpSet);
+  FD_SET(Listen, &InpSet);
+  MaxSocket = Listen;
+  pPlayerCurr = pPlayerHead;
+  while (pPlayerCurr != NULL)
+  {
+    Socket = pPlayerCurr->Socket;
+    FD_SET(Socket, &InpSet);
+    if (Socket > MaxSocket)
+    {
+      MaxSocket = Socket;
+    }
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
+  TimeOut.tv_sec  = 0;
+  TimeOut.tv_usec = 1;
+  ReturnValue = select(MaxSocket + 1, &InpSet, NULL, NULL, &TimeOut);
+  if ((ReturnValue < 0) && (errno != EINTR))
+  {
+    sprintf(LogMsg,"Socket Error: select - check connections - failed with error: %s", strerror(errno));
+    AbortIt();
+  }
+  if (FD_ISSET(Listen, &InpSet))
+  {
+    AcceptNewPlayer();
+  }
+}
+
+// Accept new player
+void AcceptNewPlayer()
+{
+  Socket = accept(Listen, (struct sockaddr *) &SocketAddr, (socklen_t *) &SocketSize);
+  if (Socket < 0)
+  {
+    sprintf(LogMsg,"Socket Error: accept - new connection - failed with error: %s", strerror(errno));
+    AbortIt();
+  }
+  sprintf(LogMsg,"New connection, socket fd is %d , ip is : %s , port : %d", Socket, inet_ntoa(SocketAddr.sin_addr), ntohs(SocketAddr.sin_port));
+  LogIt(LogMsg);
+  pPlayerCurr = malloc(sizeof(struct Players));
+  pPlayerCurr->Socket = Socket;
+  pPlayerCurr->Name[0] = '*';
+  pPlayerCurr->Name[1] = '\0';
+  pPlayerCurr->pPlayerNext = NULL;
+  if (pPlayerHead == NULL)
+  {
+    pPlayerHead = pPlayerCurr;
+    pPlayerTail = pPlayerCurr;
+  }
+  else
+  {
+    pPlayerTail->pPlayerNext = pPlayerCurr;
+    pPlayerTail = pPlayerCurr;
+  }
+  NoPlayers = false;
+  pPlayer = pPlayerCurr;
+  strcpy(pPlayer->Output, "Hi\r\n");
 }
 
 // Get player input
 void GetPlayerInput()
 {
   DEBUGIT(1)
+  pPlayerCurr = pPlayerHead;
+  while (pPlayerCurr != NULL)
+  {
+    Socket = pPlayerCurr->Socket;
+    if (FD_ISSET(Socket, &InpSet))
+    {
+      BytesRead = read(Socket, Buffer, 1024);
+      Buffer[BytesRead] = '\0';   // Set the string terminating NULL byte on the end of the data read
+      strcpy(pPlayerCurr->Input, Buffer);
+    }
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
+}
+
+// Process player input
+void ProcessPlayerInput()
+{
+  pPlayerCurr = pPlayerHead;
+  while (pPlayerCurr != NULL)
+  {
+    if (pPlayerCurr->Input[0] != '\0')
+    {
+      strcpy(Command, pPlayerCurr->Input);
+      pPlayerCurr->Input[0] = '\0';
+      DoCmd();
+    }
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
 }
 
 // Send player output
 void SendPlayerOutput()
 {
   DEBUGIT(1)
+  pPlayerCurr = pPlayerHead;
+  while (pPlayerCurr != NULL)
+  {
+    if (pPlayerCurr->Output[0] == '\0')
+    {
+      pPlayerCurr = pPlayerCurr->pPlayerNext;
+      continue;
+    }
+    strcpy(Buffer, pPlayerCurr->Output);
+    pPlayerCurr->Output[0] = '\0';
+    BufferLen = strlen(Buffer);
+    SendResult = send(Socket, Buffer, BufferLen, 0);
+    if (SendResult != BufferLen)
+    {
+      strcpy(Buffer,"quit\0");
+      perror("-- Send failed\r\n");
+    }
+    else
+    {
+      Buffer[0] = '\0';
+    }
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
 }
 
 // Shut the game down
@@ -177,6 +317,7 @@ void LogIt(char *LogMsg)
 {
   GetTime();
   fprintf(LogFile, "%s - %s\r\n", CurrentTime, LogMsg);
+  fflush(LogFile);
 }
 
 // Close log
@@ -221,15 +362,15 @@ void SocketListen()
   Listen = socket(AF_INET, SOCK_STREAM, 0);
   if (Listen < 0)
   {
-    LogIt("Create listening socket failed");
-    exit(1);
+    sprintf(LogMsg,"Socket Error: socket - create listening socket - failed with error: %s", strerror(errno));
+    AbortIt();
   }
   // Make Listen non-blocking
   ReturnValue = fcntl(Listen, F_SETFL, FNDELAY);
   if (ReturnValue < 0)
   {
-    LogIt("Set listening socket to non-blocking failed");
-    exit(1);
+    sprintf(LogMsg,"Socket Error: fcntl - make listening socket non-blocking - failed with return value: %d", ReturnValue);
+    AbortIt();
   }
   // Set SO_LINGER
   Linger.l_onoff  = 0;
@@ -238,8 +379,8 @@ void SocketListen()
   ReturnValue = setsockopt(Listen, SOL_SOCKET, SO_LINGER, &Linger, LingerSize);
   if (ReturnValue < 0)
   {
-    LogIt("Set SO_LINGER failed");
-    exit(1);
+    sprintf(LogMsg,"Socket Error: setsockopt - SO_LINGER - failed with error: %s", strerror(errno));
+    AbortIt();
   }
   // Set SO_REUSEADDR
   OptVal = 1;
@@ -247,28 +388,45 @@ void SocketListen()
   ReturnValue = setsockopt(Listen, SOL_SOCKET, SO_REUSEADDR, &OptVal, OptValSize);
   if (ReturnValue < 0)
   {
-    LogIt("Set SO_REUSEADDR failed");
-    exit(1);
+    sprintf(LogMsg,"Socket Error: setsockopt - SO_REUSEADDR - failed with error: %s", strerror(errno));
+    AbortIt();
   }
   // Bind
-  Socket.sin_family      = AF_INET;
-  Socket.sin_addr.s_addr = INADDR_ANY;
-  Socket.sin_port        = htons(PORT);
-  SocketSize             = sizeof(Socket);
-  ReturnValue = bind(Listen, (struct sockaddr *) &Socket, SocketSize);
+  SocketAddr.sin_family      = AF_INET;
+  SocketAddr.sin_addr.s_addr = INADDR_ANY;
+  SocketAddr.sin_port        = htons(PORT);
+  SocketSize                 = sizeof(SocketAddr);
+  ReturnValue = bind(Listen, (struct sockaddr *) &SocketAddr, SocketSize);
   if (ReturnValue < 0)
   {
-    LogIt("Bind failed");
-    exit(1);
+    sprintf(LogMsg,"Socket Error: bind - listening port - failed with error: %s", strerror(errno));
+    AbortIt();
   }
   // Listen on PORT for connections
   ReturnValue = listen(Listen, 20);
   if (ReturnValue < 0)
   {
-    LogIt("Listen failed");
-    exit(1);
+    sprintf(LogMsg,"Socket Error: listen - listen on port - failed with error: %s", strerror(errno));
+    AbortIt();
   }
   // YaGs is listening!!
   sprintf(LogMsg,"%s %d","YaGs is Listening on port", PORT);
   LogIt(LogMsg);
+}
+
+// Abort YaGs
+void AbortIt()
+{
+  LogIt(LogMsg);
+  CloseLog();
+  exit(1);
+}
+
+// Do command
+void DoCmd()
+{
+  if (strcmp(Command, "shutdown\r\n") == 0)
+  {
+    GameShutDown = true;
+  }
 }
