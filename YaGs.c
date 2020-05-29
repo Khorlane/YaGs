@@ -30,7 +30,7 @@ bool                GameShutDown;       // Set this to true to stop the game
 bool                NoPlayers;          // True when we have no players
 
 // Numbers
-size_t              BufferLen;          // Number of bytes in the buffer
+size_t              BufferLen;          // Length of the string stored in Buffer
 long int            BytesRead;          // Number of bytes read
 long int            CurrentTimeSec;     // Current time in seconds
 socklen_t           LingerSize;         // Size of Linger stucture
@@ -49,7 +49,8 @@ size_t              x;                  // Just a number
 //Pointers
 char               *CurrentTime;        // Current timestamp
 char               *HomeDir;            // Value of $HOME
-FILE               *LogFile;            // Log File
+FILE               *GreetFile;          // Greeting file
+FILE               *LogFile;            // Log file
 struct Players     *pPlayer;            // Pointer to player
 struct Players     *pPlayerCurr;        // Pointer to current player in the player list
 struct Players     *pPlayerHead;        // Pointer to head of player list
@@ -59,8 +60,9 @@ struct passwd      *pw;                 // Password struct (used to get $HOME)
 // Strings
 char                Buffer[1024];       // Just a buffer
 char                Command[1024];      // The command
-char                LogFileName[25];    // Log File Name
-char                LogMsg[100];        // Log Message
+char                GreetFileName[50];  // Greeting file name
+char                LogFileName[50];    // Log file name
+char                LogMsg[100];        // Log message
 
 // Structures
 fd_set              InpSet;             // File Descriptor Set structure
@@ -90,6 +92,8 @@ char               *GameWakeMsg  = "Waking up";                           // Gam
 
 #define DEBUGIT(dl)     if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
 #define DEBUGIT_LVL     1               // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
+#define GREET_FILE      "Greeting.txt"  // Greeting file
+#define LIB_DIR         "Library"       // Library directory
 #define LOG_DIR         "Logs"          // Log directory
 #define LOG_FILE        "Log.txt"       // Log file
 #define PORT            7777            // Port number
@@ -108,6 +112,7 @@ void CloseLog();
 void DoCmd();
 void GetPlayerInput();
 void GetTime();
+void Greeting();
 void HeartBeat();
 void LogIt(char *LogMsg);
 void LowerCase(char * Str);
@@ -212,11 +217,15 @@ void AcceptNewPlayer()
   }
   sprintf(LogMsg,"New connection, socket fd is %d , ip is : %s , port : %d", Socket, inet_ntoa(SocketAddr.sin_addr), ntohs(SocketAddr.sin_port));
   LogIt(LogMsg);
-  pPlayerCurr = malloc(sizeof(struct Players));
-  pPlayerCurr->Socket = Socket;
-  pPlayerCurr->Name[0] = '*';
-  pPlayerCurr->Name[1] = '\0';
-  pPlayerCurr->pPlayerNext = NULL;
+  pPlayer = malloc(sizeof(struct Players));
+  pPlayer->Socket = Socket;
+  pPlayer->Name[0]     = '*';
+  pPlayer->Name[1]     = '\0';
+  pPlayer->Afk         = 'N';
+  pPlayer->Input[0]    = '\0';
+  pPlayer->Output[0]   = '\0';
+  pPlayer->pPlayerNext = NULL;
+  pPlayerCurr = pPlayer;
   if (pPlayerHead == NULL)
   {
     pPlayerHead = pPlayerCurr;
@@ -228,8 +237,33 @@ void AcceptNewPlayer()
     pPlayerTail = pPlayerCurr;
   }
   NoPlayers = false;
-  pPlayer = pPlayerCurr;
-  strcpy(pPlayer->Output, "Hi\r\n");
+  Greeting();
+}
+
+// Greeting
+void Greeting()
+{
+  sprintf(GreetFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",LIB_DIR,"/",GREET_FILE);
+  GreetFile = fopen(GreetFileName, "r");
+  if (GreetFile == NULL)
+  {
+    sprintf(LogMsg,"Error opening %s : %s", GREET_FILE, strerror(errno));
+    AbortIt();
+  }
+  for (;;)
+  {
+    fgets(Buffer, sizeof(Buffer), GreetFile);
+    if (ferror(GreetFile))
+    {
+      sprintf(LogMsg,"%s","Error reading %s : %s", GREET_FILE, strerror(errno));
+      AbortIt();
+    }
+    if (feof(GreetFile))
+    {
+      break;
+    }
+    strcat(pPlayer->Output,Buffer);
+  }
 }
 
 // Get player input
@@ -239,12 +273,13 @@ void GetPlayerInput()
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
-    Socket = pPlayerCurr->Socket;
+    pPlayer = pPlayerCurr;
+    Socket = pPlayer->Socket;
     if (FD_ISSET(Socket, &InpSet))
     {
       BytesRead = read(Socket, Buffer, 1024);
-      Buffer[BytesRead] = '\0';   // Set the string terminating NULL byte on the end of the data read
-      strcpy(pPlayerCurr->Input, Buffer);
+      Buffer[BytesRead] = '\0';
+      strcpy(pPlayer->Input, Buffer);
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
   }
