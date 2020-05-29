@@ -9,6 +9,7 @@
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 #include <arpa/inet.h>                  // This and sys/socket.h - a whole plethora of socket related stuff
+#include <ctype.h>                      // isspace()
 #include <errno.h>                      // EINTR
 #include <fcntl.h>                      // fcntl(), F_SETFL, FNDELAY
 #include <pwd.h>                        // getpwuid()
@@ -42,7 +43,7 @@ long int            SendResult;         // Number of bytes sent to player
 int                 Socket;             // Socket value
 socklen_t           SocketSize;         // Size of Socket structure
 extern int          errno;              // Error number set by fopen(), for example
-int                 i;                  // Just a number
+size_t              i;                  // Just a number
 size_t              x;                  // Just a number
 
 //Pointers
@@ -109,6 +110,7 @@ void GetPlayerInput();
 void GetTime();
 void HeartBeat();
 void LogIt(char *LogMsg);
+void LowerCase(char * Str);
 void OpenLog();
 void ProcessPlayerInput();
 void SendPlayerOutput();
@@ -116,6 +118,7 @@ void ShutItDown();
 void Sleep();
 void SocketListen();
 void StartItUp();
+void Trim(char * Str);
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Main
@@ -253,10 +256,11 @@ void ProcessPlayerInput()
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
-    if (pPlayerCurr->Input[0] != '\0')
+    pPlayer = pPlayerCurr;
+    if (pPlayer->Input[0] != '\0')
     {
-      strcpy(Command, pPlayerCurr->Input);
-      pPlayerCurr->Input[0] = '\0';
+      strcpy(Command, pPlayer->Input);
+      pPlayer->Input[0] = '\0';
       DoCmd();
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
@@ -422,11 +426,40 @@ void AbortIt()
   exit(1);
 }
 
+// Trim a string
+void Trim(char * Str)
+{
+  i = strlen(Str);
+  i--;
+  while (isspace(Str[i]))
+  {
+    Str[i] = '\0';
+    if (i == 0)
+    { 
+      break;
+    }
+    i--;
+  }
+}
+
+// Force string to lowercase
+void LowerCase(char * Str)
+{
+  for(i = 0; Str[i]; i++)
+  {
+    Str[i] = (char) tolower(Str[i]);
+  }
+}
+
 // Do command
 void DoCmd()
 {
-  if (strcmp(Command, "shutdown\r\n") == 0)
+  Trim(Command);
+  LowerCase(Command);
+  if (strcmp(Command, "shutdown") == 0)
   {
     GameShutDown = true;
+    return;
   }
+  strcpy(pPlayer->Output, "Huh?\r\n");
 }
