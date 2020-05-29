@@ -274,14 +274,16 @@ void SendPlayerOutput()
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
-    if (pPlayerCurr->Output[0] == '\0')
+    pPlayer = pPlayerCurr;
+    if (pPlayer->Output[0] == '\0')
     {
       pPlayerCurr = pPlayerCurr->pPlayerNext;
       continue;
     }
-    strcpy(Buffer, pPlayerCurr->Output);
-    pPlayerCurr->Output[0] = '\0';
+    strcpy(Buffer, pPlayer->Output);
+    pPlayer->Output[0] = '\0';
     BufferLen = strlen(Buffer);
+    Socket = pPlayer->Socket;
     SendResult = send(Socket, Buffer, BufferLen, 0);
     if (SendResult != BufferLen)
     {
