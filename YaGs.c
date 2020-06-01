@@ -464,6 +464,15 @@ void AbortIt()
   exit(1);
 }
 
+// Force string to lowercase
+void LowerCase(char * Str)
+{
+  for(i = 0; Str[i]; i++)
+  {
+    Str[i] = (char) tolower(Str[i]);
+  }
+}
+
 // Trim a string
 void Trim(char * Str)
 {
@@ -487,15 +496,6 @@ void Trim(char * Str)
       Str[i] = Str[i+1];
     }
     Str[i] = '\0';
-  }
-}
-
-// Force string to lowercase
-void LowerCase(char * Str)
-{
-  for(i = 0; Str[i]; i++)
-  {
-    Str[i] = (char) tolower(Str[i]);
   }
 }
 
