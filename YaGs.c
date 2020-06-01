@@ -44,6 +44,7 @@ int                 Socket;             // Socket value
 socklen_t           SocketSize;         // Size of Socket structure
 extern int          errno;              // Error number set by fopen(), for example
 size_t              i;                  // Just a number
+size_t              j;                  // Just a number
 size_t              x;                  // Just a number
 
 //Pointers
@@ -476,6 +477,16 @@ void Trim(char * Str)
       break;
     }
     i--;
+  }
+  j = i;
+  i = 0;
+  while (Str[0] == ' ')
+  {
+    for (i = 0; i < j; i++)
+    {
+      Str[i] = Str[i+1];
+    }
+    Str[i] = '\0';
   }
 }
 
