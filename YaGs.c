@@ -43,9 +43,12 @@ long int            SendResult;         // Number of bytes sent to player
 int                 Socket;             // Socket value
 socklen_t           SocketSize;         // Size of Socket structure
 extern int          errno;              // Error number set by fopen(), for example
-size_t              i;                  // Just a number
-size_t              j;                  // Just a number
-size_t              x;                  // Just a number
+size_t              i;                  // A non-negative integer
+size_t              j;                  // A non-negative integer
+size_t              k;                  // A non-negative integer
+size_t              x;                  // A non-negative integer
+size_t              y;                  // A non-negative integer
+size_t              z;                  // A non-negative integer
 
 //Pointers
 char               *CurrentTime;        // Current timestamp
@@ -53,7 +56,9 @@ char               *HomeDir;            // Value of $HOME
 FILE               *GreetFile;          // Greeting file
 FILE               *LogFile;            // Log file
 struct Players     *pPlayer;            // Pointer to player
+struct Players     *pPlayerSave;        // Pointer to player - save
 struct Players     *pPlayerCurr;        // Pointer to current player in the player list
+struct Players     *pPlayerCurrSave;    // Pointer to current player in the player list - save
 struct Players     *pPlayerHead;        // Pointer to head of player list
 struct Players     *pPlayerTail;        // Pointer to tail of player list
 struct passwd      *pw;                 // Password struct (used to get $HOME)
@@ -64,6 +69,7 @@ char                Command[1024];      // The command
 char                GreetFileName[50];  // Greeting file name
 char                LogFileName[50];    // Log file name
 char                LogMsg[100];        // Log message
+char                MsgTxt[100];        // Message text
 
 // Structures
 fd_set              InpSet;             // File Descriptor Set structure
@@ -106,25 +112,30 @@ char               *GameWakeMsg  = "Waking up";                           // Gam
 //$$ Functions
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-void AbortIt();
-void AcceptNewPlayer();
-void CheckForNewPlayers();
-void CloseLog();
-void DoCmd();
-void GetPlayerInput();
-void GetTime();
-void Greeting();
-void HeartBeat();
-void LogIt(char *LogMsg);
-void LowerCase(char * Str);
-void OpenLog();
-void ProcessPlayerInput();
-void SendPlayerOutput();
-void ShutItDown();
-void Sleep();
-void SocketListen();
-void StartItUp();
-void Trim(char * Str);
+void    AbortIt();
+void    AcceptNewPlayer();
+void    CheckForNewPlayers();
+bool    CmdOk();
+void    CloseLog();
+void    DoCmd();
+void    DoShutdown();
+void    GetPlayerInput();
+void    GetTime();
+void    Greeting();
+void    HeartBeat();
+void    LogIt(char *LogMsg);
+void    LowerCase(char * Str);
+void    OpenLog();
+void    ProcessPlayerInput();
+void    Prompt(struct Players *pPlayer);
+void    SendPlayerOutput();
+void    SendToAll();
+void    ShutItDown();
+void    Sleep();
+void    SocketListen();
+void    StartItUp();
+void    Trim(char * Str);
+size_t  Words(char* Str);
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 //$$ Main
@@ -172,13 +183,13 @@ void StartItUp()
 // Heart beat
 void HeartBeat()
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
 }
 
 // Check for new players
 void CheckForNewPlayers()
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   FD_ZERO(&InpSet);
   FD_SET(Listen, &InpSet);
   MaxSocket = Listen;
@@ -210,6 +221,7 @@ void CheckForNewPlayers()
 // Accept new player
 void AcceptNewPlayer()
 {
+  DEBUGIT(1)
   Socket = accept(Listen, (struct sockaddr *) &SocketAddr, (socklen_t *) &SocketSize);
   if (Socket < 0)
   {
@@ -244,6 +256,7 @@ void AcceptNewPlayer()
 // Greeting
 void Greeting()
 {
+  DEBUGIT(1)
   sprintf(GreetFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",LIB_DIR,"/",GREET_FILE);
   GreetFile = fopen(GreetFileName, "r");
   if (GreetFile == NULL)
@@ -265,12 +278,13 @@ void Greeting()
     }
     strcat(pPlayer->Output,Buffer);
   }
+  Prompt(pPlayer);
 }
 
 // Get player input
 void GetPlayerInput()
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
@@ -289,6 +303,7 @@ void GetPlayerInput()
 // Process player input
 void ProcessPlayerInput()
 {
+  DEBUGIT(2)
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
@@ -306,7 +321,7 @@ void ProcessPlayerInput()
 // Send player output
 void SendPlayerOutput()
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
@@ -381,7 +396,7 @@ void GetTime()
 // Sleep
 void Sleep()
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   if (USE_USLEEP == 'Y')                    // Sleeping the game is one way to avoid needless
   {                                         //   consumption of CPU. Typically, usleep() works
     usleep(SLEEP_TIME);                     //   just fine for this purpose. Using select() is
@@ -467,6 +482,7 @@ void AbortIt()
 // Force string to lowercase
 void LowerCase(char * Str)
 {
+  DEBUGIT(1)
   for(i = 0; Str[i]; i++)
   {
     Str[i] = (char) tolower(Str[i]);
@@ -476,6 +492,7 @@ void LowerCase(char * Str)
 // Trim a string
 void Trim(char * Str)
 {
+  DEBUGIT(1)
   i = strlen(Str);
   i--;
   while (isspace(Str[i]))
@@ -499,15 +516,99 @@ void Trim(char * Str)
   }
 }
 
+// Word count
+size_t Words(char * Str)
+{
+  DEBUGIT(1)
+  #define NotWord 0
+  #define InWord  1
+  int State;
+  State = 0;
+  x = 0;
+  for(i = 0; Str[i]; i++)
+  {
+    if (isspace(Str[i]))
+    {
+      State = NotWord;
+    }
+    else if (State == NotWord)
+    {
+      State = InWord;
+      x++;
+    }
+  }
+  return x;
+}
+
+// Prompt
+void Prompt(struct Players *pPlayer)
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output,"\r\n");
+  strcat(pPlayer->Output,"> ");
+}
+
+// Send a message to all players
+void SendToAll()
+{
+  DEBUGIT(1)
+  pPlayerSave     = pPlayer;
+  pPlayerCurrSave = pPlayerCurr;
+  pPlayerCurr     = pPlayerHead;
+  while (pPlayerCurr != NULL)
+  {
+    pPlayer = pPlayerCurr;
+    if (pPlayer != pPlayerSave)
+    {
+      strcat(pPlayer->Output,"\r\n");
+    }
+    strcat(pPlayer->Output, MsgTxt);
+    Prompt(pPlayer);
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
+  pPlayer     = pPlayerSave;
+  pPlayerCurr = pPlayerCurrSave;
+}
+
+// Check to see if Command is OK
+bool CmdOk()
+{
+  DEBUGIT(1)
+  y = Words(Command);
+  if (y == 1)
+  {
+    return true;
+  }
+  else
+  {
+    strcat(pPlayer->Output, "At this time, YaGs only accepts 1 word commands\r\n");
+    Prompt(pPlayer);
+    return false;
+  }
+}
+
 // Do command
 void DoCmd()
 {
+  DEBUGIT(1)
   Trim(Command);
+  LogIt(Command);
+  if (!CmdOk()) return;
   LowerCase(Command);
   if (strcmp(Command, "shutdown") == 0)
   {
-    GameShutDown = true;
+    DoShutdown();
     return;
   }
   strcpy(pPlayer->Output, "Huh?\r\n");
+  Prompt(pPlayer);
+}
+
+// Shutdown
+void DoShutdown()
+{
+  DEBUGIT(1)
+  GameShutDown = true;
+  strcpy(MsgTxt, "YaGs is shutting down!\r\n");
+  SendToAll();
 }
