@@ -32,7 +32,7 @@ bool                NoPlayers;          // True when we have no players
 // Numbers
 size_t              BufferLen;          // Length of the string stored in Buffer
 long int            BytesRead;          // Number of bytes read
-long int            CurrentTimeSec;     // Current time in seconds
+time_t              CurrentTimeSec;     // Current time in seconds
 socklen_t           LingerSize;         // Size of Linger stucture
 int                 Listen;             // Listening socket
 int                 MaxSocket;          // Maximum socket value
@@ -55,6 +55,7 @@ char               *CurrentTime;        // Current timestamp
 char               *HomeDir;            // Value of $HOME
 FILE               *GreetFile;          // Greeting file
 FILE               *LogFile;            // Log file
+FILE               *PlayerFile;         // Player file
 struct Players     *pPlayer;            // Pointer to player
 struct Players     *pPlayerSave;        // Pointer to player - save
 struct Players     *pPlayerCurr;        // Pointer to current player in the player list
@@ -70,6 +71,7 @@ char                GreetFileName[50];  // Greeting file name
 char                LogFileName[50];    // Log file name
 char                LogMsg[100];        // Log message
 char                MsgTxt[100];        // Message text
+char                PlayerFileName[50]; // Player file name
 
 // Structures
 fd_set              InpSet;             // File Descriptor Set structure
@@ -87,9 +89,19 @@ struct Players                          // Player structure
   struct Players *pPlayerNext;
 };
 
+struct sPlayer
+{
+  char    Name[50];
+  char    Password[50];
+  char    Admin;
+  time_t  Born;
+  int     Experience;
+  char    Level;
+} Player;
+
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
-char               *GameStartMsg = "YaGs v1.0.3 Starting";                // Game starting message
+char               *GameStartMsg = "YaGs v1.0.4 Starting";                // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
 
@@ -103,9 +115,11 @@ char               *GameWakeMsg  = "Waking up";                           // Gam
 #define LIB_DIR         "Library"       // Library directory
 #define LOG_DIR         "Logs"          // Log directory
 #define LOG_FILE        "Log.txt"       // Log file
+#define PLAYER_FILE     "Player.yags"   // Player file
 #define PORT            7777            // Port number
 #define SLEEP_TIME      0400000         // Sleep for a short period of time
 #define USE_USLEEP      'N'             // Use usleep() Y or N
+#define WORLD_DIR       "World"         // World directory
 #define YAGS_HOME_DIR   "YaGs"          // YaGs home directory
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -116,6 +130,7 @@ void    AbortIt();
 void    AcceptNewPlayer();
 void    CheckForNewPlayers();
 bool    CmdOk();
+void    CloseFiles();
 void    CloseLog();
 void    DoCmd();
 void    DoShutdown();
@@ -123,8 +138,10 @@ void    GetPlayerInput();
 void    GetTime();
 void    Greeting();
 void    HeartBeat();
+void    Initialization();
 void    LogIt(char *LogMsg);
 void    LowerCase(char * Str);
+void    OpenFiles();
 void    OpenLog();
 void    ProcessPlayerInput();
 void    Prompt(struct Players *pPlayer);
@@ -169,15 +186,58 @@ int main(int argc, char **argv)
 // Start the game up
 void StartItUp()
 {
-  GameShutDown = false;
-  NoPlayers    = true;
-  pw = getpwuid(getuid());
-  HomeDir = pw->pw_dir;
+  Initialization();
   OpenLog();
   SocketListen();
-  pPlayerHead = NULL;
-  pPlayerTail = NULL;
-  pPlayerCurr = NULL;
+  OpenFiles();
+}
+
+// Initialization
+void Initialization()
+{
+  pw           = getpwuid(getuid());
+  HomeDir      = pw->pw_dir;
+  GameShutDown = false;
+  NoPlayers    = true;
+  pPlayerHead  = NULL;
+  pPlayerTail  = NULL;
+  pPlayerCurr  = NULL;
+}
+
+// Open files
+void OpenFiles()
+{
+  DEBUGIT(1)
+  sprintf(PlayerFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",WORLD_DIR,"/",PLAYER_FILE);
+  PlayerFile = fopen(PlayerFileName, "w+");
+  if (PlayerFile == NULL)
+  {
+    sprintf(LogMsg,"Error opening %s : %s", PLAYER_FILE, strerror(errno));
+    AbortIt();
+  }
+}
+
+// Shut the game down
+void ShutItDown()
+{
+  DEBUGIT(1)
+  CloseFiles();
+  CloseLog();
+}
+
+// Close files
+void CloseFiles()
+{
+  DEBUGIT(1)
+  fclose(PlayerFile);
+}
+
+// Close log
+void CloseLog()
+{
+  DEBUGIT(1)
+  LogIt(GameStopMsg);
+  fclose(LogFile);
 }
 
 // Heart beat
@@ -278,6 +338,7 @@ void Greeting()
     }
     strcat(pPlayer->Output,Buffer);
   }
+  fclose(GreetFile);
   Prompt(pPlayer);
 }
 
@@ -349,13 +410,6 @@ void SendPlayerOutput()
   }
 }
 
-// Shut the game down
-void ShutItDown()
-{
-  DEBUGIT(1)
-  CloseLog();
-}
-
 // Open log
 void OpenLog()
 {
@@ -375,13 +429,6 @@ void LogIt(char *LogMsg)
   GetTime();
   fprintf(LogFile, "%s - %s\r\n", CurrentTime, LogMsg);
   fflush(LogFile);
-}
-
-// Close log
-void CloseLog()
-{
-  LogIt(GameStopMsg);
-  fclose(LogFile);
 }
 
 // Get current time
