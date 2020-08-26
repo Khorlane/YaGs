@@ -68,15 +68,21 @@ struct Players     *pPlayerCurr;            // Pointer to current player in the 
 struct Players     *pPlayerCurrSave;        // Pointer to current player in the player list - save
 struct Players     *pPlayerHead;            // Pointer to head of player list
 struct Players     *pPlayerTail;            // Pointer to tail of player list
+struct Players     *pTarget;                // Pointer to target player
 struct passwd      *pw;                     // Password struct (used to get $HOME environment variable)
 
 // Strings
-char                Buffer[1024];           // Just a buffer
+char                aBuffer[1024];          // Just a buffer
+char                *Buffer = aBuffer;      // Just a buffer too
 char                Command[1024];          // The command from the player
 char                GreetingFileName[50];   // Greeting file name
 char                LogFileName[50];        // Log file name
 char                LogMsg[100];            // Log message
 char                MsgTxt[100];            // Message text
+char                MudCmd[10];             // Mud command
+char                TheRest[50];            // The rest of the command
+char                aTmpStr[50];            // Temp string
+char                *TmpStr = aTmpStr;      // Temp sting too
 char                PlayerFileName[50];     // Player file name
 char                ValidNamesFileName[50]; // Valid names file name
 
@@ -164,35 +170,40 @@ struct sPlayer                              // Player structure - used when read
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-void    AddPlayerToFile();
-void    AddToPlayerList();
 void    AbortIt();
 void    AcceptNewPlayer();
+void    AddPlayerToFile();
+void    AddToPlayerList();
 void    CheckForNewPlayers();
 void    CloseFiles();
 void    CloseLog();
-bool    CmdOk();
+bool    MudCmdOk();
 void    CopyPlayerListToPlayer();
 void    CopyPlayerToPlayerList();
 void    DelFromPlayerList();
-void    DoCmd();
+void    DoAdvance();
+void    DoPlayerfile();
 void    DoShutdown();
-bool    Equal(char *S1, char *S2);
+bool    Equal(char* S1, char* S2);
 void    GetNextPlayerNbr();
 long    GetPlayerFileOffset();
 void    GetPlayerInput();
 void    GetPlayerOnline();
 void    GetTime();
 void    HeartBeat();
-void    Initialization();
 void    InitalizeNewPlayer();
-void    LogIt(char *LogMsg);
-void    LowerCase(char * Str);
+void    Initialization();
+void    LogIt(char* LogMsg);
+void    LowerCase(char* Str);
 void    OpenFiles();
 void    OpenLog();
+bool    PlayerNameValid();
+bool    PlayerNameValidNew();
+bool    PlayerNameValidOld();
+void    ProcessCommand();
+void    ProcessCommand();
 void    ProcessPlayerInput();
-void    Prompt(struct Players *pPlayer);
+void    Prompt(struct Players* pPlayer);
 void    ReadPlayerFromFile();
 void    SendGreeting();
 void    SendPlayerOutput();
@@ -201,10 +212,8 @@ void    ShutItDown();
 void    Sleep();
 void    SocketListen();
 void    StartItUp();
-void    Trim(char * Str);
-bool    PlayerNameValid();
-bool    PlayerNameValidNew();
-bool    PlayerNameValidOld();
+void    Trim(char* Str);
+void    Word(size_t Nbr, char* S1, char* S2);
 size_t  Words(char* Str);
 void    WritePlayerToFile();
 
@@ -253,37 +262,99 @@ void ProcessPlayerInput()
     {
       strcpy(Command, pPlayer->Input);
       pPlayer->Input[0] = '\0';
-      DoCmd();
+      ProcessCommand();
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
   }
 }
 
-void DoCmd()
+void ProcessCommand() // TODO ProcessCommand()
 {
   DEBUGIT(1)
   Trim(Command);
   LogIt(Command);
-  LowerCase(Command);
   if (pPlayer->State != Online)
   {
     GetPlayerOnline();
+    return;
   }
-  if (!CmdOk()) return;
-  if (Equal(Command, "shutdown"))
+  Word(1, Command, MudCmd);
+  LowerCase(MudCmd);
+  if (!MudCmdOk()) return;
+  // Commands
+  if (Equal(MudCmd, "advance"))
+  {
+    DoAdvance();
+    return;
+  }
+  if (Equal(MudCmd, "playerfile"))
+  {
+    DoPlayerfile();
+    return;
+  }
+  if (Equal(MudCmd, "shutdown"))
   {
     DoShutdown();
     return;
   }
-  strcat(pPlayer->Output, "Huh?\r\n");
+  // if we get here something is broke bad!!
+  strcat(pPlayer->Output, "\r\nYou should never see this!!\r\n");
+  Prompt(pPlayer);
+}
+
+void DoAdvance()
+{
+  DEBUGIT(1)
+  pPlayerCurrSave = pPlayerCurr;
+  pTarget = NULL;
+  Word(2, Command, TmpStr);
+  while (pPlayerCurr != NULL)
+  {
+    if (Equal(pPlayerCurr->Name, TmpStr))
+    {
+      pTarget = pPlayerCurr;
+      break;
+    }
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
+  pPlayerCurr = pPlayerCurrSave;
+  if (pTarget == NULL)
+  {
+    strcat(pPlayer->Output, "\r\n");
+    sprintf(Buffer, "%s %s", TmpStr, "is not online\r\n");
+    strcat(pPlayer->Output, Buffer);
+    strcat(pPlayer->Output, "\r\n");
+    Prompt(pPlayer);
+    return;
+  }
+}
+
+void DoPlayerfile()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "\r\n");
+  strcat(pPlayer->Output, "Player file listing\r\n");
+  strcat(pPlayer->Output, "-------------------\r\n");
+  EndFile = false;
+  PlayerNbr = 1;
+  ReadPlayerFromFile();
+  while (EndFile == false)
+  {
+    sprintf(Buffer, "%s %c %i", Player.Name, Player.Admin, Player.Level);
+    strcat(pPlayer->Output, Buffer);
+    strcat(pPlayer->Output, "\r\n");
+    PlayerNbr++;
+    ReadPlayerFromFile();
+  }
+  strcat(pPlayer->Output, "\r\n");
   Prompt(pPlayer);
 }
 
 void DoShutdown()
 {
   DEBUGIT(1)
-  GameShutDown = true;
-  strcpy(MsgTxt, "YaGs is shutting down!\r\n");
+    GameShutDown = true;
+  strcpy(MsgTxt, "\r\nYaGs is shutting down!\r\n");
   SendToAll();
 }
 
@@ -294,7 +365,7 @@ void DoShutdown()
 void Prompt(struct Players *pPlayer)
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output,"\r\n");
+  //strcat(pPlayer->Output,"\r\n");
   strcat(pPlayer->Output,"> ");
 }
 
@@ -342,18 +413,21 @@ void GetPlayerOnline()
   {
     if (Equal(Command, "n"))
     { // Returning Player
-      strcat(pPlayer->Output,"Name?\r\n");
+      strcat(pPlayer->Output,"\r\nName?\r\n");
       pPlayer->State = Wait_Player_Name;
+      Prompt(pPlayer);
       return;
     }
     if (Equal(Command, "y"))
     { // New Player
-      strcat(pPlayer->Output,"Sex M-F?\r\n");
+      strcat(pPlayer->Output,"\r\nSex M-F?\r\n");
       pPlayer->State = Wait_Sex;
+      Prompt(pPlayer);
       return;
     }
     // Player didn't respond with a Y or N
-    strcat(pPlayer->Output, "New Player Y-N\r\n");
+    strcat(pPlayer->Output, "\r\nNew Player? Y or N\r\n");
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -364,14 +438,17 @@ void GetPlayerOnline()
     if (PlayerNameValid())
     { // Name is valid, ask for password
       CopyPlayerToPlayerList();
-      strcat(pPlayer->Output, "Password?\r\n");
+      strcat(pPlayer->Output, "\r\nPassword?\r\n");
       pPlayer->State = Wait_Password;
+      Prompt(pPlayer);
       return;
     }
     // Didn't find player name, try again
+    strcat(pPlayer->Output, "\r\n");
     strcat(pPlayer->Output, Command);
     strcat(pPlayer->Output, " not found, try again\r\n");
-    strcat(pPlayer->Output, "Name?\r\n");
+    strcat(pPlayer->Output, "\r\nName?\r\n");
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -381,12 +458,15 @@ void GetPlayerOnline()
   {
     if (Equal(Command, pPlayer->Password))
     { // Password is valid
+      strcat(pPlayer->Output, "\r\nWelcome to YaGs!!\r\n");
       pPlayer->State = Online;
+      Prompt(pPlayer);
       return;
     }
     // Wrong password
-    strcat(pPlayer->Output, "Wrong password, try again\r\n");
-    strcat(pPlayer->Output, "Password?\r\n");
+    strcat(pPlayer->Output, "\r\nWrong password, try again\r\n");
+    strcat(pPlayer->Output, "\r\nPassword?\r\n");
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -397,19 +477,22 @@ void GetPlayerOnline()
     if (Equal(Command, "m"))
     {
       pPlayer->Sex = 'M';
-      strcat(pPlayer->Output, "Name?\r\n");
+      strcat(pPlayer->Output, "\r\nName?\r\n");
       pPlayer->State = Wait_New_Player_Name;
+      Prompt(pPlayer);
       return;
     }
     if (Equal(Command, "f"))
     {
       pPlayer->Sex = 'F';
-      strcat(pPlayer->Output, "Name?\r\n");
+      strcat(pPlayer->Output, "\r\nName?\r\n");
       pPlayer->State = Wait_New_Player_Name;
+      Prompt(pPlayer);
       return;
     }
-    strcat(pPlayer->Output, "Sex not M or F, try again\r\n");
-    strcat(pPlayer->Output, "Sex M-F?\r\n");
+    strcat(pPlayer->Output, "\r\nSex not M or F, try again\r\n");
+    strcat(pPlayer->Output, "\r\nSex M-F?\r\n");
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -420,15 +503,18 @@ void GetPlayerOnline()
     if (PlayerNameValid())
     { // Name is valid, ask for password
       strcpy(pPlayer->Name, Command);
-      strcat(pPlayer->Output, "Password?\r\n");
+      strcat(pPlayer->Output, "\r\nPassword?\r\n");
       pPlayer->BadPswdCount = 0;
       pPlayer->State = Wait_Password1;
+      Prompt(pPlayer);
       return;
     }
     // Didn't find player name, try again
+    strcat(pPlayer->Output, "\r\n");
     strcat(pPlayer->Output, Command);
     strcat(pPlayer->Output, " not found, try again\r\n");
-    strcat(pPlayer->Output, "Name?\r\n");
+    strcat(pPlayer->Output, "\r\nName?\r\n");
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -437,8 +523,9 @@ void GetPlayerOnline()
   if (pPlayer->State == Wait_Password1)
   {
     strcpy(pPlayer->Password, Command);
-    strcat(pPlayer->Output, "Re-enter Password\r\n");
+    strcat(pPlayer->Output, "\r\nRe-enter Password\r\n");
     pPlayer->State = Wait_Password2;
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -452,21 +539,24 @@ void GetPlayerOnline()
       InitalizeNewPlayer();
       AddPlayerToFile();
       CopyPlayerToPlayerList();
-      pPlayer->State        = Online;
+      strcat(pPlayer->Output, "\r\nWelcome to YaGs!!\r\n");
+      pPlayer->State = Online;
+      Prompt(pPlayer);
       return;
     }
     // Check bad password count
     pPlayer->BadPswdCount++;
     if (pPlayer->BadPswdCount > 3)
     {
-      strcat(pPlayer->Output, "Three tries, you're out!\r\n");
+      strcat(pPlayer->Output, "\r\nThree tries, you're out!\r\n");
       pPlayer->State = Disconnect;
       return;
     }
     // Password don't match, try again
-    strcat(pPlayer->Output, "Passwords don't match, try again\r\n");
-    strcat(pPlayer->Output, "Password?\r\n");
+    strcat(pPlayer->Output, "\r\nPasswords don't match, try again\r\n");
+    strcat(pPlayer->Output, "\r\nPassword?\r\n");
     pPlayer->State = Wait_Password1;
+    Prompt(pPlayer);
     return;
   }
   strcpy(LogMsg,"ERROR: Logic - should never get here!");
@@ -495,7 +585,7 @@ void SendGreeting()
     {
       break;
     }
-    strcat(pPlayer->Output,Buffer);
+    strcat(pPlayer->Output, Buffer);
   }
   fclose(GreetingFile);
   Prompt(pPlayer);
@@ -678,7 +768,7 @@ void SendPlayerOutput()
     SendResult = send(Socket, Buffer, BufferLen, 0);
     if (SendResult != BufferLen)
     {
-      strcpy(Buffer,"quit\0");
+      strcpy(Buffer, "quit\0");
       perror("-- Send failed\r\n");
     }
     else
@@ -736,7 +826,7 @@ void OpenFiles()
   PlayerFile = fopen(PlayerFileName, "r+");
   if (PlayerFile == NULL)
   {
-    sprintf(LogMsg,"Error opening %s : %s", PLAYER_FILE, strerror(errno));
+    sprintf(LogMsg,"Error opening %s : %s", PlayerFileName, strerror(errno));
     AbortIt();
   }
 }
@@ -760,11 +850,11 @@ void CloseFiles()
 
 bool Equal(char *S1, char *S2)
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   return (!strcmp(S1, S2));
 }
 
-void LowerCase(char * Str)
+void LowerCase(char *Str)
 {
   DEBUGIT(1)
   for(i = 0; Str[i]; i++)
@@ -773,7 +863,7 @@ void LowerCase(char * Str)
   }
 }
 
-void Trim(char * Str)
+void Trim(char *Str)
 {
   DEBUGIT(1)
   i = strlen(Str);
@@ -799,7 +889,35 @@ void Trim(char * Str)
   }
 }
 
-size_t Words(char * Str)
+void Word(size_t Nbr, char *S1, char *S2)
+{ // TODO Word()
+  j = 0;
+  x = 1;
+  for (i = 0; S1[i]; i++)
+  {
+    if (x == Nbr)
+    {
+      break;
+    }
+    if (isspace(S1[i]))
+    {
+      x++;
+    }
+  }
+  while (!isspace(S1[i]))
+  {
+    if (S1[i] == '\0')
+    {
+      break;
+    }
+    S2[j] = S1[i];
+    i++;
+    j++;
+  }
+  S2[j] = '\0';
+}
+
+size_t Words(char *Str)
 {
   DEBUGIT(1)
   #define NotWord 0
@@ -807,7 +925,7 @@ size_t Words(char * Str)
   int State;
   State = 0;
   x = 0;
-  for(i = 0; Str[i]; i++)
+  for (i = 0; Str[i]; i++)
   {
     if (isspace(Str[i]))
     {
@@ -833,20 +951,15 @@ void AbortIt()
   exit(1);
 }
 
-bool CmdOk()
+bool MudCmdOk()
 {
   DEBUGIT(1)
-  y = Words(Command);
-  if (y == 1)
-  {
-    return true;
-  }
-  else
-  {
-    strcat(pPlayer->Output, "At this time, YaGs only accepts 1 word commands\r\n");
-    Prompt(pPlayer);
-    return false;
-  }
+  if (Equal(MudCmd, "advance"))    return true;
+  if (Equal(MudCmd, "playerfile")) return true;
+  if (Equal(MudCmd, "shutdown"))   return true;
+  strcat(pPlayer->Output, "\r\nHuh?\r\n");
+  Prompt(pPlayer);
+  return false;
 }
 
 void GetTime()
@@ -997,6 +1110,7 @@ bool PlayerNameValidNew()
       Found = false;
       break;
     }
+    Trim(Buffer);
     if (Equal(Command, Buffer))
     { // Match!
       Found = true;
@@ -1039,6 +1153,12 @@ void WritePlayerToFile()
     sprintf(LogMsg,"ERROR: fwrite %s", PLAYER_FILE);
     AbortIt();
   }
+  ReturnValue1 = fsync(fileno(PlayerFile));
+  if (ReturnValue1 != 0)
+  {
+    sprintf(LogMsg, "ERROR: fsync %s", PLAYER_FILE);
+    AbortIt();
+  }
 }
 
 void AddPlayerToFile()
@@ -1056,10 +1176,17 @@ void AddPlayerToFile()
     sprintf(LogMsg,"ERROR: fwrite %s", PLAYER_FILE);
     AbortIt();
   }
+  ReturnValue1 = fsync(fileno(PlayerFile));
+  if (ReturnValue1 != 0)
+  {
+    sprintf(LogMsg, "ERROR: fsync %s", PLAYER_FILE);
+    AbortIt();
+  }
 }
 
 void CopyPlayerToPlayerList()
 {
+  DEBUGIT(1)
   strcpy(pPlayer->Name,     Player.Name);
   strcpy(pPlayer->Password, Player.Password);
   pPlayer->Admin          = Player.Admin;
@@ -1074,6 +1201,7 @@ void CopyPlayerToPlayerList()
 
 void CopyPlayerListToPlayer()
 {
+  DEBUGIT(1)
   strcpy(Player.Name,     pPlayer->Name);
   strcpy(Player.Password, pPlayer->Password);
   Player.Admin          = pPlayer->Admin;
@@ -1086,6 +1214,7 @@ void CopyPlayerListToPlayer()
 
 void InitalizeNewPlayer()
 {
+  DEBUGIT(1)
   strcpy(Player.Name,     pPlayer->Name);
   strcpy(Player.Password, pPlayer->Password);
   Player.Sex            = pPlayer->Sex;
@@ -1098,10 +1227,11 @@ void InitalizeNewPlayer()
 
 void GetNextPlayerNbr()
 {
+  DEBUGIT(1)
   EndFile = false;
   PlayerNbr = 1;
   ReadPlayerFromFile();
-  while (EndFile = false)
+  while (EndFile == false)
   {
     PlayerNbr++;
     ReadPlayerFromFile();
