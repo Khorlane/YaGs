@@ -72,8 +72,7 @@ struct Players     *pTarget;                // Pointer to target player
 struct passwd      *pw;                     // Password struct (used to get $HOME environment variable)
 
 // Strings
-char                aBuffer[1024];          // Just a buffer
-char                *Buffer = aBuffer;      // Just a buffer too
+ char               Buffer[1024];           // Just a buffer
 char                Command[1024];          // The command from the player
 char                GreetingFileName[50];   // Greeting file name
 char                LogFileName[50];        // Log file name
@@ -200,7 +199,6 @@ void    OpenLog();
 bool    PlayerNameValid();
 bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
-void    ProcessCommand();
 void    ProcessCommand();
 void    ProcessPlayerInput();
 void    Prompt(struct Players* pPlayer);
@@ -601,7 +599,7 @@ void OpenLog()
   LogFile = fopen(LogFileName, "w");
   if (LogFile == NULL)
   {
-    printf("Error opening %s : %s\r\n", LOG_FILE, strerror(errno));
+    printf("Error opening %s : %s\r\n", LogFileName, strerror(errno));
     exit(1);
   }
   LogIt(GameStartMsg);
@@ -739,6 +737,7 @@ void GetPlayerInput()
   {
     pPlayer = pPlayerCurr;
     Socket = pPlayer->Socket;
+    pPlayer->Input[0] = '\0';
     if (FD_ISSET(Socket, &InpSet))
     {
       BytesRead = read(Socket, Buffer, 1024);
