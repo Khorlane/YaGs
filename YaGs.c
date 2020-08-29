@@ -46,7 +46,7 @@ int                 ReturnValue1;           // Return value
 size_t              ReturnValue2;           // Return value
 long int            SendResult;             // Number of bytes sent to player
 int                 Socket;                 // Socket value
-socklen_t           SocketSize;             // Size of Socket structure
+socklen_t           SocketAddrSize;         // Size of Socket structure
 extern int          errno;                  // Error number set by fopen(), for example
 size_t              i;                      // A non-negative integer
 size_t              j;                      // A non-negative integer
@@ -630,6 +630,7 @@ void SocketListen()
   Listen = socket(AF_INET, SOCK_STREAM, 0);
   if (Listen < 0)
   {
+    close(Listen);
     sprintf(LogMsg,"Socket Error: socket - create listening socket - failed with error: %s", strerror(errno));
     AbortIt();
   }
@@ -637,6 +638,7 @@ void SocketListen()
   ReturnValue1 = fcntl(Listen, F_SETFL, FNDELAY);
   if (ReturnValue1 < 0)
   {
+    close(Listen);
     sprintf(LogMsg,"Socket Error: fcntl - make listening socket non-blocking - failed with return value: %d", ReturnValue1);
     AbortIt();
   }
@@ -647,6 +649,7 @@ void SocketListen()
   ReturnValue1 = setsockopt(Listen, SOL_SOCKET, SO_LINGER, &Linger, LingerSize);
   if (ReturnValue1 < 0)
   {
+    close(Listen);
     sprintf(LogMsg,"Socket Error: setsockopt - SO_LINGER - failed with error: %s", strerror(errno));
     AbortIt();
   }
@@ -656,17 +659,19 @@ void SocketListen()
   ReturnValue1 = setsockopt(Listen, SOL_SOCKET, SO_REUSEADDR, &OptVal, OptValSize);
   if (ReturnValue1 < 0)
   {
+    close(Listen);
     sprintf(LogMsg,"Socket Error: setsockopt - SO_REUSEADDR - failed with error: %s", strerror(errno));
     AbortIt();
   }
   // Bind
   SocketAddr.sin_family      = AF_INET;
-  SocketAddr.sin_addr.s_addr = INADDR_ANY;
+  SocketAddr.sin_addr.s_addr = htonl(INADDR_ANY);
   SocketAddr.sin_port        = htons(PORT);
-  SocketSize                 = sizeof(SocketAddr);
-  ReturnValue1 = bind(Listen, (struct sockaddr *) &SocketAddr, SocketSize);
+  SocketAddrSize             = sizeof(SocketAddr);
+  ReturnValue1 = bind(Listen, (struct sockaddr *) &SocketAddr, SocketAddrSize);
   if (ReturnValue1 < 0)
   {
+    close(Listen);
     sprintf(LogMsg,"Socket Error: bind - listening port - failed with error: %s", strerror(errno));
     AbortIt();
   }
@@ -674,6 +679,7 @@ void SocketListen()
   ReturnValue1 = listen(Listen, 20);
   if (ReturnValue1 < 0)
   {
+    close(Listen);
     sprintf(LogMsg,"Socket Error: listen - listen on port - failed with error: %s", strerror(errno));
     AbortIt();
   }
@@ -717,7 +723,7 @@ void AcceptNewPlayer()
 {
   DEBUGIT(1)
   NoPlayers = false;
-  Socket = accept(Listen, (struct sockaddr *) &SocketAddr, (socklen_t *) &SocketSize);
+  Socket = accept(Listen, (struct sockaddr *) &SocketAddr, (socklen_t *) &SocketAddrSize);
   if (Socket < 0)
   {
     sprintf(LogMsg,"Socket Error: accept - new connection - failed with error: %s", strerror(errno));
