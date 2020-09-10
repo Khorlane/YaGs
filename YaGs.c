@@ -154,17 +154,21 @@ struct sPlayer                              // Player structure - used when read
 
 #define DEBUGIT(dl)      if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
 #define DEBUGIT_LVL      1                // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
-#define GREETING_FILE    "Greeting.txt"   // Greeting file
-#define LIB_DIR          "Library"        // Library directory
-#define LOG_DIR          "Logs"           // Log directory
-#define LOG_FILE         "Log.txt"        // Log file
-#define PLAYER_FILE      "Player.yags"    // Player file
 #define PORT             7777             // Port number
 #define SLEEP_TIME       0400000          // Sleep for a short period of time
 #define USE_USLEEP       'N'              // Use usleep() Y or N
-#define VALID_NAMES_FILE "ValidNames.txt" // Valid names file
+// Directories
+#define OverRide$HOME    'Y'              // Override $HOME environment variable as the 'home' of YaGs
+#define HOME_DIR         "/"              // Used when OverRide$HOME is 'Y', otherwise $HOME is used
 #define WORLD_DIR        "World"          // World directory
-#define YAGS_HOME_DIR    "YaGs"           // YaGs home directory
+#define YAGS_DIR         "YaGs"           // The YaGs directory
+#define LIB_DIR          "Library"        // Library directory
+#define LOG_DIR          "Logs"           // Log directory
+// Files
+#define GREETING_FILE    "Greeting.txt"   // Greeting file
+#define LOG_FILE         "Log.txt"        // Log file
+#define PLAYER_FILE      "Player.yags"    // Player file
+#define VALID_NAMES_FILE "ValidNames.txt" // Valid names file
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -180,8 +184,10 @@ bool    MudCmdOk();
 void    CopyPlayerListToPlayer();
 void    CopyPlayerToPlayerList();
 void    DelFromPlayerList();
+void    DisconnectPlayers();
 void    DoAdvance();
 void    DoPlayerfile();
+void    DoQuit();
 void    DoShutdown();
 bool    Equal(char* S1, char* S2);
 void    GetNextPlayerNbr();
@@ -290,6 +296,11 @@ void ProcessCommand() // TODO ProcessCommand()
     DoPlayerfile();
     return;
   }
+  if (Equal(MudCmd, "quit"))
+  {
+    DoQuit();
+    return;
+  }
   if (Equal(MudCmd, "shutdown"))
   {
     DoShutdown();
@@ -348,10 +359,20 @@ void DoPlayerfile()
   Prompt(pPlayer);
 }
 
+void DoQuit() // TODO DoQuit
+{
+  DEBUGIT(1)
+  CopyPlayerListToPlayer();
+  WritePlayerToFile();
+  strcat(pPlayer->Output, "Bye Bye");
+  strcat(pPlayer->Output, "\r\n");
+  pPlayer->State = Disconnect;
+}
+
 void DoShutdown()
 {
   DEBUGIT(1)
-    GameShutDown = true;
+  GameShutDown = true;
   strcpy(MsgTxt, "\r\nYaGs is shutting down!\r\n");
   SendToAll();
 }
@@ -432,7 +453,7 @@ void GetPlayerOnline()
   // Returning player - Name
   //***********************************
   if (pPlayer->State == Wait_Player_Name)
-  { // TODO Old player
+  {
     if (PlayerNameValid())
     { // Name is valid, ask for password
       CopyPlayerToPlayerList();
@@ -532,7 +553,7 @@ void GetPlayerOnline()
   if (pPlayer->State == Wait_Password2)
   {
     if (Equal(pPlayer->Password, Command))
-    { // TODO New player
+    {
       GetNextPlayerNbr();
       InitalizeNewPlayer();
       AddPlayerToFile();
@@ -564,7 +585,7 @@ void GetPlayerOnline()
 void SendGreeting()
 {
   DEBUGIT(1)
-  sprintf(GreetingFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",LIB_DIR,"/",GREETING_FILE);
+  sprintf(GreetingFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LIB_DIR,"/",GREETING_FILE);
   GreetingFile = fopen(GreetingFileName, "r");
   if (GreetingFile == NULL)
   {
@@ -595,7 +616,7 @@ void SendGreeting()
 
 void OpenLog()
 {
-  sprintf(LogFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",LOG_DIR,"/",LOG_FILE);
+  sprintf(LogFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LOG_DIR,"/",LOG_FILE);
   LogFile = fopen(LogFileName, "w");
   if (LogFile == NULL)
   {
@@ -782,6 +803,7 @@ void SendPlayerOutput()
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
   }
+  DisconnectPlayers();
 }
 
 void DisconnectPlayers()
@@ -794,7 +816,7 @@ void DisconnectPlayers()
     if (pPlayer->State == Disconnect)
     {
       close(pPlayer->Socket);
-      DelFromPlayerList();
+      DelFromPlayerList(); // TODO DisconnectPlayer() DelFromPlayerList()
       continue;
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
@@ -815,8 +837,15 @@ void StartItUp()
 
 void Initialization()
 { // Do not add DEBUGIT
-  pw           = getpwuid(getuid());
-  HomeDir      = pw->pw_dir;
+  if (OverRide$HOME == 'Y')
+  {
+    HomeDir    = HOME_DIR;
+  }
+  else
+  {
+    pw         = getpwuid(getuid());
+    HomeDir    = pw->pw_dir;
+  }
   GameShutDown = false;
   NoPlayers    = true;
   pPlayerHead  = NULL;
@@ -827,7 +856,7 @@ void Initialization()
 void OpenFiles()
 {
   DEBUGIT(1)
-  sprintf(PlayerFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",WORLD_DIR,"/",PLAYER_FILE);
+  sprintf(PlayerFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",WORLD_DIR,"/",PLAYER_FILE);
   PlayerFile = fopen(PlayerFileName, "r+");
   if (PlayerFile == NULL)
   {
@@ -895,7 +924,7 @@ void Trim(char *Str)
 }
 
 void Word(size_t Nbr, char *S1, char *S2)
-{ // TODO Word()
+{
   j = 0;
   x = 1;
   for (i = 0; S1[i]; i++)
@@ -961,6 +990,7 @@ bool MudCmdOk()
   DEBUGIT(1)
   if (Equal(MudCmd, "advance"))    return true;
   if (Equal(MudCmd, "playerfile")) return true;
+  if (Equal(MudCmd, "quit")) return true;
   if (Equal(MudCmd, "shutdown"))   return true;
   strcat(pPlayer->Output, "\r\nHuh?\r\n");
   Prompt(pPlayer);
@@ -983,9 +1013,9 @@ void Sleep()
     usleep(SLEEP_TIME);                     //   just fine for this purpose. Using select() is
   }                                         //   another (not recommended) means of sleeping a
   else                                      //   process.
-  {                                         // The YaGs development environment is Windows 10,
+  {                                         // If the YaGs development environment is Windows 10,
     #include <sys/select.h>                 //   Visual Studio, and WSL (Windows Subsystem for Linux)
-    struct timeval TimeOut;                 //   Ubuntu and for some strange reason, usleep() does not
+    struct timeval TimeOut;                 //   Ubuntu, then for some strange reason, usleep() does not
     TimeOut.tv_sec = 0;                     //   does not actually sleep.
     TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should  
     select(0, NULL, NULL, NULL, &TimeOut);  //   adjust SLEEP_TIME until you are happy.
@@ -1016,27 +1046,40 @@ void AddToPlayerList()
   pPlayer->State       = Send_Greeting;
   pPlayer->Output[0]   = '\0';
   pPlayer->pPlayerNext = NULL;
-  pPlayer->pPlayerPrev = NULL;
 }
 
 void DelFromPlayerList()
-{
-  DEBUGIT(1) 
+{ // TODO DelFromPlayerList()
+  DEBUGIT(1)
+  // Delete when only one node in list
+  if (pPlayerCurr == pPlayerHead)
+  {
+    if (pPlayerCurr == pPlayerTail)
+    {
+      pPlayerHead = NULL;
+      pPlayerTail = NULL;
+    }
+  }
+  else
   // Delete head node
   if (pPlayerCurr == pPlayerHead)
   {
     pPlayerHead = pPlayerCurr->pPlayerNext;
     pPlayerCurr->pPlayerNext->pPlayerPrev = NULL;
   }
+  else
   // Delete tail node
   if (pPlayerCurr == pPlayerTail)
   {
     pPlayerTail = pPlayerCurr->pPlayerPrev;
     pPlayerCurr->pPlayerPrev->pPlayerNext = NULL;
   }
-  // Delete middle node
-  pPlayerCurr->pPlayerPrev->pPlayerNext = pPlayerCurr->pPlayerNext;
-  pPlayerCurr->pPlayerNext->pPlayerPrev = pPlayerCurr->pPlayerPrev;
+  else
+  {
+    // Delete middle node
+    pPlayerCurr->pPlayerPrev->pPlayerNext = pPlayerCurr->pPlayerNext;
+    pPlayerCurr->pPlayerNext->pPlayerPrev = pPlayerCurr->pPlayerPrev;
+  }
   // Free node
   pPlayerCurr = pPlayer->pPlayerNext;
   free(pPlayer);
@@ -1094,7 +1137,7 @@ bool PlayerNameValidOld()
 bool PlayerNameValidNew()
 {
   DEBUGIT(1)
-  sprintf(ValidNamesFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_HOME_DIR,"/",LIB_DIR,"/",VALID_NAMES_FILE);
+  sprintf(ValidNamesFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LIB_DIR,"/",VALID_NAMES_FILE);
   ValidNamesFile = fopen(ValidNamesFileName, "r");
   if (ValidNamesFile == NULL)
   {
@@ -1146,6 +1189,7 @@ void ReadPlayerFromFile()
 void WritePlayerToFile()
 {
   DEBUGIT(1)
+  PlayerNbr = pPlayer->PlayerNbr;
   ReturnValue1 = fseek(PlayerFile, GetPlayerFileOffset(), SEEK_SET);
   if (ReturnValue1 != 0)
   {
