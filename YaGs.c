@@ -62,6 +62,7 @@ FILE               *GreetingFile;           // Greeting file
 FILE               *LogFile;                // Log file
 FILE               *PlayerFile;             // Player file
 FILE               *ValidNamesFile;         // Valid names file
+struct Players     *pActor;                 // Pointer to player
 struct Players     *pPlayer;                // Pointer to player
 struct Players     *pPlayerSave;            // Pointer to player - save
 struct Players     *pPlayerCurr;            // Pointer to current player in the player list
@@ -272,7 +273,7 @@ void ProcessPlayerInput()
   }
 }
 
-void ProcessCommand() // TODO ProcessCommand()
+void ProcessCommand()
 {
   DEBUGIT(1)
   Trim(Command);
@@ -314,8 +315,9 @@ void ProcessCommand() // TODO ProcessCommand()
 void DoAdvance()
 {
   DEBUGIT(1)
+  pTarget         = NULL;
   pPlayerCurrSave = pPlayerCurr;
-  pTarget = NULL;
+  pPlayerCurr     = pPlayerHead;
   Word(2, Command, TmpStr);
   while (pPlayerCurr != NULL)
   {
@@ -329,13 +331,33 @@ void DoAdvance()
   pPlayerCurr = pPlayerCurrSave;
   if (pTarget == NULL)
   {
-    strcat(pPlayer->Output, "\r\n");
     sprintf(Buffer, "%s %s", TmpStr, "is not online\r\n");
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     Prompt(pPlayer);
     return;
   }
+  // Advance the target player
+  pActor = pPlayer;
+  Word(3, Command, TmpStr);
+  pTarget->Level      = (char)atoi(TmpStr);
+  pTarget->Experience = (int)(pTarget->Level) * 100;
+  // Message to target player
+  strcat(pTarget->Output,"\r\n");
+  sprintf(Buffer, "%s %s %s", pActor->Name, "has promoted you to level", TmpStr);
+  strcat(pTarget->Output, Buffer);
+  strcat(pTarget->Output, "\r\n\r\n");
+  Prompt(pTarget);
+  // Message to player
+  sprintf(Buffer, "%s %s %s, ", pTarget->Name, "has been promoted to level", TmpStr);
+  strcat(pActor->Output, Buffer);
+  strcat(pActor->Output, "\r\n\r\n");
+  Prompt(pActor);
+  // Save target player
+  pPlayer = pTarget;
+  CopyPlayerListToPlayer();
+  WritePlayerToFile();
+  pPlayer = pActor;
 }
 
 void DoPlayerfile()
@@ -349,7 +371,7 @@ void DoPlayerfile()
   ReadPlayerFromFile();
   while (EndFile == false)
   {
-    sprintf(Buffer, "%s %c %i", Player.Name, Player.Admin, Player.Level);
+    sprintf(Buffer, "%s %c %i %i", Player.Name, Player.Admin, Player.Level, Player.Experience);
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     PlayerNbr++;
@@ -359,7 +381,7 @@ void DoPlayerfile()
   Prompt(pPlayer);
 }
 
-void DoQuit() // TODO DoQuit
+void DoQuit()
 {
   DEBUGIT(1)
   CopyPlayerListToPlayer();
@@ -384,7 +406,6 @@ void DoShutdown()
 void Prompt(struct Players *pPlayer)
 {
   DEBUGIT(1)
-  //strcat(pPlayer->Output,"\r\n");
   strcat(pPlayer->Output,"> ");
 }
 
@@ -477,7 +498,7 @@ void GetPlayerOnline()
   {
     if (Equal(Command, pPlayer->Password))
     { // Password is valid
-      strcat(pPlayer->Output, "\r\nWelcome to YaGs!!\r\n");
+      strcat(pPlayer->Output, "\r\nMay your travels be safe!!\r\n");
       pPlayer->State = Online;
       Prompt(pPlayer);
       return;
@@ -558,7 +579,7 @@ void GetPlayerOnline()
       InitalizeNewPlayer();
       AddPlayerToFile();
       CopyPlayerToPlayerList();
-      strcat(pPlayer->Output, "\r\nWelcome to YaGs!!\r\n");
+      strcat(pPlayer->Output, "\r\nMay your travels be safe!!\r\n");
       pPlayer->State = Online;
       Prompt(pPlayer);
       return;
@@ -816,7 +837,7 @@ void DisconnectPlayers()
     if (pPlayer->State == Disconnect)
     {
       close(pPlayer->Socket);
-      DelFromPlayerList(); // TODO DisconnectPlayer() DelFromPlayerList()
+      DelFromPlayerList();
       continue;
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
@@ -990,7 +1011,7 @@ bool MudCmdOk()
   DEBUGIT(1)
   if (Equal(MudCmd, "advance"))    return true;
   if (Equal(MudCmd, "playerfile")) return true;
-  if (Equal(MudCmd, "quit")) return true;
+  if (Equal(MudCmd, "quit"))       return true;
   if (Equal(MudCmd, "shutdown"))   return true;
   strcat(pPlayer->Output, "\r\nHuh?\r\n");
   Prompt(pPlayer);
@@ -1029,7 +1050,7 @@ void Sleep()
 void AddToPlayerList()
 {
   DEBUGIT(1)  
-  pPlayer = malloc(sizeof(struct Players));
+  pPlayer = (struct Players *)malloc(sizeof(struct Players));
   pPlayerCurr = pPlayer;
   if (pPlayerHead != NULL)
   { // Not 1st Node
@@ -1049,7 +1070,7 @@ void AddToPlayerList()
 }
 
 void DelFromPlayerList()
-{ // TODO DelFromPlayerList()
+{
   DEBUGIT(1)
   // Delete when only one node in list
   if (pPlayerCurr == pPlayerHead)
