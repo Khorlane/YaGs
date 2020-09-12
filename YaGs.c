@@ -2,14 +2,14 @@
 //* Yet Another Game Server *
 //***************************
 
-#define _DEFAULT_SOURCE                     // Required for usleep() in my development environment
+#define _DEFAULT_SOURCE                     // Required for a bunch of BSD socket stuff
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Includes
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 #include <arpa/inet.h>                      // This and sys/socket.h - a whole plethora of socket related stuff
-#include <ctype.h>                          // isspace()
+#include <ctype.h>                          // tolower(), isspace()
 #include <errno.h>                          // EINTR
 #include <fcntl.h>                          // fcntl(), F_SETFL, FNDELAY
 #include <pwd.h>                            // getpwuid()
@@ -19,7 +19,7 @@
 #include <string.h>                         // strcpy(), strcmp(), strlen()
 #include <sys/socket.h>                     // This and arpa/inet - a whole plethora of socket related stuff
 #include <time.h>                           // time(), ctime()
-#include <unistd.h>                         // getpwuid(), getuid(), read(), usleep()
+#include <unistd.h>                         // close(), read(), getuid(), usleep(), fsync()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Globals
@@ -102,7 +102,7 @@ char               *GameWakeMsg  = "Waking up";                           // Gam
 // Player
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-typedef enum
+typedef enum PlayerStates
 {
   Send_Greeting,
   Wait_New_Player_YN,
@@ -636,7 +636,7 @@ void SendGreeting()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 void OpenLog()
-{
+{ // Do not add DEBUGIT
   sprintf(LogFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LOG_DIR,"/",LOG_FILE);
   LogFile = fopen(LogFileName, "w");
   if (LogFile == NULL)
@@ -946,6 +946,7 @@ void Trim(char *Str)
 
 void Word(size_t Nbr, char *S1, char *S2)
 {
+  DEBUGIT(1)
   j = 0;
   x = 1;
   for (i = 0; S1[i]; i++)
