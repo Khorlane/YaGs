@@ -16,7 +16,7 @@
 #include <stdbool.h>                                  // bool data type
 #include <stdio.h>                                    // Standard I/O
 #include <stdlib.h>                                   // exit() malloc()
-#include <string.h>                                   // strcpy(), strcmp(), strlen()
+#include <string.h>                                   // strcat(), strcpy(), strcmp(), strlen()
 #include <sys/socket.h>                               // This and arpa/inet - a whole plethora of socket related stuff
 #include <time.h>                                     // time(), ctime()
 #include <unistd.h>                                   // close(), read(), getuid(), usleep(), fsync()
@@ -71,7 +71,7 @@ struct passwd      *pw;                               // Password struct (used t
 // Strings
 char                aTmpStr[1024];                    // Temp string
 char                *TmpStr = aTmpStr;                // Temp sting too
-char                Buffer[1024];                     // Just a buffer
+char                Buffer[2048];                     // Just a buffer
 char                Command[1024];                    // The command from the player
 char                LogMsg[100];                      // Log message
 char                MsgTxt[100];                      // Message text
@@ -80,11 +80,13 @@ char                TheRest[50];                      // The rest of the command
 
 // Files
 char               *GreetingFileName   = aTmpStr;     // Greeting file name
+char               *HelpFileName       = aTmpStr;     // Help file name
 char               *LogFileName        = aTmpStr;     // Log file name
 char               *MotdFileName       = aTmpStr;     // Message of the day file name
 char               *PlayerFileName     = aTmpStr;     // Player file name
 char               *ValidNamesFileName = aTmpStr;     // Valid names file name
 FILE               *GreetingFile;                     // Greeting file
+FILE               *HelpFile;                         // Help file
 FILE               *LogFile;                          // Log file
 FILE               *MotdFile;                         // Message of the day file
 FILE               *PlayerFile;                       // Player file
@@ -172,7 +174,7 @@ struct Players                                        // Players structure - lis
   char            Level;
   char            Sex;
   char            Input[1024];
-  char            Output[1024];
+  char            Output[2048];
   int             BadPswdCount;
   int             PlayerNbr;
   struct Players *pPlayerNext;
@@ -210,6 +212,7 @@ struct sPlayer                                        // Player structure - used
 #define LOG_DIR          "Logs"                       // Log directory
 // Files
 #define GREETING_FILE    "Greeting.txt"               // Greeting file
+#define HELP_FILE        "Help.txt"                   // Help file
 #define LOG_FILE         "Log.txt"                    // Log file
 #define MOTD_FILE        "Motd.txt"                   // Message of the day file
 #define PLAYER_FILE      "Player.yags"                // Player file
@@ -265,7 +268,8 @@ void    ShutItDown();
 void    Sleep();
 void    SocketListen();
 void    StartItUp();
-void    Trim(char *Str);
+void    Trim(char *Str); 
+void    Up1stChar(char* Str);
 void    Word(size_t Nbr, char *Str1, char *Str2);
 size_t  Words(char *Str);
 void    WritePlayerToFile();
@@ -457,7 +461,69 @@ void DoColor()
 void DoHelp()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "\r\nThere is no help!\rn\rn");
+  sprintf(HelpFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LIB_DIR,"/",HELP_FILE);
+  HelpFile = fopen(HelpFileName, "r");
+  if (HelpFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open %s failed: %s", HELP_FILE, strerror(errno));
+    AbortIt();
+  }
+  LowerCase(Command);
+  Word(2, Command, Buffer);
+  Up1stChar(Buffer);
+  strcpy(TmpStr, "Help:");
+  strcat(TmpStr, Buffer);
+  strcat(TmpStr, "\r\n");
+  Found = false;
+  for (;;)
+  {
+    fgets(Buffer, sizeof(Buffer), HelpFile);
+    if (ferror(HelpFile))
+    {
+      sprintf(LogMsg, "ERROR: Read %s failed: %s", HELP_FILE, strerror(errno));
+      AbortIt();
+    }
+    if (feof(HelpFile))
+    {
+      break;
+    }
+    // Just 'Help' was entered
+    if (Words(Command) == 1)
+    {
+      if (Equal(Buffer,"Help:\r\n"))
+      {
+        strcpy(Buffer, "\r\n");
+      }
+      strcat(pPlayer->Output, Buffer);
+      if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room\r\n"))
+      {
+        Found = true;
+        break;
+      }
+      continue;
+    }
+    // Help 'something' was entered
+    if (!Found)
+    {
+      if (!Equal(Buffer, TmpStr))
+      {
+        continue;
+      }
+      Found = true;
+      continue;
+    }
+    strcat(pPlayer->Output, Buffer);
+    if (strstr(Buffer, "Related help:"))
+    {
+      break;
+    }
+  }
+  if (!Found)
+  {
+    strcat(pPlayer->Output, "Help topic not found\r\n");
+  }
+  fclose(HelpFile);
+  strcat(pPlayer->Output, "\r\n");
   Prompt(pPlayer);
 }
 
@@ -1145,6 +1211,11 @@ void Trim(char *Str)
     }
     Str[i] = '\0';
   }
+}
+
+void Up1stChar(char *Str)
+{
+  Str[0] = (char)toupper(Str[0]);
 }
 
 void Word(size_t Nbr, char *Str1, char *Str2)
