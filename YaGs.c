@@ -2,101 +2,142 @@
 //* Yet Another Game Server *
 //***************************
 
-#define _DEFAULT_SOURCE                     // Required for a bunch of BSD socket stuff
+#define _DEFAULT_SOURCE                               // Required for a bunch of BSD socket stuff
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Includes
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-#include <arpa/inet.h>                      // This and sys/socket.h - a whole plethora of socket related stuff
-#include <ctype.h>                          // tolower(), isspace()
-#include <errno.h>                          // EINTR
-#include <fcntl.h>                          // fcntl(), F_SETFL, FNDELAY
-#include <pwd.h>                            // getpwuid()
-#include <stdbool.h>                        // bool data type
-#include <stdio.h>                          // Standard I/O
-#include <stdlib.h>                         // exit() malloc()
-#include <string.h>                         // strcpy(), strcmp(), strlen()
-#include <sys/socket.h>                     // This and arpa/inet - a whole plethora of socket related stuff
-#include <time.h>                           // time(), ctime()
-#include <unistd.h>                         // close(), read(), getuid(), usleep(), fsync()
+#include <arpa/inet.h>                                // This and sys/socket.h - a whole plethora of socket related stuff
+#include <ctype.h>                                    // tolower(), isspace()
+#include <errno.h>                                    // EINTR
+#include <fcntl.h>                                    // fcntl(), F_SETFL, FNDELAY
+#include <pwd.h>                                      // getpwuid()
+#include <stdbool.h>                                  // bool data type
+#include <stdio.h>                                    // Standard I/O
+#include <stdlib.h>                                   // exit() malloc()
+#include <string.h>                                   // strcpy(), strcmp(), strlen()
+#include <sys/socket.h>                               // This and arpa/inet - a whole plethora of socket related stuff
+#include <time.h>                                     // time(), ctime()
+#include <unistd.h>                                   // close(), read(), getuid(), usleep(), fsync()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Globals
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Booleans
-bool                EndFile;                // File access - End of file
-bool                Found;                  // File access - Record found
-bool                GameShutDown;           // Set this to true to stop the game
-bool                NoPlayers;              // True when we have no players
+bool                EndFile;                          // File access - End of file
+bool                Found;                            // File access - Record found
+bool                GameShutDown;                     // Set this to true to stop the game
+bool                NoPlayers;                        // True when we have no players
 
 // Numbers
-size_t              BufferLen;              // Length of the string stored in Buffer
-long int            BytesRead;              // Number of bytes read
-time_t              CurrentTimeSec;         // Current time in seconds
-socklen_t           LingerSize;             // Size of Linger stucture
-int                 Listen;                 // Listening socket
-int                 MaxSocket;              // Maximum socket value
-long                Offset;                 // Offset for fseek()
-int                 OptVal;                 // Set socket option value
-socklen_t           OptValSize;             // Size of socket option value
-int                 PlayerNbr;              // Plyayer number
-int                 ReturnValue1;           // Return value
-size_t              ReturnValue2;           // Return value
-long int            SendResult;             // Number of bytes sent to player
-int                 Socket;                 // Socket value
-socklen_t           SocketAddrSize;         // Size of Socket structure
-extern int          errno;                  // Error number set by fopen(), for example
-size_t              i;                      // A non-negative integer
-size_t              j;                      // A non-negative integer
-size_t              k;                      // A non-negative integer
-size_t              x;                      // A non-negative integer
-size_t              y;                      // A non-negative integer
-size_t              z;                      // A non-negative integer
+size_t              BufferLen;                        // Length of the string stored in Buffer
+long int            BytesRead;                        // Number of bytes read
+time_t              CurrentTimeSec;                   // Current time in seconds
+socklen_t           LingerSize;                       // Size of Linger stucture
+int                 Listen;                           // Listening socket
+int                 MaxSocket;                        // Maximum socket value
+long                Offset;                           // Offset for fseek()
+int                 OptVal;                           // Set socket option value
+socklen_t           OptValSize;                       // Size of socket option value
+int                 PlayerNbr;                        // Plyayer number
+int                 ReturnValue1;                     // Return value
+size_t              ReturnValue2;                     // Return value
+long int            SendResult;                       // Number of bytes sent to player
+int                 Socket;                           // Socket value
+socklen_t           SocketAddrSize;                   // Size of Socket structure
+extern int          errno;                            // Error number set by fopen(), for example
+size_t              i;                                // A non-negative integer
+size_t              j;                                // A non-negative integer
+size_t              k;                                // A non-negative integer
+size_t              x;                                // A non-negative integer
+size_t              y;                                // A non-negative integer
+size_t              z;                                // A non-negative integer
 
 //Pointers
-char               *CurrentTime;            // Current timestamp
-char               *HomeDir;                // Value of $HOME Linux Environment Variable
-FILE               *GreetingFile;           // Greeting file
-FILE               *LogFile;                // Log file
-FILE               *PlayerFile;             // Player file
-FILE               *ValidNamesFile;         // Valid names file
-struct Players     *pActor;                 // Pointer to player
-struct Players     *pPlayer;                // Pointer to player
-struct Players     *pPlayerSave;            // Pointer to player - save
-struct Players     *pPlayerCurr;            // Pointer to current player in the player list
-struct Players     *pPlayerCurrSave;        // Pointer to current player in the player list - save
-struct Players     *pPlayerHead;            // Pointer to head of player list
-struct Players     *pPlayerTail;            // Pointer to tail of player list
-struct Players     *pTarget;                // Pointer to target player
-struct passwd      *pw;                     // Password struct (used to get $HOME environment variable)
+char               *CurrentTime;                      // Current timestamp
+char               *HomeDir;                          // Value of $HOME Linux Environment Variable
+struct Players     *pActor;                           // Pointer to player
+struct Players     *pPlayer;                          // Pointer to player
+struct Players     *pPlayerSave;                      // Pointer to player - save
+struct Players     *pPlayerCurr;                      // Pointer to current player in the player list
+struct Players     *pPlayerCurrSave;                  // Pointer to current player in the player list - save
+struct Players     *pPlayerHead;                      // Pointer to head of player list
+struct Players     *pPlayerTail;                      // Pointer to tail of player list
+struct Players     *pTarget;                          // Pointer to target player
+struct passwd      *pw;                               // Password struct (used to get $HOME environment variable)
 
 // Strings
- char               Buffer[1024];           // Just a buffer
-char                Command[1024];          // The command from the player
-char                GreetingFileName[50];   // Greeting file name
-char                LogFileName[50];        // Log file name
-char                LogMsg[100];            // Log message
-char                MsgTxt[100];            // Message text
-char                MudCmd[10];             // Mud command
-char                TheRest[50];            // The rest of the command
-char                aTmpStr[50];            // Temp string
-char                *TmpStr = aTmpStr;      // Temp sting too
-char                PlayerFileName[50];     // Player file name
-char                ValidNamesFileName[50]; // Valid names file name
+char                aTmpStr[1024];                    // Temp string
+char                *TmpStr = aTmpStr;                // Temp sting too
+char                Buffer[1024];                     // Just a buffer
+char                Command[1024];                    // The command from the player
+char                LogMsg[100];                      // Log message
+char                MsgTxt[100];                      // Message text
+char                MudCmd[10];                       // Mud command
+char                TheRest[50];                      // The rest of the command
+
+// Files
+char               *GreetingFileName   = aTmpStr;     // Greeting file name
+char               *LogFileName        = aTmpStr;     // Log file name
+char               *MotdFileName       = aTmpStr;     // Message of the day file name
+char               *PlayerFileName     = aTmpStr;     // Player file name
+char               *ValidNamesFileName = aTmpStr;     // Valid names file name
+FILE               *GreetingFile;                     // Greeting file
+FILE               *LogFile;                          // Log file
+FILE               *MotdFile;                         // Message of the day file
+FILE               *PlayerFile;                       // Player file
+FILE               *ValidNamesFile;                   // Valid names file
 
 // Structures
-fd_set              InpSet;                 // File Descriptor Set structure
-struct linger       Linger;                 // Linger structure
-struct sockaddr_in  SocketAddr;             // Socket Address structure
-struct timeval      TimeOut;                // Time value structure
+fd_set              InpSet;                           // File Descriptor Set structure
+struct linger       Linger;                           // Linger structure
+struct sockaddr_in  SocketAddr;                       // Socket Address structure
+struct timeval      TimeOut;                          // Time value structure
+
+// Color codes
+char              *Normal        = "\x1B[0;m";        // NORMAL     &N
+char              *BrightBlack   = "\x1B[1;30m";      // BBLACK     &K
+char              *BrightRed     = "\x1B[1;31m";      // BRED       &R
+char              *BrightGreen   = "\x1B[1;32m";      // BGREEN     &G
+char              *BrightYellow  = "\x1B[1;33m";      // BYELLOW    &Y
+char              *BrightBlue    = "\x1B[1;34m";      // BBLUE      &B
+char              *BrightMagenta = "\x1B[1;35m";      // BMAGENTA   &M
+char              *BrightCyan    = "\x1B[1;36m";      // BCYAN      &C
+char              *BrightWhite   = "\x1B[1;37m";      // BWHITE     &W
+char              *None          = "";                // No Color
 
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
 char               *GameStartMsg = "YaGs v1.0.4 Starting";                // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
+
+// Commands
+char *CommandTable[][9] = {
+  // Name          Admin Level Position  Social Fight Words Parts Message
+    {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
+    {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
+};
+
+struct sCommands                                       // Command structure
+{
+  char            *Name;
+  char            *Admin;
+  char            *Level;
+  char            *Position;
+  char            *Social;
+  char            *Fight;
+  char            *Words;
+  char            *Parts;
+  char            *Message;
+} Commands;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Player
@@ -117,7 +158,7 @@ typedef enum PlayerStates
   Disconnect
 } PlayerState;
 
-struct Players                              // Players structure - list of connected players
+struct Players                                        // Players structure - list of connected players
 {
   int             Socket;
   PlayerState     State;
@@ -126,6 +167,7 @@ struct Players                              // Players structure - list of conne
   char            Afk;
   char            Admin;
   time_t          Born;
+  char            Color;
   int             Experience;
   char            Level;
   char            Sex;
@@ -137,13 +179,14 @@ struct Players                              // Players structure - list of conne
   struct Players *pPlayerPrev;
 };
 
-struct sPlayer                              // Player structure - used when reading and writing player file
+struct sPlayer                                        // Player structure - used when reading and writing player file
 {
   char            Name[50];
   char            Password[50];
   char            Afk;
   char            Admin;
   time_t          Born;
+  char            Color;
   int             Experience;
   char            Level;
   char            Sex;
@@ -154,22 +197,23 @@ struct sPlayer                              // Player structure - used when read
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 #define DEBUGIT(dl)      if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
-#define DEBUGIT_LVL      1                // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
-#define PORT             7777             // Port number
-#define SLEEP_TIME       0400000          // Sleep for a short period of time
-#define USE_USLEEP       'N'              // Use usleep() Y or N
+#define DEBUGIT_LVL      1                            // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
+#define PORT             7777                         // Port number
+#define SLEEP_TIME       0400000                      // Sleep for a short period of time
+#define USE_USLEEP       'N'                          // Use usleep() Y or N
 // Directories
-#define OverRide$HOME    'Y'              // Override $HOME environment variable as the 'home' of YaGs
-#define HOME_DIR         "/"              // Used when OverRide$HOME is 'Y', otherwise $HOME is used
-#define WORLD_DIR        "World"          // World directory
-#define YAGS_DIR         "YaGs"           // The YaGs directory
-#define LIB_DIR          "Library"        // Library directory
-#define LOG_DIR          "Logs"           // Log directory
+#define OverRide$HOME    'Y'                          // Override $HOME environment variable as the 'home' of YaGs
+#define HOME_DIR         "/"                          // Used when OverRide$HOME is 'Y', otherwise $HOME is used
+#define WORLD_DIR        "World"                      // World directory
+#define YAGS_DIR         "YaGs"                       // The YaGs directory
+#define LIB_DIR          "Library"                    // Library directory
+#define LOG_DIR          "Logs"                       // Log directory
 // Files
-#define GREETING_FILE    "Greeting.txt"   // Greeting file
-#define LOG_FILE         "Log.txt"        // Log file
-#define PLAYER_FILE      "Player.yags"    // Player file
-#define VALID_NAMES_FILE "ValidNames.txt" // Valid names file
+#define GREETING_FILE    "Greeting.txt"               // Greeting file
+#define LOG_FILE         "Log.txt"                    // Log file
+#define MOTD_FILE        "Motd.txt"                   // Message of the day file
+#define PLAYER_FILE      "Player.yags"                // Player file
+#define VALID_NAMES_FILE "ValidNames.txt"             // Valid names file
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -181,16 +225,18 @@ void    AddToPlayerList();
 void    CheckForNewPlayers();
 void    CloseFiles();
 void    CloseLog();
-bool    MudCmdOk();
+void    Color();
 void    CopyPlayerListToPlayer();
 void    CopyPlayerToPlayerList();
 void    DelFromPlayerList();
 void    DisconnectPlayers();
 void    DoAdvance();
+void    DoColor();
+void    DoHelp();
 void    DoPlayerfile();
 void    DoQuit();
 void    DoShutdown();
-bool    Equal(char* S1, char* S2);
+bool    Equal(char *Str1, char *Str2);
 void    GetNextPlayerNbr();
 long    GetPlayerFileOffset();
 void    GetPlayerInput();
@@ -199,8 +245,9 @@ void    GetTime();
 void    HeartBeat();
 void    InitalizeNewPlayer();
 void    Initialization();
-void    LogIt(char* LogMsg);
-void    LowerCase(char* Str);
+void    LogIt(char *LogMsg);
+void    LowerCase(char *Str);
+bool    MudCmdOk();
 void    OpenFiles();
 void    OpenLog();
 bool    PlayerNameValid();
@@ -208,18 +255,19 @@ bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
 void    ProcessCommand();
 void    ProcessPlayerInput();
-void    Prompt(struct Players* pPlayer);
+void    Prompt(struct Players *pPlayer);
 void    ReadPlayerFromFile();
 void    SendGreeting();
 void    SendPlayerOutput();
+void    SendMotd();
 void    SendToAll();
 void    ShutItDown();
 void    Sleep();
 void    SocketListen();
 void    StartItUp();
-void    Trim(char* Str);
-void    Word(size_t Nbr, char* S1, char* S2);
-size_t  Words(char* Str);
+void    Trim(char *Str);
+void    Word(size_t Nbr, char *Str1, char *Str2);
+size_t  Words(char *Str);
 void    WritePlayerToFile();
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -292,6 +340,16 @@ void ProcessCommand()
     DoAdvance();
     return;
   }
+  if (Equal(MudCmd, "color"))
+  {
+    DoColor();
+    return;
+  }
+  if (Equal(MudCmd, "help"))
+  {
+    DoHelp();
+    return;
+  }
   if (Equal(MudCmd, "playerfile"))
   {
     DoPlayerfile();
@@ -308,7 +366,7 @@ void ProcessCommand()
     return;
   }
   // if we get here something is broke bad!!
-  strcat(pPlayer->Output, "\r\nYou should never see this!!\r\n");
+  strcat(pPlayer->Output, "\r\nProcessCommand - You should never see this!!\r\n");
   Prompt(pPlayer);
 }
 
@@ -360,18 +418,63 @@ void DoAdvance()
   pPlayer = pActor;
 }
 
+void DoColor()
+{
+  DEBUGIT(1)
+  if (Words(Command) == 1)
+  {
+    if (pPlayer->Color == 'Y')
+    {
+      strcat(pPlayer->Output, "&CColor&N is &Mon&N.\r\n\r\n");
+      Prompt(pPlayer);
+      return;
+    }
+    if (pPlayer->Color == 'N')
+    {
+      strcat(pPlayer->Output, "Color is off.\r\n\r\n");
+      Prompt(pPlayer);
+      return;
+    }
+  };
+  Word(2, Command, TmpStr);
+  LowerCase(TmpStr);
+  if (Equal(TmpStr, "on"))
+  {
+    pPlayer->Color = 'Y';
+    strcat(pPlayer->Output, "You will now see &RP&Gr&Ye&Bt&Mt&Cy&N &RC&Go&Yl&Bo&Mr&Cs&N.\r\n\r\n");
+    Prompt(pPlayer);
+  }
+  if (Equal(TmpStr, "off"))
+  {
+    pPlayer->Color = 'N';
+    strcat(pPlayer->Output, "Color is off.\r\n\r\n");
+    Prompt(pPlayer);
+  }
+  CopyPlayerListToPlayer();
+  WritePlayerToFile();
+}
+
+void DoHelp()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "\r\nThere is no help!\rn\rn");
+  Prompt(pPlayer);
+}
+
 void DoPlayerfile()
 {
   DEBUGIT(1)
   strcat(pPlayer->Output, "\r\n");
+  strcat(pPlayer->Output, "&C");
   strcat(pPlayer->Output, "Player file listing\r\n");
+  strcat(pPlayer->Output, "&N");
   strcat(pPlayer->Output, "-------------------\r\n");
   EndFile = false;
   PlayerNbr = 1;
   ReadPlayerFromFile();
   while (EndFile == false)
   {
-    sprintf(Buffer, "%s %c %i %i", Player.Name, Player.Admin, Player.Level, Player.Experience);
+    sprintf(Buffer, "%s %c %c %i %i", Player.Name, Player.Admin, Player.Color, Player.Level, Player.Experience);
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     PlayerNbr++;
@@ -444,6 +547,7 @@ void GetPlayerOnline()
   {
     SendGreeting();
     pPlayer->State = Wait_New_Player_YN;
+    Prompt(pPlayer);
     return;
   }
   //***********************************
@@ -498,7 +602,7 @@ void GetPlayerOnline()
   {
     if (Equal(Command, pPlayer->Password))
     { // Password is valid
-      strcat(pPlayer->Output, "\r\nMay your travels be safe!!\r\n");
+      SendMotd();
       pPlayer->State = Online;
       Prompt(pPlayer);
       return;
@@ -579,7 +683,7 @@ void GetPlayerOnline()
       InitalizeNewPlayer();
       AddPlayerToFile();
       CopyPlayerToPlayerList();
-      strcat(pPlayer->Output, "\r\nMay your travels be safe!!\r\n");
+      SendMotd();
       pPlayer->State = Online;
       Prompt(pPlayer);
       return;
@@ -628,7 +732,34 @@ void SendGreeting()
     strcat(pPlayer->Output, Buffer);
   }
   fclose(GreetingFile);
-  Prompt(pPlayer);
+}
+
+void SendMotd()
+{
+  DEBUGIT(1)
+  sprintf(MotdFileName, "%s%s%s%s%s%s%s", HomeDir, "/", YAGS_DIR, "/", LIB_DIR, "/", MOTD_FILE);
+  MotdFile = fopen(MotdFileName, "r");
+  if (MotdFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open %s failed: %s", MOTD_FILE, strerror(errno));
+    AbortIt();
+  }
+  for (;;)
+  {
+    fgets(Buffer, sizeof(Buffer), MotdFile);
+    if (ferror(MotdFile))
+    {
+      sprintf(LogMsg, "ERROR: Read %s failed: %s", MOTD_FILE, strerror(errno));
+      AbortIt();
+    }
+    if (feof(MotdFile))
+    {
+      break;
+    }
+    strcat(pPlayer->Output, Buffer);
+  }
+  fclose(MotdFile);
+  strcat(pPlayer->Output, "\r\n");
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -808,6 +939,7 @@ void SendPlayerOutput()
       pPlayerCurr = pPlayerCurr->pPlayerNext;
       continue;
     }
+    Color();
     strcpy(Buffer, pPlayer->Output);
     pPlayer->Output[0] = '\0';
     BufferLen = strlen(Buffer);
@@ -825,6 +957,77 @@ void SendPlayerOutput()
     pPlayerCurr = pPlayerCurr->pPlayerNext;
   }
   DisconnectPlayers();
+}
+
+void Color()
+{
+  char *Str1; // Points to pPlayer->Output
+  char *Str2; // Points to TmpStr
+  char *Str3; // Points to 'next char' in Str1 (pPlayer->Output)
+  char *Str4; // Points to the selected color code string
+  if (strchr(pPlayer->Output, '&') == NULL) return;
+  Str1 = &pPlayer->Output[0];
+  Str2 = &TmpStr[0];
+  while (*Str1)
+  { // Loop here until we hit an '&'
+    while (*Str1 != '&')
+    {
+      *Str2 = *Str1;
+      if (*Str1 == '\0')
+      { // We are done
+        *Str2 = '\0';
+        strcpy(pPlayer->Output, TmpStr);
+        return;
+      }
+      Str1++;
+      Str2++;
+    }
+    // We hit an '&'
+    Str3 = Str1;
+    Str3++;
+    switch (*Str3)
+    {
+      case 'N':
+        Str4 = Normal;
+        break;
+      case 'K':
+        Str4 = BrightBlack;
+        break;
+      case 'R':
+        Str4 = BrightRed;
+        break;
+      case 'G':
+        Str4 = BrightGreen;
+        break;
+      case 'Y':
+        Str4 = BrightYellow;
+        break;
+      case 'B':
+        Str4 = BrightBlue;
+        break;
+      case 'M':
+        Str4 = BrightMagenta;
+        break;
+      case 'C':
+        Str4 = BrightCyan;
+        break;
+      case 'W':
+        Str4 = BrightWhite;
+        break;
+    }
+    if (pPlayer->Color == 'N')
+    {
+      Str4 = None;
+    }
+    while (*Str4 != '\0')
+    { // Copy the color code string
+      *Str2 = *Str4;
+      Str2++;
+      Str4++;
+    }
+    Str1++;
+    Str1++;
+  }
 }
 
 void DisconnectPlayers()
@@ -903,10 +1106,10 @@ void CloseFiles()
 // Strings
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-bool Equal(char *S1, char *S2)
+bool Equal(char *Str1, char *Str2)
 {
   DEBUGIT(2)
-  return (!strcmp(S1, S2));
+  return (!strcmp(Str1, Str2));
 }
 
 void LowerCase(char *Str)
@@ -944,33 +1147,33 @@ void Trim(char *Str)
   }
 }
 
-void Word(size_t Nbr, char *S1, char *S2)
+void Word(size_t Nbr, char *Str1, char *Str2)
 {
   DEBUGIT(1)
   j = 0;
   x = 1;
-  for (i = 0; S1[i]; i++)
+  for (i = 0; Str1[i]; i++)
   {
     if (x == Nbr)
     {
       break;
     }
-    if (isspace(S1[i]))
+    if (isspace(Str1[i]))
     {
       x++;
     }
   }
-  while (!isspace(S1[i]))
+  while (!isspace(Str1[i]))
   {
-    if (S1[i] == '\0')
+    if (Str1[i] == '\0')
     {
       break;
     }
-    S2[j] = S1[i];
+    Str2[j] = Str1[i];
     i++;
     j++;
   }
-  S2[j] = '\0';
+  Str2[j] = '\0';
 }
 
 size_t Words(char *Str)
@@ -1010,11 +1213,43 @@ void AbortIt()
 bool MudCmdOk()
 {
   DEBUGIT(1)
-  if (Equal(MudCmd, "advance"))    return true;
-  if (Equal(MudCmd, "playerfile")) return true;
-  if (Equal(MudCmd, "quit"))       return true;
-  if (Equal(MudCmd, "shutdown"))   return true;
-  strcat(pPlayer->Output, "\r\nHuh?\r\n");
+  i = 0;
+  while (CommandTable[i][0] != NULL)
+  {
+    if (Equal(MudCmd, (char *)CommandTable[i][0]))
+    {
+      Commands.Name     = (char *)CommandTable[i][0];
+      Commands.Admin    = (char *)CommandTable[i][1];
+      Commands.Level    = (char *)CommandTable[i][2];
+      Commands.Position = (char *)CommandTable[i][3];
+      Commands.Social   = (char *)CommandTable[i][4];
+      Commands.Fight    = (char *)CommandTable[i][5];
+      Commands.Words    = (char *)CommandTable[i][6];
+      Commands.Parts    = (char *)CommandTable[i][7];
+      Commands.Message  = (char *)CommandTable[i][8];
+      // Admin command?
+      if (Equal(Commands.Admin, "Y"))
+      {
+        if (pPlayer->Admin == 'N')
+        {
+          break;
+        }
+      }
+      // Check minimum words
+      if (Words(MudCmd) < atoi(Commands.Words))
+      {
+        strcat(pPlayer->Output, Commands.Message);
+        strcat(pPlayer->Output, "\r\n\r\n");
+        Prompt(pPlayer);
+        return false;
+      }
+      // Command is OK!
+      return true;
+    }
+    i++;
+  }
+  // Command is none of the above
+  strcat(pPlayer->Output, "Huh?\r\n\r\n");
   Prompt(pPlayer);
   return false;
 }
@@ -1235,6 +1470,11 @@ void WritePlayerToFile()
 void AddPlayerToFile()
 {
   DEBUGIT(1)
+  if (ftell(PlayerFile) == 0)
+  { // Player file has no records, so this MUST be an Admin!
+    pPlayer->Admin = 'Y';
+    Player.Admin   = 'Y';
+  };
   ReturnValue1 = fseek(PlayerFile, 0, SEEK_END);
   if (ReturnValue1 != 0)
   {
@@ -1263,6 +1503,7 @@ void CopyPlayerToPlayerList()
   pPlayer->Admin          = Player.Admin;
   pPlayer->Afk            = Player.Afk;
   pPlayer->Born           = Player.Born;
+  pPlayer->Color          = Player.Color;
   pPlayer->Experience     = Player.Experience;
   pPlayer->Level          = Player.Level;
   pPlayer->Sex            = Player.Sex;
@@ -1278,6 +1519,7 @@ void CopyPlayerListToPlayer()
   Player.Admin          = pPlayer->Admin;
   Player.Afk            = pPlayer->Afk;
   Player.Born           = pPlayer->Born;
+  Player.Color          = pPlayer->Color;
   Player.Experience     = pPlayer->Experience;
   Player.Level          = pPlayer->Level;
   Player.Sex            = pPlayer->Sex;
@@ -1292,6 +1534,7 @@ void InitalizeNewPlayer()
   Player.Admin          = 'N';
   Player.Afk            = 'N';
   Player.Born           = time(NULL);
+  Player.Color          = 'N';
   Player.Experience     = 0;
   Player.Level          = 1;
 }
