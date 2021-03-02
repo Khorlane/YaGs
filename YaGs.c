@@ -3,6 +3,8 @@
 //***************************
 
 #define _DEFAULT_SOURCE                               // Required for a bunch of BSD socket stuff
+#pragma GCC diagnostic push                           // Ignore warnings about sections
+#pragma GCC diagnostic ignored "-Wunreachable-code"   //   of unreachable code.
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Includes
@@ -12,7 +14,6 @@
 #include <ctype.h>                                    // tolower(), isspace()
 #include <errno.h>                                    // EINTR
 #include <fcntl.h>                                    // fcntl(), F_SETFL, FNDELAY
-#include <pwd.h>                                      // getpwuid()
 #include <stdbool.h>                                  // bool data type
 #include <stdio.h>                                    // Standard I/O
 #include <stdlib.h>                                   // exit() malloc()
@@ -204,17 +205,17 @@ struct sPlayer                                        // Player structure - used
 #define SLEEP_TIME       0400000                      // Sleep for a short period of time
 #define USE_USLEEP       'N'                          // Use usleep() Y or N
 // Directories
-#define OverRide$HOME    'Y'                          // Override $HOME environment variable as the 'home' of YaGs
-#define HOME_DIR         "/"                          // Used when OverRide$HOME is 'Y', otherwise $HOME is used
-#define WORLD_DIR        "World"                      // World directory
-#define YAGS_DIR         "YaGs"                       // The YaGs directory
+#define YAGS_DIR         "/YaGs"                      // YaGs top level directory path
 #define LIB_DIR          "Library"                    // Library directory
+#define WORLD_DIR        "World"                      // World directory
 #define LOG_DIR          "Logs"                       // Log directory
-// Files
+// Library directory contents
 #define GREETING_FILE    "Greeting.txt"               // Greeting file
 #define HELP_FILE        "Help.txt"                   // Help file
-#define LOG_FILE         "Log.txt"                    // Log file
 #define MOTD_FILE        "Motd.txt"                   // Message of the day file
+// Log directory contents
+#define LOG_FILE         "Log.txt"                    // Log file
+// World directory contents
 #define PLAYER_FILE      "Player.yags"                // Player file
 #define VALID_NAMES_FILE "ValidNames.txt"             // Valid names file
 
@@ -461,7 +462,7 @@ void DoColor()
 void DoHelp()
 {
   DEBUGIT(1)
-  sprintf(HelpFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LIB_DIR,"/",HELP_FILE);
+  sprintf(HelpFileName,"%s%s%s%s%s",YAGS_DIR,"/",LIB_DIR,"/",HELP_FILE);
   HelpFile = fopen(HelpFileName, "r");
   if (HelpFile == NULL)
   {
@@ -473,7 +474,7 @@ void DoHelp()
   Up1stChar(Buffer);
   strcpy(TmpStr, "Help:");
   strcat(TmpStr, Buffer);
-  strcat(TmpStr, "\r\n");
+  strcat(TmpStr, "\n");
   Found = false;
   for (;;)
   {
@@ -490,12 +491,12 @@ void DoHelp()
     // Just 'Help' was entered
     if (Words(Command) == 1)
     {
-      if (Equal(Buffer,"Help:\r\n"))
+      if (Equal(Buffer,"Help:\n"))
       {
         strcpy(Buffer, "\r\n");
       }
       strcat(pPlayer->Output, Buffer);
-      if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room\r\n"))
+      if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room\n"))
       {
         Found = true;
         break;
@@ -776,7 +777,7 @@ void GetPlayerOnline()
 void SendGreeting()
 {
   DEBUGIT(1)
-  sprintf(GreetingFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LIB_DIR,"/",GREETING_FILE);
+  sprintf(GreetingFileName,"%s%s%s%s%s",YAGS_DIR,"/",LIB_DIR,"/",GREETING_FILE);
   GreetingFile = fopen(GreetingFileName, "r");
   if (GreetingFile == NULL)
   {
@@ -803,7 +804,7 @@ void SendGreeting()
 void SendMotd()
 {
   DEBUGIT(1)
-  sprintf(MotdFileName, "%s%s%s%s%s%s%s", HomeDir, "/", YAGS_DIR, "/", LIB_DIR, "/", MOTD_FILE);
+  sprintf(MotdFileName, "%s%s%s%s%s", YAGS_DIR, "/", LIB_DIR, "/", MOTD_FILE);
   MotdFile = fopen(MotdFileName, "r");
   if (MotdFile == NULL)
   {
@@ -834,7 +835,7 @@ void SendMotd()
 
 void OpenLog()
 { // Do not add DEBUGIT
-  sprintf(LogFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LOG_DIR,"/",LOG_FILE);
+  sprintf(LogFileName,"%s%s%s%s%s",YAGS_DIR,"/",LOG_DIR,"/",LOG_FILE);
   LogFile = fopen(LogFileName, "w");
   if (LogFile == NULL)
   {
@@ -1127,15 +1128,6 @@ void StartItUp()
 
 void Initialization()
 { // Do not add DEBUGIT
-  if (OverRide$HOME == 'Y')
-  {
-    HomeDir    = HOME_DIR;
-  }
-  else
-  {
-    pw         = getpwuid(getuid());
-    HomeDir    = pw->pw_dir;
-  }
   GameShutDown = false;
   NoPlayers    = true;
   pPlayerHead  = NULL;
@@ -1146,7 +1138,7 @@ void Initialization()
 void OpenFiles()
 {
   DEBUGIT(1)
-  sprintf(PlayerFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",WORLD_DIR,"/",PLAYER_FILE);
+  sprintf(PlayerFileName,"%s%s%s%s%s",YAGS_DIR,"/",WORLD_DIR,"/",PLAYER_FILE);
   PlayerFile = fopen(PlayerFileName, "r+");
   if (PlayerFile == NULL)
   {
@@ -1465,7 +1457,7 @@ bool PlayerNameValidOld()
 bool PlayerNameValidNew()
 {
   DEBUGIT(1)
-  sprintf(ValidNamesFileName,"%s%s%s%s%s%s%s",HomeDir,"/",YAGS_DIR,"/",LIB_DIR,"/",VALID_NAMES_FILE);
+  sprintf(ValidNamesFileName,"%s%s%s%s%s",YAGS_DIR,"/",LIB_DIR,"/",VALID_NAMES_FILE);
   ValidNamesFile = fopen(ValidNamesFileName, "r");
   if (ValidNamesFile == NULL)
   {
