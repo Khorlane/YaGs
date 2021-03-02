@@ -23,6 +23,31 @@
 #include <unistd.h>                                   // close(), read(), getuid(), usleep(), fsync()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Macros
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Configuration
+#define DEBUGIT(dl)      if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
+#define DEBUGIT_LVL      1                            // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
+#define PORT             7777                         // Port number
+#define SLEEP_TIME       0400000                      // Sleep for a short period of time
+#define USE_USLEEP       'N'                          // Use usleep() Y or N
+// Directories
+#define YAGS_DIR         "/YaGs"                      // YaGs top level directory path
+#define LIB_DIR          "Library"                    // Library directory
+#define WORLD_DIR        "World"                      // World directory
+#define LOG_DIR          "Logs"                       // Log directory
+// Library directory contents
+#define GREETING_FILE    "Greeting.txt"               // Greeting file
+#define HELP_FILE        "Help.txt"                   // Help file
+#define MOTD_FILE        "Motd.txt"                   // Message of the day file
+#define VALID_NAMES_FILE "ValidNames.txt"             // Valid names file
+// Log directory contents
+#define LOG_FILE         "Log.txt"                    // Log file
+// World directory contents
+#define PLAYER_FILE      "Player.yags"                // Player file
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Globals
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -35,6 +60,7 @@ bool                NoPlayers;                        // True when we have no pl
 // Numbers
 size_t              BufferLen;                        // Length of the string stored in Buffer
 long int            BytesRead;                        // Number of bytes read
+int                 CommandNbr;                       // Command number zero based
 time_t              CurrentTimeSec;                   // Current time in seconds
 socklen_t           LingerSize;                       // Size of Linger stucture
 int                 Listen;                           // Listening socket
@@ -58,16 +84,14 @@ size_t              z;                                // A non-negative integer
 
 //Pointers
 char               *CurrentTime;                      // Current timestamp
-char               *HomeDir;                          // Value of $HOME Linux Environment Variable
-struct Players     *pActor;                           // Pointer to player
-struct Players     *pPlayer;                          // Pointer to player
-struct Players     *pPlayerSave;                      // Pointer to player - save
-struct Players     *pPlayerCurr;                      // Pointer to current player in the player list
-struct Players     *pPlayerCurrSave;                  // Pointer to current player in the player list - save
-struct Players     *pPlayerHead;                      // Pointer to head of player list
-struct Players     *pPlayerTail;                      // Pointer to tail of player list
-struct Players     *pTarget;                          // Pointer to target player
-struct passwd      *pw;                               // Password struct (used to get $HOME environment variable)
+struct PlayerList  *pActor;                           // Pointer to acting player in the player list
+struct PlayerList  *pPlayer;                          // Pointer to a player in the player list - generic usage
+struct PlayerList  *pPlayerSave;                      // Pointer to a player in the player list - save
+struct PlayerList  *pPlayerCurr;                      // Pointer to current player in the player list
+struct PlayerList  *pPlayerCurrSave;                  // Pointer to current player in the player list - save
+struct PlayerList  *pPlayerHead;                      // Pointer to the head of player list
+struct PlayerList  *pPlayerTail;                      // Pointer to the tail of player list
+struct PlayerList  *pTarget;                          // Pointer to target player in the player list
 
 // Strings
 char                aTmpStr[1024];                    // Temp string
@@ -113,34 +137,9 @@ char              *None          = "";                // No Color
 
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
-char               *GameStartMsg = "YaGs v1.0.4 Starting";                // Game starting message
+char               *GameStartMsg = "YaGs v1.0.5 Starting";                // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
-
-// Commands
-char *CommandTable[][9] = {
-  // Name          Admin Level Position  Social Fight Words Parts Message
-    {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
-    {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
-    {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
-};
-
-struct sCommands                                       // Command structure
-{
-  char            *Name;
-  char            *Admin;
-  char            *Level;
-  char            *Position;
-  char            *Social;
-  char            *Fight;
-  char            *Words;
-  char            *Parts;
-  char            *Message;
-} Commands;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Player
@@ -161,25 +160,25 @@ typedef enum PlayerStates
   Disconnect
 } PlayerState;
 
-struct Players                                        // Players structure - list of connected players
+struct PlayerList                                        // Players structure - list of connected players
 {
-  int             Socket;
-  PlayerState     State;
-  char            Name[50];
-  char            Password[50];
-  char            Afk;
-  char            Admin;
-  time_t          Born;
-  char            Color;
-  int             Experience;
-  char            Level;
-  char            Sex;
-  char            Input[1024];
-  char            Output[2048];
-  int             BadPswdCount;
-  int             PlayerNbr;
-  struct Players *pPlayerNext;
-  struct Players *pPlayerPrev;
+  int                Socket;
+  PlayerState        State;
+  char               Name[50];
+  char               Password[50];
+  char               Afk;
+  char               Admin;
+  time_t             Born;
+  char               Color;
+  int                Experience;
+  char               Level;
+  char               Sex;
+  char               Input[1024];
+  char               Output[2048];
+  int                BadPswdCount;
+  int                PlayerNbr;
+  struct PlayerList *pPlayerNext;                     // Pointer to next player in the player list
+  struct PlayerList *pPlayerPrev;                     // Pointer to previous player in the player list
 };
 
 struct sPlayer                                        // Player structure - used when reading and writing player file
@@ -196,32 +195,9 @@ struct sPlayer                                        // Player structure - used
 } Player;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-// Macros
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-#define DEBUGIT(dl)      if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
-#define DEBUGIT_LVL      1                            // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
-#define PORT             7777                         // Port number
-#define SLEEP_TIME       0400000                      // Sleep for a short period of time
-#define USE_USLEEP       'N'                          // Use usleep() Y or N
-// Directories
-#define YAGS_DIR         "/YaGs"                      // YaGs top level directory path
-#define LIB_DIR          "Library"                    // Library directory
-#define WORLD_DIR        "World"                      // World directory
-#define LOG_DIR          "Logs"                       // Log directory
-// Library directory contents
-#define GREETING_FILE    "Greeting.txt"               // Greeting file
-#define HELP_FILE        "Help.txt"                   // Help file
-#define MOTD_FILE        "Motd.txt"                   // Message of the day file
-#define VALID_NAMES_FILE "ValidNames.txt"             // Valid names file
-// Log directory contents
-#define LOG_FILE         "Log.txt"                    // Log file
-// World directory contents
-#define PLAYER_FILE      "Player.yags"                // Player file
-
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
 void    AbortIt();
 void    AcceptNewPlayer();
 void    AddPlayerToFile();
@@ -259,7 +235,7 @@ bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
 void    ProcessCommand();
 void    ProcessPlayerInput();
-void    Prompt(struct Players *pPlayer);
+void    Prompt(struct PlayerList *pPlayer);
 void    ReadPlayerFromFile();
 void    SendGreeting();
 void    SendPlayerOutput();
@@ -269,11 +245,50 @@ void    ShutItDown();
 void    Sleep();
 void    SocketListen();
 void    StartItUp();
-void    Trim(char *Str); 
-void    Up1stChar(char* Str);
+void    Trim(char *Str);
+void    Up1stChar(char *Str);
 void    Word(size_t Nbr, char *Str1, char *Str2);
 size_t  Words(char *Str);
 void    WritePlayerToFile();
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Commands
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+struct sCommands                                       // Command structure
+{
+  char* Name;
+  char* Admin;
+  char* Level;
+  char* Position;
+  char* Social;
+  char* Fight;
+  char* Words;
+  char* Parts;
+  char* Message;
+} Commands;
+
+char* CommandTable[][9] = {
+  // Name          Admin Level Position  Social Fight Words Parts Message
+    {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
+    {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
+};
+
+// Command jump table
+void (*DoCommand[])(void) = 
+{
+  DoAdvance, 
+  DoColor,
+  DoHelp,
+  DoPlayerfile,
+  DoQuit,
+  DoShutdown
+};
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Main
@@ -338,41 +353,10 @@ void ProcessCommand()
   }
   Word(1, Command, MudCmd);
   LowerCase(MudCmd);
-  if (!MudCmdOk()) return;
-  // Commands
-  if (Equal(MudCmd, "advance"))
-  {
-    DoAdvance();
-    return;
+  if (MudCmdOk())
+  { 
+    DoCommand[CommandNbr]();
   }
-  if (Equal(MudCmd, "color"))
-  {
-    DoColor();
-    return;
-  }
-  if (Equal(MudCmd, "help"))
-  {
-    DoHelp();
-    return;
-  }
-  if (Equal(MudCmd, "playerfile"))
-  {
-    DoPlayerfile();
-    return;
-  }
-  if (Equal(MudCmd, "quit"))
-  {
-    DoQuit();
-    return;
-  }
-  if (Equal(MudCmd, "shutdown"))
-  {
-    DoShutdown();
-    return;
-  }
-  // if we get here something is broke bad!!
-  strcat(pPlayer->Output, "\r\nProcessCommand - You should never see this!!\r\n");
-  Prompt(pPlayer);
 }
 
 void DoAdvance()
@@ -573,7 +557,7 @@ void DoShutdown()
 // General player communication
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-void Prompt(struct Players *pPlayer)
+void Prompt(struct PlayerList *pPlayer)
 {
   DEBUGIT(1)
   strcat(pPlayer->Output,"> ");
@@ -1281,6 +1265,7 @@ bool MudCmdOk()
   {
     if (Equal(MudCmd, (char *)CommandTable[i][0]))
     {
+      CommandNbr = (int)i;
       Commands.Name     = (char *)CommandTable[i][0];
       Commands.Admin    = (char *)CommandTable[i][1];
       Commands.Level    = (char *)CommandTable[i][2];
@@ -1299,7 +1284,7 @@ bool MudCmdOk()
         }
       }
       // Check minimum words
-      if (Words(MudCmd) < atoi(Commands.Words))
+      if (Words(Command) < atoi(Commands.Words))
       {
         strcat(pPlayer->Output, Commands.Message);
         strcat(pPlayer->Output, "\r\n\r\n");
@@ -1349,7 +1334,7 @@ void Sleep()
 void AddToPlayerList()
 {
   DEBUGIT(1)  
-  pPlayer = (struct Players *)malloc(sizeof(struct Players));
+  pPlayer = (struct PlayerList *)malloc(sizeof(struct PlayerList));
   pPlayerCurr = pPlayer;
   if (pPlayerHead != NULL)
   { // Not 1st Node
