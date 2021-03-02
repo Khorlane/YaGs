@@ -213,11 +213,11 @@ struct sPlayer                                        // Player structure - used
 #define GREETING_FILE    "Greeting.txt"               // Greeting file
 #define HELP_FILE        "Help.txt"                   // Help file
 #define MOTD_FILE        "Motd.txt"                   // Message of the day file
+#define VALID_NAMES_FILE "ValidNames.txt"             // Valid names file
 // Log directory contents
 #define LOG_FILE         "Log.txt"                    // Log file
 // World directory contents
 #define PLAYER_FILE      "Player.yags"                // Player file
-#define VALID_NAMES_FILE "ValidNames.txt"             // Valid names file
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
