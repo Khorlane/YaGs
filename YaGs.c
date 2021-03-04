@@ -28,12 +28,12 @@
 
 // Configuration
 #define DEBUGIT(dl)      if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
-#define DEBUGIT_LVL      1                            // Range of 0 to 5 with 0 = No debug messages and 5 = Maximum debug messages
+#define DEBUGIT_LVL      1                            // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
 #define PORT             7777                         // Port number
 #define SLEEP_TIME       0400000                      // Sleep for a short period of time
 #define USE_USLEEP       'N'                          // Use usleep() Y or N
 // Directories
-#define YAGS_DIR         "/YaGs"                      // YaGs top level directory path
+#define YAGS_DIR         "/mnt/c/YaGs"                // YaGs top level directory path
 #define LIB_DIR          "Library"                    // Library directory
 #define WORLD_DIR        "World"                      // World directory
 #define LOG_DIR          "Logs"                       // Log directory
@@ -95,7 +95,13 @@ struct PlayerList  *pTarget;                          // Pointer to target playe
 
 // Strings
 char                aTmpStr[1024];                    // Temp string
-char                *TmpStr = aTmpStr;                // Temp sting too
+char                *TmpStr = aTmpStr;                // Temp string too
+char                aTmpStr1[1024];                   // Temp string 1
+char                *TmpStr1 = aTmpStr1;              // Temp string 1 too
+char                aTmpStr2[1024];                   // Temp string 2
+char                *TmpStr2 = aTmpStr2;              // Temp string 2 too
+char                aTmpStr3[1024];                   // Temp string 3
+char                *TmpStr3 = aTmpStr3;              // Temp string 3 too
 char                Buffer[2048];                     // Just a buffer
 char                Command[1024];                    // The command from the player
 char                LogMsg[100];                      // Log message
@@ -365,10 +371,10 @@ void DoAdvance()
   pTarget         = NULL;
   pPlayerCurrSave = pPlayerCurr;
   pPlayerCurr     = pPlayerHead;
-  Word(2, Command, TmpStr);
+  Word(2, Command, TmpStr2);
   while (pPlayerCurr != NULL)
   {
-    if (Equal(pPlayerCurr->Name, TmpStr))
+    if (Equal(pPlayerCurr->Name, TmpStr2))
     {
       pTarget = pPlayerCurr;
       break;
@@ -378,7 +384,26 @@ void DoAdvance()
   pPlayerCurr = pPlayerCurrSave;
   if (pTarget == NULL)
   {
-    sprintf(Buffer, "%s %s", TmpStr, "is not online\r\n");
+    sprintf(Buffer, "%s %s", TmpStr2, "is not online\r\n");
+    strcat(pPlayer->Output, Buffer);
+    strcat(pPlayer->Output, "\r\n");
+    Prompt(pPlayer);
+    return;
+  }
+  Word(3, Command, TmpStr3);
+  x = (size_t)atoi(TmpStr3);
+  y = (size_t)(pTarget->Level);
+  if (x == y)
+  { // New level same as current level
+    sprintf(Buffer, "%s %s %s %s", TmpStr2, "is already at level", TmpStr3, "\r\n");
+    strcat(pPlayer->Output, Buffer);
+    strcat(pPlayer->Output, "\r\n");
+    Prompt(pPlayer);
+    return;
+  }
+  if (x > 127)
+  { // Level is type char and max value is 127
+    sprintf(Buffer, "%s %s %s", "Level", TmpStr3, "is invalid\r\n");
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     Prompt(pPlayer);
@@ -386,17 +411,24 @@ void DoAdvance()
   }
   // Advance the target player
   pActor = pPlayer;
-  Word(3, Command, TmpStr);
-  pTarget->Level      = (char)atoi(TmpStr);
+  if (x > y)
+  {
+    sprintf(TmpStr, "%s", "promoted");
+  }
+  else
+  {
+    sprintf(TmpStr, "%s", "demoted");
+  }
+  pTarget->Level      = (char)atoi(TmpStr3);
   pTarget->Experience = (int)(pTarget->Level) * 100;
   // Message to target player
   strcat(pTarget->Output,"\r\n");
-  sprintf(Buffer, "%s %s %s", pActor->Name, "has promoted you to level", TmpStr);
+  sprintf(Buffer, "%s %s %s %s %s", pActor->Name, "has", TmpStr, "you to level", TmpStr3);
   strcat(pTarget->Output, Buffer);
   strcat(pTarget->Output, "\r\n\r\n");
   Prompt(pTarget);
   // Message to player
-  sprintf(Buffer, "%s %s %s, ", pTarget->Name, "has been promoted to level", TmpStr);
+  sprintf(Buffer, "%s %s %s %s %s, ", pTarget->Name, "has been", TmpStr, "to level", TmpStr3);
   strcat(pActor->Output, Buffer);
   strcat(pActor->Output, "\r\n\r\n");
   Prompt(pActor);
@@ -480,7 +512,8 @@ void DoHelp()
         strcpy(Buffer, "\r\n");
       }
       strcat(pPlayer->Output, Buffer);
-      if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room\n"))
+      Trim(Buffer);
+      if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room"))
       {
         Found = true;
         break;
@@ -1156,7 +1189,7 @@ bool Equal(char *Str1, char *Str2)
 
 void LowerCase(char *Str)
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   for(i = 0; Str[i]; i++)
   {
     Str[i] = (char) tolower(Str[i]);
@@ -1165,7 +1198,7 @@ void LowerCase(char *Str)
 
 void Trim(char *Str)
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   i = strlen(Str);
   i--;
   while (isspace(Str[i]))
@@ -1191,12 +1224,13 @@ void Trim(char *Str)
 
 void Up1stChar(char *Str)
 {
+  DEBUGIT(2)
   Str[0] = (char)toupper(Str[0]);
 }
 
 void Word(size_t Nbr, char *Str1, char *Str2)
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   j = 0;
   x = 1;
   for (i = 0; Str1[i]; i++)
@@ -1225,7 +1259,7 @@ void Word(size_t Nbr, char *Str1, char *Str2)
 
 size_t Words(char *Str)
 {
-  DEBUGIT(1)
+  DEBUGIT(2)
   #define NotWord 0
   #define InWord  1
   int State;
