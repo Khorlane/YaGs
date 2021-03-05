@@ -1,6 +1,6 @@
 Help:
 ****************************************
-*       &CHolyQuest Help Topics&N          *
+*         &CYaGs Help Topics&N             *
 ****************************************
 *                                      *
 * &CMovement&N          &CCommunication&N      *
