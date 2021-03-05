@@ -143,7 +143,7 @@ char              *None          = "";                // No Color
 
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
-char               *GameStartMsg = "YaGs v1.0.5 Starting";                // Game starting message
+char               *GameStartMsg = "YaGs v1.0.4 Starting";                // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
 
@@ -263,15 +263,15 @@ void    WritePlayerToFile();
 
 struct sCommands                                       // Command structure
 {
-  char* Name;
-  char* Admin;
-  char* Level;
-  char* Position;
-  char* Social;
-  char* Fight;
-  char* Words;
-  char* Parts;
-  char* Message;
+  char *Name;
+  char *Admin;
+  char *Level;
+  char *Position;
+  char *Social;
+  char *Fight;
+  char *Words;
+  char *Parts;
+  char *Message;
 } Commands;
 
 char* CommandTable[][9] = {
@@ -490,11 +490,11 @@ void DoHelp()
   Up1stChar(Buffer);
   strcpy(TmpStr, "Help:");
   strcat(TmpStr, Buffer);
-  strcat(TmpStr, "\n");
   Found = false;
   for (;;)
   {
     fgets(Buffer, sizeof(Buffer), HelpFile);
+    Trim(Buffer);
     if (ferror(HelpFile))
     {
       sprintf(LogMsg, "ERROR: Read %s failed: %s", HELP_FILE, strerror(errno));
@@ -507,12 +507,12 @@ void DoHelp()
     // Just 'Help' was entered
     if (Words(Command) == 1)
     {
-      if (Equal(Buffer,"Help:\n"))
+      if (Equal(Buffer,"Help:"))
       {
         strcpy(Buffer, "\r\n");
       }
       strcat(pPlayer->Output, Buffer);
-      Trim(Buffer);
+      strcat(pPlayer->Output,"\r\n");
       if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room"))
       {
         Found = true;
@@ -531,6 +531,7 @@ void DoHelp()
       continue;
     }
     strcat(pPlayer->Output, Buffer);
+    strcat(pPlayer->Output, "\r\n");
     if (strstr(Buffer, "Related help:"))
     {
       break;
