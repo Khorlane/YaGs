@@ -1,0 +1,13 @@
+
+&YMessage of the Day&N
+
+&MHelp is a player's best friend, use it.&N
+
+&CNew stuff!
+New armor set, weapon, vendors, and adventure areas!
+Fight messages have been enhanced.
+Added current vs total hit points to status display.
+Enjoy and be safe out there.&N
+
+&MALPHA TEST&N of YaGs is in progress
+Please report any problems to trouble@holyquest.org
