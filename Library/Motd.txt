@@ -1,0 +1,10 @@
+
+&YMessage of the Day&N
+
+&MHelp is a player's best friend, use it.&N
+
+&CNew stuff!
+New armor, weapon, vendors, and adventure areas!
+Enjoy and be safe out there.&N
+
+&MALPHA TEST&N of YaGs is in progress

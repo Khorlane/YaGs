@@ -1,0 +1,1029 @@
+Help:
+****************************************
+*         &CYaGs Help Topics&N             *
+****************************************
+*                                      *
+* &CMovement&N          &CCommunication&N      *
+* Go Exits Sleep    Say Tell Social    *
+* Sit Stand Wake    Gsay Chat Emote    *
+*                                      *
+* &CCombat&N            &CInformation&N        *
+* Kill Flee Train   Look Show Status   *
+* Wield Consider    Who Afk Color Time *
+*                   Played             *
+* &CObjects&N                              *
+* Get Drop Give Wear Eat Drink         *
+* Remove Inventory Equipment           *
+* Destroy Buy Sell List Examine        *
+*                                      *
+* Type &Yhelp&N and &Many&N of the above words *
+* Examples: &Yhelp wear&N or &Yhelp help&N     *
+****************************************
+
+Related help: 'Help Help' Newbie NPC Object Room
+
+Help:Afk
+&C
+************
+* Help Afk *
+************&N
+Toggles your AFK flag. If you are AFK, entering AFK will
+make you not AFK. AFK means Away From Keyboard.
+
+Usage: Afk
+Example: &Yafk&N
+
+Related help: Who
+
+Help:Armor
+&C
+**************
+* Help Armor *
+**************&N
+You wear various pieces of armor to protect yourself during
+battle. You can view your armor by using the equipment
+command. The effectiveness of the armor you are weariing can
+be determined by using the status command and checking the
+armor class value. Armor class ranges from 0, no protection
+to 300, maximum protection.
+
+Related help: Wear Remove Equipment
+
+Help:Buy
+&C
+************
+* Help Buy *
+************&N
+Allows you to buy items from a shop.
+
+Usage: Buy <object>
+Example: &Ybuy sword&N
+
+Related help: List Sell
+
+Help:Chat
+&C
+*************
+* Help Chat *
+*************&N
+Chat messages are sent to all players. Chat is typically
+for out-of-character messages (ooc). Examples of ooc
+messages are:
+
+I think the Chicago Cubs will win the world series.
+I'm hungery, ordering some pizza now!
+
+Usage: Chat <some chatter>
+Example: &Ychat Hi everyone!&N
+
+Related help: Say Gsay Social Tell Emote Chat
+
+Help:Combat
+&C
+***************
+* Help Combat *
+***************&N
+Ok, you are a warrior fighting for king and kingdom, so go
+explore and find something to fight.
+
+Related help: NPC Kill Flee Train Wield Consider
+
+Help:Commands
+&C
+*****************
+* Help Commands *
+*****************&N
+Commands are used by players to interact with the game,
+NPCs, and other players. You wouldn't be seeing this
+information if you had not entered a command, specifically
+'help commands' in this case. To see a complete list of all
+commands, use the 'show commands' command.
+
+Related help: Help Show
+
+Help:Color
+&C
+**************
+* Help Color *
+**************&N
+Key pieces of game information are colorized to draw your
+attention to them or to enhance their readability. If you
+see strange characters or mangled text, it may mean that
+your terminal does not support the color codes used by
+YaGs.
+
+Entering just 'color' will tell you whether or not color is
+on or off.
+
+Usage: Color {ON | OFF}
+Examples: &Ycolor&N
+          &Ycolor on&N
+	  &Ycolor off&N
+
+Related help: Information
+
+Help:Communication
+&C
+**********************
+* Help Communication *
+**********************&N
+Interaction with other players can significantly enchance
+your enjoyment of YaGs. Anyone in the world can logon
+and play, so you never know who you might meet. It is taboo
+to ask people personal questions. Remember, players are
+pretending to be a warrior and fighting for king and
+kingdom, this is called roleplaying. They are in-character,
+like an actor in a play.
+
+Related help: Say Gsay Social Tell Emote Chat
+
+Help:Consider
+&C
+*****************
+* Help Consider *
+*****************&N
+Consider is very useful when you encounter a new NPC and
+wish know what chance you have to win a fight with them.
+
+Usage: Consider <NPC>
+Example: &Yconsider smallrat&N
+
+Related help: Kill Wield
+
+Help:Death
+&C
+*********
+* Death *
+*********&N
+Ok, so you picked on someone bigger than you and paid the
+price, &RDEATH&N! Upon your death you and all of your
+equipment and inventory are returned to a safe place so you
+can recover and rethink your strategy. After you attain
+level 5, you will also loose experience.
+
+Related help: Consider Flee Kill
+
+Help:Delete
+&C
+***************
+* Help Delete *
+***************&N
+You may remove yourself for the world of YaGs using
+this command. The delete command will make you confirm that
+really want to delete yourself.
+
+Usage: Delete <your name>
+Example: &Ydelete Abbi&N
+
+Related help: None
+
+Help:Destroy
+&C
+****************
+* Help Destroy *
+****************&N
+Allows you to destroy items.
+
+Usage: Destroy <object> {<count>|ALL}
+Example: &destroy sword&N
+     or: &destroy ratear 5&N
+     or: &destroy ratear all&N
+
+Related help: Object
+
+Help:Drink
+&C
+**************
+* Help Drink *
+**************&N
+You drink the object specified only if the object is a
+drink object. Each drink object eaten reduces the your
+thirst. Thirst is represented on a scale of 0 to 100, 0
+being no thirst and 100 being maximum thirst. When you have
+a thirst of 0 you will gain hit points faster than a when
+you have a thirst of 100.
+
+Usage: Drink <object>
+Example: &Ydrink water&N
+
+Related help: Eat Status Objects
+
+Help:Drop
+&C
+*************
+* Help Drop *
+*************&N
+Allows you to drop an object onto the ground.
+
+Usage: Drop <object>
+Example: &Ydrop ratear&N
+
+Related help: Objects
+
+Help:Eat
+&C
+************
+* Help Eat *
+************&N
+You eat the object specified only if the object is a food
+object. Each food object eaten reduces the your hunger.
+Hunger is represented on a scale of 0 to 100, 0 being no
+hunger and 100 being maximum hunger. When you have a hunger
+of 0 you will gain hit points faster than a when you have a
+hunger of 100.
+
+Usage: Eat <object>
+Example: &Yeat apple&N
+
+Related help: Drink Status Objects
+
+Help:Emote
+&C
+**************
+* Help Emote *
+**************&N
+Allows you to express yourself in non-verbal ways by sending
+a message to the other players in the room. The message is
+prefixed by your name.
+
+Usage: Emote <message>
+Example: &Yemote is very happy!&N
+Abbreviation: em
+
+Related help: Say Gsay Social Tell Chat
+
+Help:Equipment
+&C
+******************
+* Help Equipment *
+******************&N
+Shows you the armor you are wearing and the weapon wielded.
+
+Usage: Equipment or Eq
+Example: &Yequipment&N
+     or: &Yeq&N
+Abbreviation: eq
+
+Related help: Wear Remove Armor
+
+Help:Examine
+&C
+****************
+* Help Examine *
+****************&N
+Used to get a closer look at an object.
+
+Usage: Examine <object>
+Example: &Yexamine statue&N
+
+Related help: Objects
+
+Help:Exit
+&C
+*************
+* Help Exit *
+*************&N
+See help topic 'exits'.
+
+Related help: Exits Go
+
+Help:Exits
+&C
+**************
+* Help Exits *
+**************&N
+Exits are shown immediately after the room description on
+a separate line that starts with '&CExits:&N'. Exits are
+used to move from one room to another room and appear in
+two different formats.
+
+Format 1 exits are compass directions
+&CNorth South East West&N
+&CNorthEast NorthWest SouthEast SouthWest&N
+&CUp Down&N
+and may be abbreviated as
+&CN S E W NE NW SE SW U D&N
+To use a Format 1 exit, simply type the
+direction you wish to travel. For example,
+&Yn&N to go north or &Yu&N to go up.
+
+Format 2 exits are descriptive, for example
+&CWeaponShop&N
+To use a Format 2 exit, you must type 'go'
+before the exit name. For example,
+&Ygo weaponshop&N
+to enter the weapon shop.
+
+Related help: Help Newbie NPC Object Room
+
+Help:Flee
+&C
+*************
+* Help Flee *
+*************&N
+You can flee from a fight, but you must know the direction
+in which you wish to flee. You CANNOT just flee.
+
+Usage: Flee <direction>
+Example: &Yflee n&N
+
+Related help: Exits
+
+Help:Follow
+&C
+***************
+* Help Follow *
+***************&N
+Follow allows one player to follow another player, if they
+are both in the same group and in the same room.
+
+Follow <player> causes you to being following <player>.
+Follow NONE     causes you to stop following.
+Follow LIST     shows who you are following and who is
+                following you.
+
+Usage: Follow LIST | NONE | <player>
+Example: &Yfollow ixaka&N
+     or: &Yfollow list&N
+     or: &Yfollow none&N
+
+Related help: Group
+
+Help:Get
+&C
+************
+* Help Get *
+************&N
+Use the get command to get and an object that
+has been left unclaimed.
+
+Usage: Get <object>
+Example: &Yget ratear&N
+
+Related help: Objects
+
+Help:Give
+&C
+*************
+* Help Give *
+*************&N
+Allows you to give an object to another player.
+
+Usage: Give <object> <player>
+Example: &Ygive ratear jethro&N
+
+Related help: Objects
+
+Help:Go
+&C
+************
+* Help Go  *
+************&N
+Go is used with Format 2 exits which are descriptive exits
+like 'armorshop' or 'weaponshop'.
+
+Usage: Go <exit>
+Example: &Ygo armorshop&N
+
+Related help: Exits
+
+Help:Group
+&C
+**************
+* Help Group *
+**************&N
+It is often desirable to group with other players during
+your adventures. To form a group you need 2 or more players
+one of which is the designated as the leader. The leader
+invites the other players and a group is formed. All players
+must be in the same room in order to form a group.
+
+The LIST option will return a list of your group's members.
+The ON   option allows you to be invited into a group.
+The OFF  option prevents you from being invited into a group.
+The NONE option removes you from a group.
+
+
+Usage: Group LIST | ON | OFF | NONE | <player>
+Example: Ixaka, Abbi, and Jethro want to form a group and
+Ixaka is to be the leader.
+
+Ixaka  > &Ygroup on&N (optional because he is leader)
+Abbi   > &Ygroup on&N (only if group is not already on)
+Jethro > &Ygroup on&N (only if group is not already on)
+Ixaka  > &Ygroup abbi&N
+Ixaka  > &Ygroup jethro&N
+
+Related help: Gsay Follow
+
+Help:Gsay
+&C
+*************
+* Help Gsay *
+*************&N
+Use this command to 'speak' to everyone in your group.
+
+Usage: Gsay <What you want to say goes here>
+Example: &Ygsay Hi all, thanks for inviting into the group!&N
+
+Related help: Say Gsay Social Tell Emote Chat
+
+Help:Hail
+&C
+*************
+* Help Hail *
+*************&N
+Use the Hail command to get the attention of an NPC. Only
+certain NPCs will reply. For example, a merchant is likely
+to reply, but a rat may not.
+
+Usage: Hail <NPC>
+Example: &Yhail merchant&N
+
+Related help: Say Social Tell
+
+Help:Help
+&C
+*************
+* Help Help *
+*************&N
+The Help command is used obtain information about a
+particular command or topic. To see a complete list of all
+help topics, use the 'show help' command.
+
+Usage: Help {<command>|<topic>}
+Example: &Yhelp&N
+     or: &Yhelp say&N     a command
+     or: &Yhelp newbie&N  a help topic
+
+When you see something like <command>|<topic> like in the
+'Usage:' line above, it means replace the characters
+<command>|<topic> with either a command (the <command> part)
+or (the |) a help topic (the <topic> part). The braces '{}'
+indicate that the part within the braces is optional.
+
+ALL CAPS means to type the word exactly as written,
+although you do not have to capitalize what you type. See
+the &Yshow&N command for an example.
+
+Related help: Exits Newbie NPC Object Room Show
+
+Help:Information
+&C
+********************
+* Help Information *
+********************&N
+Information commands are useful for getting information
+about yourself, other players, and the world around you.
+
+Related help: Look Show Status Who Afk Color
+
+Help:Item
+&C
+*************
+* Help Item *
+*************&N
+See 'help object'.
+
+Related help: None
+
+Help:Inventory
+&C
+******************
+* Help Inventory *
+******************&N
+Shows all of your possessions, except what you have
+equipped.
+
+Usage: Inventory
+Example: &YInventory&N
+Abbreviation: i
+
+Related help: Armor Wear Equipment Objects
+
+Help:Kill
+&C
+*************
+* Help Kill *
+*************&N
+Use this command to start a fight with an NPC. Be careful,
+if you are in a room with several type of rats, be sure to
+specify which rat you intend to attack. For example, type
+'kill smallrat' instead of just 'kill rat'.
+
+If an NPC is hurt, there will be a number somewhere in the
+message. This number must be used if you want to be sure
+that you target that NPC.
+
+Usage: Kill <NPC> | <number>
+Example: &Ykill rat&N
+     or: &Ykill 2516&N
+Abbreviation: k
+
+Related help: NPC Wield Train Consider
+
+Help:List
+&C
+*************
+* Help List *
+*************&N
+Displays a list of items for sell in a shop.
+
+Usage: List
+&C
+Example: &Ylist&N
+
+Related help: Buy Sell
+
+Help:Load
+&C
+*************
+* Help Load *
+*************&N
+Load an object or mobile. Objects are loaded directly
+into your inventory. Mobs are loaded into the room
+you are in.
+
+Usage: Load mob|obj <case sensitive identifier>
+&C
+Example: &Yload obj LambLeg&N
+     or: &Yload mob HoneyBee&N
+
+Related help: Mobiles and Objects
+
+Help:Look
+&C
+*************
+* Help Look *
+*************&N
+This command allows you to 'see' the room and what and/or
+who is in the room with you. Look is NOT used to check out
+objects, instead, use the examine command.
+
+Look can be used to look in a particular direction. For
+example, 'look n' would let you see what is north of your
+current position, assuming there is something interesting
+in that direction.
+
+You can look at another player to determine what they are
+wearing.
+
+Usage: L{ook}
+Example: &Ylook&N
+     or: &Yl&N
+     or: &Yl n&N
+     or: &Yl Ixaka&N
+Abbreviation: l
+
+Related help: Room, Objects, Movement
+
+Help:Money
+&C
+**************
+* Help Money *
+**************&N
+Displays how much money you have stashed.
+
+Usage: money
+Example: &Ymoney&N
+
+Related help: Status
+
+Help:Movement
+&C
+*****************
+* Help Movement *
+*****************&N
+Movement in YaGs involves moving from room to room
+using the room exits. See related help topics for further
+explanations.
+
+Related help: Go Exits Rooms
+
+Help:Newbie
+&C
+***************
+* Help Newbie *
+***************&N
+A newbie is a player who has just logged onto the game for
+the first time and therefore is 'new' to YaGs. Newbies
+sometimes need help getting started and understanding the
+game. More experienced players should help them when they
+have time. Newbies should not demand anything of the other
+players. If you are a newbie, remember that no player owes
+you anything. Be nice and ask politely is the best policy.
+
+Related help: Exits Help NPC Object Room
+
+Help:NotFound
+&C
+*****************
+* Help NotFound *
+*****************&N
+The help entry you are looking for could not be found,
+unless you typed &Yhelp notfound&N, in which case you have
+found the help entry for which you were looking.
+
+Use the &Yshow help&N command to get a complete list of help
+entries.
+
+Related help: Help Newbie Show
+
+Help:Mob
+&C
+************
+* Help Mob *
+************&N
+See 'help NPC'.
+
+Related help: NPC
+
+Help:Mobile
+&C
+***************
+* Help Mobile *
+***************&N
+See 'help NPC'.
+
+Related help: NPC
+
+Help:Mobiles
+&C
+****************
+* Help Mobiles *
+****************&N
+See 'help NPC'.
+
+Related help: NPC
+
+Help:Mobs
+&C
+*************
+* Help Mobs *
+*************&N
+See 'help NPC'.
+
+Related help: NPC
+
+Help:NPC
+&C
+************
+* Help NPC *
+************&N
+NPC stands for Non-Player-Character. Examples of
+NPCs are rats, snakes, guards, sheep, dogs, cats,
+lions, and Philistines.
+
+Most NPCs can be referred to by part of their
+name. For example, a small rat can be referred to
+using 'rat', 'small', or 'smallrat'. If there is
+a small rat and a small snake, you would want to
+be specific and target either 'smallrat' or
+'smallsnake'.
+
+A wounded NPC will have a number which must be
+used to target that particular NPC.
+
+Related help: Exits Help Newbie Object Room
+
+Help:Object
+&C
+***************
+* Help Object *
+***************&N
+An object is something that you can get, give, buy, sell,
+etc. Examples of objects are swords, sandals, breastplates,
+rings, waterskins, raisin cakes, apples, and clubs. Objects
+are also referred to as items.
+
+When you wish to do something with an object, you may refer
+to the object in serval ways. For example, let's say you
+see a 'leather belt' on the ground and you want to 'get'
+it. You may use any of the following variations.
+get leather
+get belt
+get leatherbelt
+
+Related help: Exits Help Newbie NPC Room Examine
+
+Help:Objects
+&C
+****************
+* Help Objects *
+****************&N
+See 'help object'.
+
+Related help: Object
+
+Help:Password
+&C
+*****************
+* Help Password *
+*****************&N
+Change your password.
+
+Usage: Password <old password> <new password> <new password>
+Example: &Ypassword myoldpass anewpass anewpass&N
+
+Related help: None
+
+Help:Played
+&C
+***************
+* Help Played *
+***************&N
+Shows your age, total hours you have been logged on to
+YaGs, and your birthdate.
+
+Related help: Time
+
+Help:Put
+&C
+************
+* Help Put *
+************&N
+Not implemented yet.
+
+Related help: None
+
+Help:Remove
+&C
+***************
+* Help Remove *
+***************&N
+Removes an item that you are currently wearing or wielding
+and places it in your inventory.
+
+Usage: Remove <object>
+Example: &Yremove helmet&N
+     or: &Yremove sword&N
+
+Related help: Armor Wear Equipment Objects
+
+Help:Room
+&C
+*************
+* Help Room *
+*************&N
+A room is simply a place. It could be a street, a city
+square, a field, a bedroom, a shop, or a trail through the
+woods. Each room is a different in size and shape and is
+described by the room description. A player moves from room
+to room by using the room's exits.
+
+Related help: Exits Help Newbie NPC Object
+
+Help:Rooms
+&C
+**************
+* Help Rooms *
+**************&N
+Try 'help room' instead.
+
+Related help: Room
+
+Help:Rules
+&C
+**************
+* Help Rules *
+**************&N
+This is a family oriented game. Please keep this in mind as
+you play. Anything said on any channel (say, chat, emote,
+etc) must be moderated with this in mind. If you don't
+understand what this means, don't play.
+
+Do not do ANYTHING that spoils another player's FUN or
+sense of fair play.
+
+Your presence in YaGs constitutes your agreement to
+the rules of YaGs. Your privacy while playing
+YaGs is respected, but it is not a right.
+
+Related help: None
+
+Help:Say
+&C
+************
+* Help Say *
+************&N
+Use this command to 'speak' to everyone in the room.
+
+Usage: Say <What you want to say goes here>
+Example: say Hi everyone!
+
+Related help: Gsay Social Tell Emote Chat
+
+Help:Sell
+&C
+*************
+* Help Sell *
+*************&N
+Allows you to sell items to a shop.
+
+Usage: Sell <object> {<count>|ALL}
+Example: &Ysell sword&N
+     or: &Ysell ratear 5&N
+     or: &Ysell ratear all&N
+
+Related help: Buy List Object
+
+Help:Show
+&C
+*************
+* Help Show *
+*************&N
+Provides a list of commands, help topics, or socials.
+
+Usage: Show COMMANDS | HELP | SOCIALS
+Example: &Yshow commands&N
+
+Related help: Commands Help Social
+
+Help:Sit
+&C
+************
+* Help Sit *
+************&N
+Causes you to sit down. You must be standing before sitting
+down.
+
+Related help: Sleep Wake Stand
+
+Help:Sleep
+&C
+**************
+* Help Sleep *
+**************&N
+Causes you to go to sleep. You must be sitting before going
+to sleep.
+
+Related help: Wake Sit Stand
+
+Help:Social
+&C
+***************
+* Help Social *
+***************&N
+Use this command for non-verbal communication with other
+players in the same room. To see a complete list of all
+socials, use the 'show socials' command.
+
+Usage: <social> {<target>}
+Example: &Ybow&N
+     or: &Ybow Joab&N
+
+Related help: Say Gsay Tell Emote Chat Show
+
+Help:Stand
+&C
+**************
+* Help Stand *
+**************&N
+Causes you to stand up. You must be sitting before standing
+up.
+
+Related help: Sleep Wake Sit
+
+Help:Status
+&C
+***************
+* Help Status *
+***************&N
+Displays information about yourself.
+
+Usage: status
+Example: &Ystatus&N
+
+Related help: Money
+
+Help:Tell
+&C
+*************
+* Help Tell *
+*************&N
+Use this command to send a private message to
+another player.
+
+Usage: Tell <player> <private message goes here>
+Example: &Ytell Joab Where did you get that sword?&N
+
+Related help: Say Gsay Social Tell Emote Chat
+
+Help:Time
+&C
+*************
+* Help Time *
+*************&N
+Displays the current time on the server where the game is
+running and the current game time.
+
+Usage: Time
+Example: &Ytime&N
+
+Related help: None
+
+Help:Topics
+&C
+***************
+* Help Topics *
+***************&N
+At the bottom of the main help display you get when you
+type 'help', there is a line that says:
+
+Type &Yhelp&N and &Many&N of the above words
+
+This help entry was created so that the statement would be
+true!
+
+Related help: None
+
+Help:Train
+&C
+**************
+* Help Train *
+**************&N
+The train command allows you to become more proficient with
+your weapon. Entering 'train' by itself will display a
+summary of your current weapon skills. To increase a skill
+by 1 point, enter 'train <weapon type>'. Decreasing a skill
+is possible, but it will cost you some money. Decrease a
+skill by using 'train <weapontype> -'. This will tell you
+how much it will cost. Let's say it tells you 250 silver,
+then to decrease a skill, enter 'train <weapontype> - 250'.
+
+Usage: Train {<weapon type>} {- 999}
+Example: &Ytrain&N
+     or: &Ytrain sword&N
+     or: &Ytrain sword - 250&N
+
+Related help: Kill Flee
+
+Help:Wake
+&C
+*************
+* Help Wake *
+*************&N
+Awakens you from sleep. When you awake, you are then
+sitting.
+
+Related help: Sleep Sit Stand
+
+Help:Wear
+&C
+*************
+* Help Wear *
+*************&N
+The wear command removes an item from your inventory and
+places it on your body. Obviously, all items are not
+wearable. Each wearable item has a specific place on your
+body that it can be worn. For example, you cannot wear a
+helmet on your feet. Some items, like earrings require you
+to specify which ear, left or right. There are 19 different
+places on your body for wearing items.
+  head
+  neck
+  shoulders
+  chest
+  back
+  arms
+  hands
+  shield
+  waist
+  legs
+  feet
+  ear    left right
+  wrist  left right
+  finger left right
+  ankle  left right
+
+Usage: Wear <object> {LEFT | RIGHT}
+Example: &Ywear helmet&N
+     or: &Ywear ring right&N
+
+Related help: Armor Remove Equipment Objects
+
+Help:Who
+&C
+************
+* Help Who *
+************&N
+Returns a list of players currently playing.
+
+Usage: Who
+Example: &Ywho&N
+
+Related help: Afk
+
+Help:Wield
+&C
+**************
+* Help Wield *
+**************&N
+Use this command to equip your weapon of choice.
+
+Usage: Wield <object>
+Example: &Ywield club&N
+
+Related help: Flee Kill Train
+
+End of Help

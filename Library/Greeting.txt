@@ -1,0 +1,11 @@
+Y     Y               GGGGG
+ Y   Y       aa      G     G     ssss
+  Y Y       a  a     G          s
+   Y       a    a    G  GGGG     ssss
+   Y       aaaaaa    G     G         s
+   Y       a    a    G     G    s    s
+   Y       a    a     GGGGG      ssss
+
+Welcome to YaGs - Yet another Game server
+
+New player? Y or N

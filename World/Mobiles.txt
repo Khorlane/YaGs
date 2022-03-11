@@ -1,0 +1,29 @@
+SmallRat
+a small rat
+a small rat is looking for a snack amongst the garbage.
+This rat has dark gray fur, beady red eyes, and very sharp
+yellow teeth which will definitely hurt!
+Attack:    Bites
+Level:     1
+HitPoints: 0
+ExpPoints: 0
+Loot:      RatFoot
+
+SneakyThief
+a sneaky thief
+a sneaky theif is hiding in the bushes. He will pick your
+pocket for sure!
+Attack:    Stab
+Level:     5
+HitPoints: 10
+ExpPoints: 15
+Loot:      SmallDagger RatFoot
+
+PalaceGuard
+a palace guard
+a palace guard is staning at attention, guarding the palace entrance!
+Attack:    Slash
+Level:     99
+HitPoints: 1000
+ExpPoints: -500
+Loot:      None

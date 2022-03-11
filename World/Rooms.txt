@@ -1,0 +1,43 @@
+
+101 Front Yard
+You are standing in lush green grass that has
+been recently mowed. Your sneakers are beginning
+to get stained from all the grass clippings.
+Terrain: Grass
+Flags: None
+N     NE    E     SE    S     SW    W     NW    Up     Down
+00102 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxxx xxxxx
+
+102 Front Porch
+You stand on the front porch, before you is dark 
+red wooden door. In the center of the door is 
+large heavy iron knocker with an engraved snake
+encircling it.
+Terrain: Street
+Flags: NoFight
+N     NE    E     SE    S     SW    W     NW    Up    Down
+00103 xxxxx 00104 xxxxx 00101 xxxxx 00105 xxxxx xxxxx xxxxx
+
+103 Living Room
+The living room is spacious with a large fireplace
+on one wall and a spectacular painting hanging on
+the opposite wall.
+Terrain: Indoor
+Flags: None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+104 Side Yard
+Yep, you are indeed in the side yard. It is narrow,
+running down the length of the house.
+Terrain: Grass
+Flags: None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx
+
+105 Side Yard
+Yep, you are indeed in the side yard.
+Terrain: Grass
+Flags: NoNPC
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx

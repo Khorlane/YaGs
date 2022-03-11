@@ -1,0 +1,5 @@
+# Ignore these directories
+Log/
+
+# Ignore these files
+Player.yags
