@@ -98,13 +98,16 @@ struct PlayerList  *pTarget;                          // Pointer to target playe
 
 // Strings
 char                aTmpStr[1024];                    // Temp string
-char                *TmpStr = aTmpStr;                // Temp string too
+char                *TmpStr   = aTmpStr;              // Temp string too
 char                aTmpStr1[1024];                   // Temp string 1
-char                *TmpStr1 = aTmpStr1;              // Temp string 1 too
+char                *TmpStr1  = aTmpStr1;             // Temp string 1 too
+char                *CmdParm1 = aTmpStr1;             // Command Parameter 1
 char                aTmpStr2[1024];                   // Temp string 2
-char                *TmpStr2 = aTmpStr2;              // Temp string 2 too
+char                *TmpStr2  = aTmpStr2;             // Temp string 2 too
+char                *CmdParm2 = aTmpStr2;             // Command Parameter 2
 char                aTmpStr3[1024];                   // Temp string 3
-char                *TmpStr3 = aTmpStr3;              // Temp string 3 too
+char                *TmpStr3  = aTmpStr3;             // Temp string 3 too
+char                *CmdParm3 = aTmpStr3;             // Command Parameter 2
 char                Buffer[2048];                     // Just a buffer
 char                Command[1024];                    // The command from the player
 char                LogMsg[100];                      // Log message
@@ -279,7 +282,7 @@ struct sCommands                                       // Command structure
   char *Message;
 } Commands;
 
-char* CommandTable[][9] = {
+char *CommandTable[][9] = {
   // Name          Admin Level Position  Social Fight Words Parts Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -376,10 +379,10 @@ void DoAdvance()
   pTarget         = NULL;
   pPlayerCurrSave = pPlayerCurr;
   pPlayerCurr     = pPlayerHead;
-  Word(2, Command, TmpStr2);
+  Word(2, Command, CmdParm1);
   while (pPlayerCurr != NULL)
   {
-    if (Equal(pPlayerCurr->Name, TmpStr2))
+    if (Equal(pPlayerCurr->Name, CmdParm1))
     {
       pTarget = pPlayerCurr;
       break;
@@ -389,18 +392,18 @@ void DoAdvance()
   pPlayerCurr = pPlayerCurrSave;
   if (pTarget == NULL)
   {
-    sprintf(Buffer, "%s %s", TmpStr2, "is not online\r\n");
+    sprintf(Buffer, "%s %s", CmdParm1, "is not online\r\n");
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     Prompt(pPlayer);
     return;
   }
-  Word(3, Command, TmpStr3);
-  x = (size_t)atoi(TmpStr3);
+  Word(3, Command, CmdParm2);
+  x = (size_t)atoi(CmdParm2);
   y = (size_t)(pTarget->Level);
   if (x == y)
   { // New level same as current level
-    sprintf(Buffer, "%s %s %s %s", TmpStr2, "is already at level", TmpStr3, "\r\n");
+    sprintf(Buffer, "%s %s %s %s", CmdParm1, "is already at level", CmdParm2, "\r\n");
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     Prompt(pPlayer);
@@ -408,7 +411,7 @@ void DoAdvance()
   }
   if (x > 127)
   { // Level is type char and max value is 127
-    sprintf(Buffer, "%s %s %s", "Level", TmpStr3, "is invalid\r\n");
+    sprintf(Buffer, "%s %s %s", "Level", CmdParm2, "is invalid\r\n");
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     Prompt(pPlayer);
@@ -424,16 +427,16 @@ void DoAdvance()
   {
     sprintf(TmpStr, "%s", "demoted");
   }
-  pTarget->Level      = (char)atoi(TmpStr3);
+  pTarget->Level      = (char)atoi(CmdParm2);
   pTarget->Experience = (int)(pTarget->Level) * 100;
   // Message to target player
   strcat(pTarget->Output,"\r\n");
-  sprintf(Buffer, "%s %s %s %s %s", pActor->Name, "has", TmpStr, "you to level", TmpStr3);
+  sprintf(Buffer, "%s %s %s %s %s", pActor->Name, "has", TmpStr, "you to level", CmdParm2);
   strcat(pTarget->Output, Buffer);
   strcat(pTarget->Output, "\r\n\r\n");
   Prompt(pTarget);
   // Message to player
-  sprintf(Buffer, "%s %s %s %s %s, ", pTarget->Name, "has been", TmpStr, "to level", TmpStr3);
+  sprintf(Buffer, "%s %s %s %s %s, ", pTarget->Name, "has been", TmpStr, "to level", CmdParm2);
   strcat(pActor->Output, Buffer);
   strcat(pActor->Output, "\r\n\r\n");
   Prompt(pActor);
@@ -462,15 +465,15 @@ void DoColor()
       return;
     }
   };
-  Word(2, Command, TmpStr);
-  LowerCase(TmpStr);
-  if (Equal(TmpStr, "on"))
+  Word(2, Command, CmdParm1);
+  LowerCase(CmdParm1);
+  if (Equal(CmdParm1, "on"))
   {
     pPlayer->Color = 'Y';
     strcat(pPlayer->Output, "You will now see &RP&Gr&Ye&Bt&Mt&Cy&N &RC&Go&Yl&Bo&Mr&Cs&N.\r\n\r\n");
     Prompt(pPlayer);
   }
-  if (Equal(TmpStr, "off"))
+  if (Equal(CmdParm1, "off"))
   {
     pPlayer->Color = 'N';
     strcat(pPlayer->Output, "Color is off.\r\n\r\n");
@@ -491,10 +494,11 @@ void DoHelp()
     AbortIt();
   }
   LowerCase(Command);
-  Word(2, Command, Buffer);
-  Up1stChar(Buffer);
+  Word(2, Command, CmdParm1);
+  Up1stChar(CmdParm1);
   strcpy(TmpStr, "Help:");
-  strcat(TmpStr, Buffer);
+  strcat(TmpStr, CmdParm1);
+  strcpy(CmdParm1, TmpStr);
   Found = false;
   for (;;)
   {
@@ -512,13 +516,13 @@ void DoHelp()
     // Just 'Help' was entered
     if (Words(Command) == 1)
     {
-      if (Equal(Buffer,"Help:"))
+      if (Equal(Buffer, "Help:"))
       {
         strcpy(Buffer, "\r\n");
       }
       strcat(pPlayer->Output, Buffer);
       strcat(pPlayer->Output,"\r\n");
-      if (Equal(Buffer,"Related help: 'Help Help' Newbie NPC Object Room"))
+      if (Equal(Buffer, "Related help: 'Help Help' Newbie NPC Object Room"))
       {
         Found = true;
         break;
@@ -528,7 +532,7 @@ void DoHelp()
     // Help 'something' was entered
     if (!Found)
     {
-      if (!Equal(Buffer, TmpStr))
+      if (!Equal(Buffer, CmdParm1))
       {
         continue;
       }
