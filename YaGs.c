@@ -2,7 +2,6 @@
 //* Yet another Game server *
 //***************************
 
-
 #define _DEFAULT_SOURCE                               // Required for a bunch of BSD socket stuff
 #pragma GCC diagnostic push                           // Ignore warnings about sections
 #pragma GCC diagnostic ignored "-Wunreachable-code"   //   of unreachable code.
@@ -15,6 +14,7 @@
 #include <ctype.h>                                    // tolower(), isspace()
 #include <errno.h>                                    // EINTR
 #include <fcntl.h>                                    // fcntl(), F_SETFL, FNDELAY
+#include <math.h>                                     // fmod()
 #include <stdbool.h>                                  // bool data type
 #include <stdio.h>                                    // Standard I/O
 #include <stdlib.h>                                   // exit() malloc()
@@ -232,6 +232,7 @@ void    DisconnectPlayers();
 void    DoAdvance();
 void    DoColor();
 void    DoHelp();
+void    DoPlayed();
 void    DoPlayerfile();
 void    DoQuit();
 void    DoShutdown();
@@ -292,6 +293,7 @@ char *CommandTable[][9] = {
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -304,6 +306,7 @@ void (*DoCommand[])(void) =
   DoAdvance, 
   DoColor,
   DoHelp,
+  DoPlayed,
   DoPlayerfile,
   DoQuit,
   DoShutdown
@@ -559,6 +562,29 @@ void DoHelp()
   strcat(pPlayer->Output, "\r\n");
   Prompt(pPlayer);
 }
+
+void DoPlayed()
+{
+  DEBUGIT(1)
+  time_t CurrentTime;
+  double ElapsedTime;
+  int Days, Hours, Minutes, Seconds;
+
+  CurrentTime = time(NULL); // Get the current time
+  ElapsedTime = difftime(CurrentTime, pPlayer->Born); // Calculate the difference in seconds
+  // Calculate days, hours, minutes, and seconds
+  Days = (int)(ElapsedTime / (24 * 3600));
+  ElapsedTime = fmod(ElapsedTime, (24 * 3600));
+  Hours = (int)(ElapsedTime / 3600);
+  ElapsedTime = fmod(ElapsedTime, 3600);
+  Minutes = (int)(ElapsedTime / 60);
+  Seconds = (int)fmod(ElapsedTime, 60);
+  sprintf(Buffer, "Your age is : %d days, %d hours, %d minutes, %d seconds\n", Days, Hours, Minutes, Seconds);
+  strcat(pPlayer->Output, Buffer);
+  strcat(pPlayer->Output, "\r\n");
+  Prompt(pPlayer);
+}
+
 
 void DoPlayerfile()
 {
