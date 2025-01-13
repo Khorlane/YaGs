@@ -2,6 +2,7 @@
 //* Yet another Game server *
 //***************************
 
+
 #define _DEFAULT_SOURCE                               // Required for a bunch of BSD socket stuff
 #pragma GCC diagnostic push                           // Ignore warnings about sections
 #pragma GCC diagnostic ignored "-Wunreachable-code"   //   of unreachable code.
@@ -21,6 +22,10 @@
 #include <sys/socket.h>                               // This and arpa/inet - a whole plethora of socket related stuff
 #include <time.h>                                     // time(), ctime()
 #include <unistd.h>                                   // close(), read(), getuid(), usleep(), fsync()
+
+#ifndef __builtin_free                                // Prevents E0020 identifier "_builtin_free" is undefined
+#define __builtin_free free                           //   in stdio.hand in stdlib.h
+#endif                                                // This doesn't seem to have anything to do with the code in YaGs.c
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Macros
@@ -197,15 +202,15 @@ struct PlayerList                                        // Players structure - 
 
 struct sPlayer                                        // Player structure - used when reading and writing player file
 {
-  char            Name[50];
-  char            Password[50];
-  char            Afk;
-  char            Admin;
-  time_t          Born;
-  char            Color;
-  int             Experience;
-  char            Level;
-  char            Sex;
+  char            Name[50];                           // Player name
+  char            Password[50];                       // Player password
+  char            Afk;                                // Away from keyboard flag (Y/N)
+  char            Admin;                              // Admin flag (Y/N) - Controls which commands are available to the player
+  time_t          Born;                               // Time player was created
+  char            Color;                              // Color code (Y/N) Y means that player output is run through the Color() function
+  int             Experience;                         // Experience points
+  char            Level;                              // Player level
+  char            Sex;                                // Player sex (M/F)
 } Player;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -563,12 +568,13 @@ void DoPlayerfile()
   strcat(pPlayer->Output, "Player file listing\r\n");
   strcat(pPlayer->Output, "&N");
   strcat(pPlayer->Output, "-------------------\r\n");
+  strcat(pPlayer->Output, "Name       Admin Color Level Experience\r\n");
   EndFile = false;
   PlayerNbr = 1;
   ReadPlayerFromFile();
   while (EndFile == false)
   {
-    sprintf(Buffer, "%s %c %c %i %i", Player.Name, Player.Admin, Player.Color, Player.Level, Player.Experience);
+    sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", Player.Name, " ", Player.Admin, " ", Player.Color, " ", Player.Level, " ", Player.Experience);
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     PlayerNbr++;
