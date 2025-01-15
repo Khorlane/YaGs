@@ -110,7 +110,7 @@ Key pieces of game information are colorized to draw your
 attention to them or to enhance their readability. If you
 see strange characters or mangled text, it may mean that
 your terminal does not support the color codes used by
-YaGs.
+MyCoolMud.
 
 Entering just 'color' will tell you whether or not color is
 on or off.
@@ -128,7 +128,7 @@ Help:Communication
 * Help Communication *
 **********************&N
 Interaction with other players can significantly enchance
-your enjoyment of YaGs. Anyone in the world can logon
+your enjoyment of MyCoolMud. Anyone in the world can logon
 and play, so you never know who you might meet. It is taboo
 to ask people personal questions. Remember, players are
 pretending to be a warrior and fighting for king and
@@ -150,6 +150,22 @@ Example: &Yconsider smallrat&N
 
 Related help: Kill Wield
 
+Help:Credits
+&C
+***********
+* Credits *
+***********&N
+MyCoolMud is an original work. It is not copied or derived
+from any existing game. MyCoolMud is run using YaGs
+- Yet Another Game Server. YaGs is an original work. It
+is not copied or derived from any existing game server.
+
+However, the author does not claim to have invented muds.
+See the internet for exhaustive discussions concerning
+mud, moo, muse, mush, muve, mux, etc, etc.
+
+Related help: None
+
 Help:Death
 &C
 *********
@@ -168,7 +184,7 @@ Help:Delete
 ***************
 * Help Delete *
 ***************&N
-You may remove yourself for the world of YaGs using
+You may remove yourself for the world of MyCoolMud using
 this command. The delete command will make you confirm that
 really want to delete yourself.
 
@@ -468,6 +484,17 @@ the &Yshow&N command for an example.
 
 Related help: Exits Newbie NPC Object Room Show
 
+Help:MyCoolMud
+&C
+******************
+* Help MyCoolMud *
+******************&N
+The game you are currently playing. MyCoolMud is developed
+using YaGs - Yet Another Game Server. YaGs is a mud
+server written from scratch using C and runs on Linux.
+
+Related help: None
+
 Help:Information
 &C
 ********************
@@ -594,7 +621,7 @@ Help:Movement
 *****************
 * Help Movement *
 *****************&N
-Movement in YaGs involves moving from room to room
+Movement in MyCoolMud involves moving from room to room
 using the room exits. See related help topics for further
 explanations.
 
@@ -606,7 +633,7 @@ Help:Newbie
 * Help Newbie *
 ***************&N
 A newbie is a player who has just logged onto the game for
-the first time and therefore is 'new' to YaGs. Newbies
+the first time and therefore is 'new' to MyCoolMud. Newbies
 sometimes need help getting started and understanding the
 game. More experienced players should help them when they
 have time. Newbies should not demand anything of the other
@@ -733,7 +760,7 @@ Help:Played
 * Help Played *
 ***************&N
 Shows your age, total hours you have been logged on to
-YaGs, and your birthdate.
+MyCoolMud, and your birthdate.
 
 Related help: Time
 
@@ -795,9 +822,9 @@ understand what this means, don't play.
 Do not do ANYTHING that spoils another player's FUN or
 sense of fair play.
 
-Your presence in YaGs constitutes your agreement to
-the rules of YaGs. Your privacy while playing
-YaGs is respected, but it is not a right.
+Your presence in MyCoolMud constitutes your agreement to
+the rules of MyCoolMud. Your privacy while playing
+MyCoolMud is respected, but it is not a right.
 
 Related help: None
 
