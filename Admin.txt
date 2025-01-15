@@ -1,0 +1,21 @@
+This file is for admins only.
+
+Admin Commands
+--------------
+
+Admin commands can be issued by players with Admin Flag set to 'Y'. The first
+player to log into the game is the admin.
+
+These commands are not in Help.txt(see Library folder).
+
+Advance
+format: advance <player> <level>
+This command will advance or demote a player to the specified level.
+
+Playerfile
+format: playerfile
+List all players in the Player.yags file (see World folder).
+
+Shutdown
+format: shutdown
+Disconnects all players and shuts down the game.
