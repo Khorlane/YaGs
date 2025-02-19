@@ -1,5 +1,8 @@
 # Ignore these directories
 Logs/
+.vs
+bin
+obj
 
 # Ignore these files
 Player.yags
