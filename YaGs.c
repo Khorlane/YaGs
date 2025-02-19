@@ -2,6 +2,7 @@
 //* Yet another Game server *
 //***************************
 
+#define VERSION "Version 1.0.5"                       // Version number
 #define _DEFAULT_SOURCE                               // Required for a bunch of BSD socket stuff
 #pragma GCC diagnostic push                           // Ignore warnings about sections
 #pragma GCC diagnostic ignored "-Wunreachable-code"   //   of unreachable code.
@@ -154,7 +155,7 @@ char              *None          = "";                // No Color
 
 // Messages
 char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
-char               *GameStartMsg = "YaGs v1.0.4 Starting";                // Game starting message
+char               *GameStartMsg = "YaGs is starting";                    // Game starting message
 char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
 char               *GameWakeMsg  = "Waking up";                           // Game wake up message
 
@@ -162,6 +163,8 @@ char               *GameWakeMsg  = "Waking up";                           // Gam
 // Player
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+//PlayerStates is an enumeration that defines various states in a player interaction process,
+// such as sending greetings, waiting for player input, and managing online connectivity.
 typedef enum PlayerStates
 {
   Send_Greeting,
@@ -177,30 +180,35 @@ typedef enum PlayerStates
   Disconnect
 } PlayerState;
 
-struct PlayerList                                        // Players structure - list of connected players
+// The PlayerList struct represents a data structure for managing a list of connected players,
+// containing various attributes such as socket information, player state, name, password, 
+// experience, and pointers to the next and previous players in the list.
+struct PlayerList
 {
-  int                Socket;
-  PlayerState        State;
-  char               Name[50];
-  char               Password[50];
-  char               Afk;
-  char               Admin;
-  time_t             Born;
-  char               Color;
-  int                Experience;
-  char               Level;
-  char               Sex;
-  char               Input[1024];
-  char               Output[2048];
-  int                BadPswdCount;
-  int                PlayerNbr;
-  int                NoInputTick;
-  int                NoInputCount;
+  int                Socket;                          // Socket number returned from accept()
+  PlayerState        State;                           // Player state
+  char               Name[50];                        // Player name
+  char               Password[50];                    // Player password
+  char               Afk;                             // Away from keyboard flag (Y/N)
+  char               Admin;                           // Admin flag (Y/N) - Controls which commands are available to the player
+  time_t             Born;                            // Time player was created
+  char               Color;                           // Color code (Y/N) Y means that player output is run through the Color() function
+  int                Experience;                      // Experience points
+  char               Level;                           // Player level
+  char               Sex;                             // Player sex (M/F)
+  char               Input[1024];                     // Player input buffer
+  char               Output[2048];                    // Player output buffer
+  int                BadPswdCount;                    // Number of bad passwords entered
+  int                PlayerNbr;                       // Player number
+  int                NoInputTick;                     // Ticks before checking if player is still there
+  int                NoInputCount;                    // Number of no input ticks
   struct PlayerList *pPlayerNext;                     // Pointer to next player in the player list
   struct PlayerList *pPlayerPrev;                     // Pointer to previous player in the player list
 };
 
-struct sPlayer                                        // Player structure - used when reading and writing player file
+// The Player structure represents a player in a game, encapsulating attributes such as
+// name, password, status flags, creation time, color preference, experience points, level, and sex.
+struct sPlayer
 {
   char            Name[50];                           // Player name
   char            Password[50];                       // Player password
@@ -222,8 +230,8 @@ void    AcceptNewPlayer();
 void    AddPlayerToFile();
 void    AddToPlayerList();
 void    CheckForNewPlayers();
-void    CloseFiles();
 void    CloseLog();
+void    ClosePlayerFile();
 void    Color();
 void    CopyPlayerListToPlayer();
 void    CopyPlayerToPlayerList();
@@ -236,6 +244,8 @@ void    DoPlayed();
 void    DoPlayerfile();
 void    DoQuit();
 void    DoShutdown();
+void    DoWho();
+void    DoStatus();
 bool    Equal(char *Str1, char *Str2);
 void    GetNextPlayerNbr();
 long    GetPlayerFileOffset();
@@ -248,8 +258,8 @@ void    Initialization();
 void    LogIt(char *LogMsg);
 void    LowerCase(char *Str);
 bool    MudCmdOk();
-void    OpenFiles();
 void    OpenLog();
+void    OpenPlayerFile();
 bool    PlayerNameValid();
 bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
@@ -258,8 +268,8 @@ void    ProcessPlayerInput();
 void    Prompt(struct PlayerList *pPlayer);
 void    ReadPlayerFromFile();
 void    SendGreeting();
-void    SendPlayerOutput();
 void    SendMotd();
+void    SendPlayerOutput();
 void    SendToAll();
 void    ShutItDown();
 void    Sleep();
@@ -275,41 +285,53 @@ void    WritePlayerToFile();
 // Commands
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-struct sCommands                                       // Command structure
+// Commands is a structure that holds various character pointers representing different attributes
+// related to commands, such as name, admin status, level, position, social interactions, 
+// fight commands, words, parts, and messages.
+struct sCommands
 {
-  char *Name;
-  char *Admin;
-  char *Level;
-  char *Position;
-  char *Social;
-  char *Fight;
-  char *Words;
-  char *Parts;
-  char *Message;
+  char *Name;                                         // Command name
+  char *Admin;                                        // This is an admin command
+  char *Level;                                        // Player must be at this level to use the command
+  char *Position;                                     // Player must be in this position to use the command
+  char *Social;                                       // Is this a social command
+  char *Fight;                                        // Can this command be issued during a fight
+  char *MinWords;                                     // Minimum number of words in the command
+  char *MaxWords;                                     // Maximum number of words in the command
+  char *Message;                                      // Message to display if command is invalid
 } Commands;
 
+// CommandTable is a two - dimensional array of character pointers that stores command information,
+// including command names, admin levels, positions, social interactions, fight options, word counts,
+// and associated messages.
 char *CommandTable[][9] = {
-  // Name          Admin Level Position  Social Fight Words Parts Message
+  //                                                   MIN  MAX
+  // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
-    {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"who",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
 };
 
-// Command jump table
+// DoCommand is an array of function pointers, each pointing to a function that takes no parameters
+// and returns void, allowing for the execution of various commands such as DoAdvance, DoColor, and others.
 void (*DoCommand[])(void) = 
-{
+{ // This list and the CommandTable MUST BE in the same order
   DoAdvance, 
   DoColor,
   DoHelp,
   DoPlayed,
   DoPlayerfile,
   DoQuit,
-  DoShutdown
+  DoShutdown,
+  DoStatus,
+  DoWho
 };
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -345,6 +367,8 @@ void HeartBeat()
   DEBUGIT(2)
 }
 
+// The ProcessPlayerInput function processes input from all players in a linked list, executing 
+// commands based on the input received and clearing the input buffer after processing.
 void ProcessPlayerInput()
 {
   DEBUGIT(2)
@@ -363,6 +387,8 @@ void ProcessPlayerInput()
   }
 }
 
+// The ProcessCommand function processes a command by trimming and logging it, 
+// checking the player's online status, and executing the command if it is valid.
 void ProcessCommand()
 {
   DEBUGIT(1)
@@ -381,6 +407,9 @@ void ProcessCommand()
   }
 }
 
+// The DoAdvance function advances a player's level in a game, updating their experience and notifying
+// both the target player and the acting player of the change, while also handling various conditions
+// such as invalid levels and ensuring the target player is online.
 void DoAdvance()
 {
   DEBUGIT(1)
@@ -455,6 +484,8 @@ void DoAdvance()
   pPlayer = pActor;
 }
 
+// The DoColor function manages the player's color settings in a game, allowing them to toggle
+// color output on or off and providing appropriate feedback based on their current setting.
 void DoColor()
 {
   DEBUGIT(1)
@@ -491,6 +522,8 @@ void DoColor()
   WritePlayerToFile();
 }
 
+// The DoHelp function retrieves and displays help information from a specified help file based on
+// user input, handling errors and formatting the output for the player.
 void DoHelp()
 {
   DEBUGIT(1)
@@ -563,6 +596,8 @@ void DoHelp()
   Prompt(pPlayer);
 }
 
+// The DoPlayed function calculates the elapsed time since a player's birth in days, hours, minutes,
+// and seconds, formats this information into a string, and appends it to the player's output.
 void DoPlayed()
 {
   DEBUGIT(1)
@@ -573,19 +608,20 @@ void DoPlayed()
   CurrentTime = time(NULL); // Get the current time
   ElapsedTime = difftime(CurrentTime, pPlayer->Born); // Calculate the difference in seconds
   // Calculate days, hours, minutes, and seconds
-  Days = (int)(ElapsedTime / (24 * 3600));
+  Days        = (int)(ElapsedTime / (24 * 3600));
   ElapsedTime = fmod(ElapsedTime, (24 * 3600));
-  Hours = (int)(ElapsedTime / 3600);
+  Hours       = (int)(ElapsedTime / 3600);
   ElapsedTime = fmod(ElapsedTime, 3600);
-  Minutes = (int)(ElapsedTime / 60);
-  Seconds = (int)fmod(ElapsedTime, 60);
+  Minutes     = (int)(ElapsedTime / 60);
+  Seconds     = (int)fmod(ElapsedTime, 60);
   sprintf(Buffer, "Your age is : %d days, %d hours, %d minutes, %d seconds\n", Days, Hours, Minutes, Seconds);
   strcat(pPlayer->Output, Buffer);
   strcat(pPlayer->Output, "\r\n");
   Prompt(pPlayer);
 }
 
-
+// The DoPlayerfile function generates a formatted player file listing by reading player data from
+// the player file and appending it to the output buffer of a player structure.
 void DoPlayerfile()
 {
   DEBUGIT(1)
@@ -610,6 +646,8 @@ void DoPlayerfile()
   Prompt(pPlayer);
 }
 
+// The DoQuit function handles the process of disconnecting a player by copying the player list, writing
+// player data to a file, updating the output message, and changing the player's state to "Disconnect."
 void DoQuit()
 {
   DEBUGIT(1)
@@ -620,6 +658,8 @@ void DoQuit()
   pPlayer->State = Disconnect;
 }
 
+// The DoShutdown function initiates the shutdown process of the game by setting a shutdown flag,
+// displaying a shutdown message, and notifying all connected users.
 void DoShutdown()
 {
   DEBUGIT(1)
@@ -628,16 +668,80 @@ void DoShutdown()
   SendToAll();
 }
 
+void DoStatus()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "\r\n");
+  // Name
+  sprintf(Buffer, "Name: %s\r\n", pPlayer->Name);
+  strcat(pPlayer->Output, Buffer);
+  // Afk
+  sprintf(Buffer, "AFK: %c\r\n", pPlayer->Afk);
+  strcat(pPlayer->Output, Buffer);
+  // Born
+  char *TimeStr = ctime(&pPlayer->Born); // Convert the birth time to a date string
+  TimeStr[strlen(TimeStr) - 1] = '\0';   //   and remove the newline character
+  sprintf(Buffer, "Born: %s\r\n", TimeStr);
+  strcat(pPlayer->Output, Buffer);
+  // Color
+  sprintf(Buffer, "Color: %c\r\n", pPlayer->Color);
+  strcat(pPlayer->Output, Buffer);
+  // Experience
+  sprintf(Buffer, "Experience: %i\r\n", pPlayer->Experience);
+  strcat(pPlayer->Output, Buffer);
+  // Level
+  sprintf(Buffer, "Level: %i\r\n", pPlayer->Level);
+  strcat(pPlayer->Output, Buffer);
+  //  Sex
+  sprintf(Buffer, "Sex: %c\r\n", pPlayer->Sex);
+  strcat(pPlayer->Output, Buffer);
+  // Admin
+  if (pPlayer->Admin == 'Y')
+  {
+    strcat(pPlayer->Output, "Your are an Admin!\r\n");
+  }
+
+  strcat(pPlayer->Output, "\r\n");
+  Prompt(pPlayer);
+}
+
+// The DoWho function outputs a formatted list of online players, including their names and levels, to the player's output buffer.
+void DoWho()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "\r\n");
+  strcat(pPlayer->Output, "&C");
+  strcat(pPlayer->Output, "Players online\r\n");
+  strcat(pPlayer->Output, "&N");
+  strcat(pPlayer->Output, "-------------------\r\n");
+  strcat(pPlayer->Output, "Name       Level \r\n");
+  pPlayerCurrSave = pPlayerCurr;
+  pPlayerCurr     = pPlayerHead;
+  while (pPlayerCurr != NULL)
+  {
+    sprintf(Buffer, "%-10s %2s %2i", pPlayerCurr->Name, " ", pPlayerCurr->Level);
+    strcat(pPlayer->Output, Buffer);
+    strcat(pPlayer->Output, "\r\n");
+    pPlayerCurr = pPlayerCurr->pPlayerNext;
+  }
+  strcat(pPlayer->Output, "\r\n");
+  Prompt(pPlayer);
+  pPlayerCurr = pPlayerCurrSave;
+}
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // General player communication
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The Prompt function appends a prompt string ("> ") to the Output member of a PlayerList structure, which is passed as a pointer.
 void Prompt(struct PlayerList *pPlayer)
 {
   DEBUGIT(1)
   strcat(pPlayer->Output,"> ");
 }
 
+// The SendToAll function sends a message to all players in a linked list, ensuring that the
+// original player context is preserved during the operation.
 void SendToAll()
 {
   DEBUGIT(1)
@@ -663,6 +767,9 @@ void SendToAll()
 // Get player online
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The GetPlayerOnline function manages the online status and interactions of players in a game, handling
+// various states such as greeting new players, validating names and passwords, and prompting for input
+// based on the player's current state.
 void GetPlayerOnline()
 {
   DEBUGIT(1)
@@ -833,6 +940,8 @@ void GetPlayerOnline()
   AbortIt();
 }  
 
+// The SendGreeting function reads a greeting message from a specified file and appends its contents
+// to a player's output, handling errors related to file operations.
 void SendGreeting()
 {
   DEBUGIT(1)
@@ -861,6 +970,8 @@ void SendGreeting()
   fclose(GreetingFile);
 }
 
+// The SendMotd function reads a message of the day (MOTD) from a specified file and appends its 
+// contents to a player's output buffer, handling errors related to file operations.
 void SendMotd()
 {
   DEBUGIT(1)
@@ -893,6 +1004,8 @@ void SendMotd()
 // Log
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The OpenLog function initializes a log file by constructing its name from predefined directory and 
+// file constants, attempts to open it for writing, and handles any errors that occur during this process.
 void OpenLog()
 { // Do not add DEBUGIT
   sprintf(LogFileName,"%s%s%s%s%s",YAGS_DIR,"/",LOG_DIR,"/",LOG_FILE);
@@ -903,8 +1016,11 @@ void OpenLog()
     exit(1);
   }
   LogIt(GameStartMsg);
+  LogIt(VERSION);
 }
 
+// The LogIt function logs a message to a specified log file, prepending the current time to the
+// message for timestamping.
 void LogIt(char *LogMsg)
 {
   GetTime();
@@ -912,6 +1028,8 @@ void LogIt(char *LogMsg)
   fflush(LogFile);
 }
 
+// The CloseLog function is responsible for closing the log file and logging a game stop message,
+// ensuring proper cleanup of logging resources.
 void CloseLog()
 {
   DEBUGIT(1)
@@ -923,6 +1041,8 @@ void CloseLog()
 // Sockets
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The SocketListen function initializes a listening socket for incoming TCP connections, configures
+// it with various socket options, binds it to a specified port, and begins listening for connections.
 void SocketListen()
 {
   DEBUGIT(1)
@@ -988,6 +1108,8 @@ void SocketListen()
   LogIt(LogMsg);
 }
 
+// The CheckForNewPlayers function monitors network sockets for new player connections and accepts
+// them if available, handling any errors that may occur during the process.
 void CheckForNewPlayers()
 {
   DEBUGIT(2)
@@ -1019,6 +1141,8 @@ void CheckForNewPlayers()
   }
 }
 
+// The AcceptNewPlayer function handles the acceptance of a new player connection by accepting a socket
+// connection, logging the connection details, and updating the player list and online status.
 void AcceptNewPlayer()
 {
   DEBUGIT(1)
@@ -1035,6 +1159,8 @@ void AcceptNewPlayer()
   GetPlayerOnline();
 }
 
+// The GetPlayerInput function processes input from connected players by reading data from their
+// respective sockets and updating their input state accordingly.
 void GetPlayerInput()
 {
   DEBUGIT(2)
@@ -1063,6 +1189,8 @@ void GetPlayerInput()
   }
 }
 
+// The SendPlayerOutput function processes and sends output messages to connected players, 
+// handling disconnection for those who have not provided input within a specified time limit.
 void SendPlayerOutput()
 {
   DEBUGIT(2)
@@ -1111,78 +1239,8 @@ void SendPlayerOutput()
   DisconnectPlayers();
 }
 
-void Color()
-{
-  DEBUGIT(2)
-  char *Str1; // Points to pPlayer->Output
-  char *Str2; // Points to TmpStr
-  char *Str3; // Points to 'next char' in Str1 (pPlayer->Output)
-  char *Str4; // Points to the selected color code string
-  if (strchr(pPlayer->Output, '&') == NULL) return;
-  Str1 = &pPlayer->Output[0];
-  Str2 = &TmpStr[0];
-  while (*Str1)
-  { // Loop here until we hit an '&'
-    while (*Str1 != '&')
-    {
-      *Str2 = *Str1;
-      if (*Str1 == '\0')
-      { // We are done
-        *Str2 = '\0';
-        strcpy(pPlayer->Output, TmpStr);
-        return;
-      }
-      Str1++;
-      Str2++;
-    }
-    // We hit an '&'
-    Str3 = Str1;
-    Str3++;
-    switch (*Str3)
-    {
-      case 'N':
-        Str4 = Normal;
-        break;
-      case 'K':
-        Str4 = BrightBlack;
-        break;
-      case 'R':
-        Str4 = BrightRed;
-        break;
-      case 'G':
-        Str4 = BrightGreen;
-        break;
-      case 'Y':
-        Str4 = BrightYellow;
-        break;
-      case 'B':
-        Str4 = BrightBlue;
-        break;
-      case 'M':
-        Str4 = BrightMagenta;
-        break;
-      case 'C':
-        Str4 = BrightCyan;
-        break;
-      case 'W':
-        Str4 = BrightWhite;
-        break;
-    }
-    if (pPlayer->Color == 'N')
-    {
-      Str4 = None;
-    }
-    while (*Str4 != '\0')
-    { // Copy the color code string
-      *Str2 = *Str4;
-      Str2++;
-      Str4++;
-    }
-    Str1++;
-    Str1++;
-  }
-}
-
+// The DisconnectPlayers function iterates through a list of players, disconnecting those whose state
+// is set to "Disconnect" by closing their sockets and removing them from the player list.
 void DisconnectPlayers()
 {
   DEBUGIT(2)
@@ -1204,14 +1262,18 @@ void DisconnectPlayers()
 // Start up and shutdown
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The StartItUp function initializes the system by performing a series of setup tasks,
+// including initialization, logging, socket listening, and file opening.
 void StartItUp()
 { // Do not add DEBUGIT
   Initialization();
   OpenLog();
   SocketListen();
-  OpenFiles();
+  OpenPlayerFile();
 }
 
+// The Initialization function sets up the initial state of a game by resetting various
+// player-related variables and ensuring that the game is not shut down.
 void Initialization()
 { // Do not add DEBUGIT
   GameShutDown = false;
@@ -1221,219 +1283,20 @@ void Initialization()
   pPlayerCurr  = NULL;
 }
 
-void OpenFiles()
-{
-  DEBUGIT(1)
-  sprintf(PlayerFileName,"%s%s%s%s%s",YAGS_DIR,"/",WORLD_DIR,"/",PLAYER_FILE);
-  PlayerFile = fopen(PlayerFileName, "r+");
-  if (PlayerFile == NULL)
-  {
-    sprintf(LogMsg,"Error opening %s : %s", PlayerFileName, strerror(errno));
-    AbortIt();
-  }
-}
-
+// The ShutItDown function is responsible for gracefully shutting down the game by closing files and logs.
 void ShutItDown()
 {
   DEBUGIT(1)
-  CloseFiles();
+  ClosePlayerFile();
   CloseLog();
-}
-
-void CloseFiles()
-{
-  DEBUGIT(1)
-  fclose(PlayerFile);
-}
-
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-// Strings
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-bool Equal(char *Str1, char *Str2)
-{
-  DEBUGIT(2)
-  return (!strcmp(Str1, Str2));
-}
-
-void LowerCase(char *Str)
-{
-  DEBUGIT(2)
-  for(i = 0; Str[i]; i++)
-  {
-    Str[i] = (char) tolower(Str[i]);
-  }
-}
-
-void Trim(char *Str)
-{
-  DEBUGIT(2)
-  i = strlen(Str);
-  i--;
-  while (isspace(Str[i]))
-  {
-    Str[i] = '\0';
-    if (i == 0)
-    { 
-      break;
-    }
-    i--;
-  }
-  j = i;
-  i = 0;
-  while (Str[0] == ' ')
-  {
-    for (i = 0; i < j; i++)
-    {
-      Str[i] = Str[i+1];
-    }
-    Str[i] = '\0';
-  }
-}
-
-void Up1stChar(char *Str)
-{
-  DEBUGIT(2)
-  Str[0] = (char)toupper(Str[0]);
-}
-
-void Word(size_t Nbr, char *Str1, char *Str2)
-{
-  DEBUGIT(2)
-  j = 0;
-  x = 1;
-  for (i = 0; Str1[i]; i++)
-  {
-    if (x == Nbr)
-    {
-      break;
-    }
-    if (isspace(Str1[i]))
-    {
-      x++;
-    }
-  }
-  while (!isspace(Str1[i]))
-  {
-    if (Str1[i] == '\0')
-    {
-      break;
-    }
-    Str2[j] = Str1[i];
-    i++;
-    j++;
-  }
-  Str2[j] = '\0';
-}
-
-size_t Words(char *Str)
-{
-  DEBUGIT(2)
-  #define NotWord 0
-  #define InWord  1
-  int State;
-  State = 0;
-  x = 0;
-  for (i = 0; Str[i]; i++)
-  {
-    if (isspace(Str[i]))
-    {
-      State = NotWord;
-    }
-    else if (State == NotWord)
-    {
-      State = InWord;
-      x++;
-    }
-  }
-  return x;
-}
-
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-// Miscellaneous
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-void AbortIt()
-{ // Do not add DEBUGIT
-  LogIt(LogMsg);
-  CloseLog();
-  exit(1);
-}
-
-bool MudCmdOk()
-{
-  DEBUGIT(1)
-  i = 0;
-  while (CommandTable[i][0] != NULL)
-  {
-    if (Equal(MudCmd, (char *)CommandTable[i][0]))
-    {
-      CommandNbr = (int)i;
-      Commands.Name     = (char *)CommandTable[i][0];
-      Commands.Admin    = (char *)CommandTable[i][1];
-      Commands.Level    = (char *)CommandTable[i][2];
-      Commands.Position = (char *)CommandTable[i][3];
-      Commands.Social   = (char *)CommandTable[i][4];
-      Commands.Fight    = (char *)CommandTable[i][5];
-      Commands.Words    = (char *)CommandTable[i][6];
-      Commands.Parts    = (char *)CommandTable[i][7];
-      Commands.Message  = (char *)CommandTable[i][8];
-      // Admin command?
-      if (Equal(Commands.Admin, "Y"))
-      {
-        if (pPlayer->Admin == 'N')
-        {
-          break;
-        }
-      }
-      // Check minimum words
-      if (Words(Command) < atoi(Commands.Words))
-      {
-        strcat(pPlayer->Output, Commands.Message);
-        strcat(pPlayer->Output, "\r\n\r\n");
-        Prompt(pPlayer);
-        return false;
-      }
-      // Command is OK!
-      return true;
-    }
-    i++;
-  }
-  // Command is none of the above
-  strcat(pPlayer->Output, "Huh?\r\n\r\n");
-  Prompt(pPlayer);
-  return false;
-}
-
-void GetTime()
-{ // Do not add DEBUGIT
-  CurrentTimeSec = time(NULL);              // Seconds since Epoch, 1970-01-01 00:00:00 +0000 (UTC)
-  CurrentTime = ctime(&CurrentTimeSec);     // Convert to human readable
-  x = strlen(CurrentTime);                  // Get rid of the '\n'
-  CurrentTime[x-1] = '\0';                  //   at the end of string returned by ctime()
-}
-
-void Sleep()
-{
-  DEBUGIT(2)
-  if (USE_USLEEP == 'Y')                    // Sleeping the game is one way to avoid needless
-  {                                         //   consumption of CPU. Typically, usleep() works
-    usleep(SLEEP_TIME);                     //   just fine for this purpose. Using select() is
-  }                                         //   another (not recommended) means of sleeping a
-  else                                      //   process.
-  {                                         // If the YaGs development environment is Windows 10,
-    #include <sys/select.h>                 //   Visual Studio, and WSL (Windows Subsystem for Linux)
-    struct timeval TimeOut;                 //   Ubuntu, then for some strange reason, usleep() does not
-    TimeOut.tv_sec = 0;                     //   does not actually sleep.
-    TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should  
-    select(0, NULL, NULL, NULL, &TimeOut);  //   adjust SLEEP_TIME until you are happy.
-  }
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Player list
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The AddToPlayerList function allocates memory for a new player node, initializes its properties,
+// and adds it to a linked list of players, handling both the first node and subsequent nodes appropriately.
 void AddToPlayerList()
 {
   DEBUGIT(1)  
@@ -1458,6 +1321,8 @@ void AddToPlayerList()
   pPlayer->pPlayerNext = NULL;
 }
 
+// The DelFromPlayerList function removes the current player node from a doubly linked list of players,
+// handling cases for deleting the head, tail, or a middle node, and updates the list pointers accordingly.
 void DelFromPlayerList()
 {
   DEBUGIT(1)
@@ -1496,10 +1361,71 @@ void DelFromPlayerList()
   free(pPlayer);
 }
 
+// The CopyPlayerToPlayerList function copies the attributes of a player from a source player object
+// to a destination player object, initializing various fields such as name, password, admin status, and experience level.
+void CopyPlayerToPlayerList()
+{
+  DEBUGIT(1)
+  strcpy(pPlayer->Name, Player.Name);
+  strcpy(pPlayer->Password, Player.Password);
+  pPlayer->Admin = Player.Admin;
+  pPlayer->Afk = Player.Afk;
+  pPlayer->Born = Player.Born;
+  pPlayer->Color = Player.Color;
+  pPlayer->Experience = Player.Experience;
+  pPlayer->Level = Player.Level;
+  pPlayer->Sex = Player.Sex;
+  pPlayer->PlayerNbr = PlayerNbr;
+  pPlayer->BadPswdCount = 0;
+  pPlayer->NoInputTick = 0;
+  pPlayer->NoInputCount = 0;
+}
+
+// The CopyPlayerListToPlayer function copies the attributes of a player from a source player structure (pPlayer) to a target player structure (Player).
+void CopyPlayerListToPlayer()
+{
+  DEBUGIT(1)
+  strcpy(Player.Name, pPlayer->Name);
+  strcpy(Player.Password, pPlayer->Password);
+  Player.Admin = pPlayer->Admin;
+  Player.Afk = pPlayer->Afk;
+  Player.Born = pPlayer->Born;
+  Player.Color = pPlayer->Color;
+  Player.Experience = pPlayer->Experience;
+  Player.Level = pPlayer->Level;
+  Player.Sex = pPlayer->Sex;
+}
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Player file
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The OpenFiles function attempts to open a player file for reading and writing, constructing
+// the file path from predefined directory and file name constants, and handles errors by
+// logging a message and aborting the operation if the file cannot be opened.
+void OpenPlayerFile()
+{
+  DEBUGIT(1)
+  sprintf(PlayerFileName, "%s%s%s%s%s", YAGS_DIR, "/", WORLD_DIR, "/", PLAYER_FILE);
+  PlayerFile = fopen(PlayerFileName, "r+");
+  if (PlayerFile == NULL)
+  {
+    sprintf(LogMsg, "Error opening %s : %s", PlayerFileName, strerror(errno));
+    AbortIt();
+  }
+}
+
+// The ClosePlayerFile function is responsible for closing the PlayerFile file stream, ensuring that
+// any resources associated with it are properly released.
+void ClosePlayerFile()
+{
+  DEBUGIT(1)
+  fclose(PlayerFile);
+}
+
+// The GetPlayerFileOffset function calculates and returns the file offset for a player based on the
+// size of the Player structure and current value of PlayerNbr, effectively determining the byte position
+// in a file where a specific player's data would be stored.
 long GetPlayerFileOffset()
 {
   DEBUGIT(1)
@@ -1509,6 +1435,8 @@ long GetPlayerFileOffset()
   return Offset;
 }
 
+// The PlayerNameValid function checks the validity of a player's name based on the current state of
+// the player, returning true if valid or triggering an error if an unexpected state is encountered.
 bool PlayerNameValid()
 {
   DEBUGIT(1)
@@ -1525,6 +1453,9 @@ bool PlayerNameValid()
   return false;
 }
 
+// The PlayerNameValidOld function checks if a player's name matches a specified command by reading
+// player data from a file until a match is found or the end of the file is reached, returning
+// a boolean value indicating whether a match was found.
 bool PlayerNameValidOld()
 {  
   DEBUGIT(1)
@@ -1545,6 +1476,8 @@ bool PlayerNameValidOld()
   return Found;
 }
 
+// The PlayerNameValidNew function checks if a given player name exists in a predefined list of
+// valid names stored in a file, returning true if a match is found and false otherwise.
 bool PlayerNameValidNew()
 {
   DEBUGIT(1)
@@ -1580,6 +1513,8 @@ bool PlayerNameValidNew()
   return Found;
 }
 
+// The ReadPlayerFromFile function reads player data from a file, handling potential errors
+// and end-of-file conditions during the read operation.
 void ReadPlayerFromFile()
 {
   DEBUGIT(1)
@@ -1597,6 +1532,8 @@ void ReadPlayerFromFile()
   }
 }
 
+// The WritePlayerToFile function writes the current player's data to a file,
+// ensuring proper file positioning and error handling during the write operation.
 void WritePlayerToFile()
 {
   DEBUGIT(1)
@@ -1621,6 +1558,9 @@ void WritePlayerToFile()
   }
 }
 
+// The AddPlayerToFile function adds a player record to a file,
+// initializing the player as an admin if the file is empty,
+// and includes error handling for file operations.
 void AddPlayerToFile()
 {
   DEBUGIT(1)
@@ -1649,38 +1589,9 @@ void AddPlayerToFile()
   }
 }
 
-void CopyPlayerToPlayerList()
-{
-  DEBUGIT(1)
-  strcpy(pPlayer->Name,     Player.Name);
-  strcpy(pPlayer->Password, Player.Password);
-  pPlayer->Admin          = Player.Admin;
-  pPlayer->Afk            = Player.Afk;
-  pPlayer->Born           = Player.Born;
-  pPlayer->Color          = Player.Color;
-  pPlayer->Experience     = Player.Experience;
-  pPlayer->Level          = Player.Level;
-  pPlayer->Sex            = Player.Sex;
-  pPlayer->PlayerNbr      = PlayerNbr;
-  pPlayer->BadPswdCount   = 0;
-  pPlayer->NoInputTick    = 0;
-  pPlayer->NoInputCount   = 0;
-}
-
-void CopyPlayerListToPlayer()
-{
-  DEBUGIT(1)
-  strcpy(Player.Name,     pPlayer->Name);
-  strcpy(Player.Password, pPlayer->Password);
-  Player.Admin          = pPlayer->Admin;
-  Player.Afk            = pPlayer->Afk;
-  Player.Born           = pPlayer->Born;
-  Player.Color          = pPlayer->Color;
-  Player.Experience     = pPlayer->Experience;
-  Player.Level          = pPlayer->Level;
-  Player.Sex            = pPlayer->Sex;
-}
-
+// The InitalizeNewPlayer function initializes a new player by copying their name and password from
+// a provided player structure, setting default values for various player attributes, and recording
+// the current time as their birth timestamp.
 void InitalizeNewPlayer()
 {
   DEBUGIT(1)
@@ -1695,6 +1606,8 @@ void InitalizeNewPlayer()
   Player.Level          = 1;
 }
 
+// The GetNextPlayerNbr function increments the PlayerNbr variable starting from 1 and continues
+// to read player data from a file until the end of the file is reached.
 void GetNextPlayerNbr()
 {
   DEBUGIT(1)
@@ -1705,5 +1618,287 @@ void GetNextPlayerNbr()
   {
     PlayerNbr++;
     ReadPlayerFromFile();
+  }
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Strings
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// The Equal function compares two C-style strings for equality and returns true if they are identical and false otherwise.
+bool Equal(char *Str1, char *Str2)
+{
+  DEBUGIT(2)
+  return (!strcmp(Str1, Str2));
+}
+
+// The LowerCase function converts all characters in the input C-style string Str to their lowercase equivalents.
+void LowerCase(char *Str)
+{
+  DEBUGIT(2)
+  for (i = 0; Str[i]; i++)
+  {
+    Str[i] = (char)tolower(Str[i]);
+  }
+}
+
+// The Trim function removes leading and trailing whitespace characters from a given C-style string.
+void Trim(char *Str)
+{
+  DEBUGIT(2)
+  i = strlen(Str);
+  i--;
+  while (isspace(Str[i]))
+  {
+    Str[i] = '\0';
+    if (i == 0)
+    {
+      break;
+    }
+    i--;
+  }
+  j = i;
+  i = 0;
+  while (Str[0] == ' ')
+  {
+    for (i = 0; i < j; i++)
+    {
+      Str[i] = Str[i + 1];
+    }
+    Str[i] = '\0';
+  }
+}
+
+// The Up1stChar function takes a pointer to a character string and converts the first character of the string to uppercase.
+void Up1stChar(char *Str)
+{
+  DEBUGIT(2)
+  Str[0] = (char)toupper(Str[0]);
+}
+
+// The Word function extracts the N-th word from the input string Str1 and copies it into the output string Str2,
+// where Nbr specifies the word position to extract.
+void Word(size_t Nbr, char *Str1, char *Str2)
+{
+  DEBUGIT(2)
+  j = 0;
+  x = 1;
+  for (i = 0; Str1[i]; i++)
+  {
+    if (x == Nbr)
+    {
+      break;
+    }
+    if (isspace(Str1[i]))
+    {
+      x++;
+    }
+  }
+  while (!isspace(Str1[i]))
+  {
+    if (Str1[i] == '\0')
+    {
+      break;
+    }
+    Str2[j] = Str1[i];
+    i++;
+    j++;
+  }
+  Str2[j] = '\0';
+}
+
+// The Words function counts and returns the number of words in a given null-terminated string,
+// where words are defined as sequences of non-space characters separated by whitespace.
+size_t Words(char *Str)
+{
+  DEBUGIT(2)
+  #define NotWord 0
+  #define InWord  1
+  int State;
+  State = 0;
+  x = 0;
+  for (i = 0; Str[i]; i++)
+  {
+    if (isspace(Str[i]))
+    {
+      State = NotWord;
+    }
+    else if (State == NotWord)
+    {
+      State = InWord;
+      x++;
+    }
+  }
+  return x;
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Miscellaneous
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// The AbortIt function logs a message, closes the log, and then terminates the program with an exit status of 1.
+void AbortIt()
+{ // Do not add DEBUGIT
+  LogIt(LogMsg);
+  CloseLog();
+  exit(1);
+}
+
+// The Color function processes a player's output string to replace color codes indicated 
+// by '&' with corresponding ANSI color codes, modifying the output accordingly.
+void Color()
+{
+  DEBUGIT(2)
+  char* Str1; // Points to pPlayer->Output
+  char* Str2; // Points to TmpStr
+  char* Str3; // Points to 'next char' in Str1 (pPlayer->Output)
+  char* Str4; // Points to the selected color code string
+  if (strchr(pPlayer->Output, '&') == NULL) return;
+  Str1 = &pPlayer->Output[0];
+  Str2 = &TmpStr[0];
+  while (*Str1)
+  { // Loop here until we hit an '&'
+    while (*Str1 != '&')
+    {
+      *Str2 = *Str1;
+      if (*Str1 == '\0')
+      { // We are done
+        *Str2 = '\0';
+        strcpy(pPlayer->Output, TmpStr);
+        return;
+      }
+      Str1++;
+      Str2++;
+    }
+    // We hit an '&'
+    Str3 = Str1;
+    Str3++;
+    switch (*Str3)
+    {
+    case 'N':
+      Str4 = Normal;
+      break;
+    case 'K':
+      Str4 = BrightBlack;
+      break;
+    case 'R':
+      Str4 = BrightRed;
+      break;
+    case 'G':
+      Str4 = BrightGreen;
+      break;
+    case 'Y':
+      Str4 = BrightYellow;
+      break;
+    case 'B':
+      Str4 = BrightBlue;
+      break;
+    case 'M':
+      Str4 = BrightMagenta;
+      break;
+    case 'C':
+      Str4 = BrightCyan;
+      break;
+    case 'W':
+      Str4 = BrightWhite;
+      break;
+    }
+    if (pPlayer->Color == 'N')
+    {
+      Str4 = None;
+    }
+    while (*Str4 != '\0')
+    { // Copy the color code string
+      *Str2 = *Str4;
+      Str2++;
+      Str4++;
+    }
+    Str1++;
+    Str1++;
+  }
+}
+
+// The GetTime function retrieves the current time in a human-readable format, converting 
+// it from seconds since the Unix epoch and removing the trailing newline character.
+void GetTime()
+{ // Do not add DEBUGIT
+  CurrentTimeSec = time(NULL);              // Seconds since Epoch, 1970-01-01 00:00:00 +0000 (UTC)
+  CurrentTime = ctime(&CurrentTimeSec);     // Convert to human readable
+  x = strlen(CurrentTime);                  // Get rid of the '\n'
+  CurrentTime[x - 1] = '\0';                  //   at the end of string returned by ctime()
+}
+
+// The MudCmdOk function checks if a given command is valid by comparing it against a command table,
+// verifying user permissions, and ensuring the command meets the required word count, returning true
+// if the command is valid and false otherwise.
+bool MudCmdOk()
+{
+  DEBUGIT(1)
+    i = 0;
+  while (CommandTable[i][0] != NULL)
+  {
+    if (Equal(MudCmd, (char*)CommandTable[i][0]))
+    {
+      CommandNbr        = (int)i;
+      Commands.Name     = (char*)CommandTable[i][0];
+      Commands.Admin    = (char*)CommandTable[i][1];
+      Commands.Level    = (char*)CommandTable[i][2];
+      Commands.Position = (char*)CommandTable[i][3];
+      Commands.Social   = (char*)CommandTable[i][4];
+      Commands.Fight    = (char*)CommandTable[i][5];
+      Commands.MinWords = (char*)CommandTable[i][6];
+      Commands.MaxWords = (char*)CommandTable[i][7];
+      Commands.Message  = (char*)CommandTable[i][8];
+      // Admin command?
+      if (Equal(Commands.Admin, "Y"))
+      {
+        if (pPlayer->Admin == 'N')
+        {
+          break;
+        }
+      }
+      // Check minimum/maximum words
+      if (Words(Command) < atoi(Commands.MinWords) || Words(Command) > atoi(Commands.MaxWords))
+      {
+        if (Equal(Commands.Message, "None"))
+        {
+          sprintf(Buffer, "%s %s %s %s %s %s %s %s", "Too many or too few words in command,", "Min:", Commands.MinWords, "Max:", Commands.MaxWords, "Refer to help", Commands.Name, "\r\n");
+          strcat(pPlayer->Output, Buffer);
+        }
+        else
+        { 
+          strcat(pPlayer->Output, Commands.Message);
+        }
+        strcat(pPlayer->Output, "\r\n\r\n");
+        Prompt(pPlayer);
+        return false;
+      }
+      // Command is OK!
+      return true;
+    }
+    i++;
+  }
+  // Command is none of the above
+  strcat(pPlayer->Output, "Huh?\r\n\r\n");
+  Prompt(pPlayer);
+  return false;
+}
+
+// The Sleep function is designed to pause the execution of a program for a specified duration, 
+// utilizing either usleep or select based on the environment configuration to manage CPU usage effectively.
+void Sleep()
+{
+  DEBUGIT(2)
+  if (USE_USLEEP == 'Y')                    // Sleeping the game is one way to avoid needless
+  {                                         //   consumption of CPU. Typically, usleep() works
+    usleep(SLEEP_TIME);                     //   just fine for this purpose. Using select() is
+  }                                         //   another (not recommended) means of sleeping a
+  else                                      //   process.
+  {                                         // If the YaGs development environment is Windows 10,
+    #include <sys/select.h>                 //   Visual Studio, and WSL (Windows Subsystem for Linux)
+    struct timeval TimeOut;                 //   Ubuntu, then for some strange reason, usleep() does not
+    TimeOut.tv_sec = 0;                     //   does not actually sleep.
+    TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should  
+    select(0, NULL, NULL, NULL, &TimeOut);  //   adjust SLEEP_TIME until you are happy.
   }
 }
