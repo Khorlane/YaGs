@@ -39,7 +39,7 @@
 #define SLEEP_TIME            0400000                 // Sleep for a short period of time
 #define USE_USLEEP            'N'                     // Use usleep() Y or N
 // Directories
-#define YAGS_DIR              "/mnt/c/YaGs"           // YaGs top level directory path
+#define YAGS_DIR              "/mnt/c/Projects/YaGs"  // YaGs top level directory path
 #define LIB_DIR               "Library"               // Library directory
 #define WORLD_DIR             "World"                 // World directory
 #define LOG_DIR               "Logs"                  // Log directory

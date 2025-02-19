@@ -1,5 +1,5 @@
 # Ignore these directories
-Logs/
+Logs
 .vs
 bin
 obj
