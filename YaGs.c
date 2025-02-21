@@ -51,7 +51,11 @@
 // Log directory contents
 #define LOG_FILE              "Log.txt"               // Log file
 // World directory contents
+#define MOBILES_FILE          "Mobiles.txt"           // Mobiles file
+#define OBJECTS_FILE          "Objects.txt"           // Objects file
+#define ROOMS_FILE            "Rooms.txt"             // Rooms file
 #define PLAYER_FILE           "Player.yags"           // Player file
+#define PLAYER_START_ROOM     120                     // Player start room
 // Timer events
 #define NO_INPUT_TICK         500                     // Ticks before checking if player is still there
 #define NO_INPUT_COUNT_LIMIT  3                       // Triggers player disconnect after this limit is hit
@@ -196,6 +200,7 @@ struct PlayerList
   int                Experience;                      // Experience points
   char               Level;                           // Player level
   char               Sex;                             // Player sex (M/F)
+  int                RoomNbr;                         // Room number
   char               Input[1024];                     // Player input buffer
   char               Output[2048];                    // Player output buffer
   int                BadPswdCount;                    // Number of bad passwords entered
@@ -219,6 +224,7 @@ struct sPlayer
   int             Experience;                         // Experience points
   char            Level;                              // Player level
   char            Sex;                                // Player sex (M/F)
+  int             RoomNbr;                            // Room number
 } Player;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1366,34 +1372,36 @@ void DelFromPlayerList()
 void CopyPlayerToPlayerList()
 {
   DEBUGIT(1)
-  strcpy(pPlayer->Name, Player.Name);
+  strcpy(pPlayer->Name,     Player.Name);
   strcpy(pPlayer->Password, Player.Password);
-  pPlayer->Admin = Player.Admin;
-  pPlayer->Afk = Player.Afk;
-  pPlayer->Born = Player.Born;
-  pPlayer->Color = Player.Color;
-  pPlayer->Experience = Player.Experience;
-  pPlayer->Level = Player.Level;
-  pPlayer->Sex = Player.Sex;
-  pPlayer->PlayerNbr = PlayerNbr;
-  pPlayer->BadPswdCount = 0;
-  pPlayer->NoInputTick = 0;
-  pPlayer->NoInputCount = 0;
+  pPlayer->Admin          = Player.Admin;
+  pPlayer->Afk            = Player.Afk;
+  pPlayer->Born           = Player.Born;
+  pPlayer->Color          = Player.Color;
+  pPlayer->Experience     = Player.Experience;
+  pPlayer->Level          = Player.Level;
+  pPlayer->Sex            = Player.Sex;
+  pPlayer->RoomNbr        = Player.RoomNbr;
+  pPlayer->PlayerNbr      = PlayerNbr;
+  pPlayer->BadPswdCount   = 0;
+  pPlayer->NoInputTick    = 0;
+  pPlayer->NoInputCount   = 0;
 }
 
 // The CopyPlayerListToPlayer function copies the attributes of a player from a source player structure (pPlayer) to a target player structure (Player).
 void CopyPlayerListToPlayer()
 {
   DEBUGIT(1)
-  strcpy(Player.Name, pPlayer->Name);
+  strcpy(Player.Name,     pPlayer->Name);
   strcpy(Player.Password, pPlayer->Password);
-  Player.Admin = pPlayer->Admin;
-  Player.Afk = pPlayer->Afk;
-  Player.Born = pPlayer->Born;
-  Player.Color = pPlayer->Color;
-  Player.Experience = pPlayer->Experience;
-  Player.Level = pPlayer->Level;
-  Player.Sex = pPlayer->Sex;
+  Player.Admin          = pPlayer->Admin;
+  Player.Afk            = pPlayer->Afk;
+  Player.Born           = pPlayer->Born;
+  Player.Color          = pPlayer->Color;
+  Player.Experience     = pPlayer->Experience;
+  Player.Level          = pPlayer->Level;
+  Player.Sex            = pPlayer->Sex;
+  Player.RoomNbr        = pPlayer->RoomNbr;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1597,13 +1605,14 @@ void InitalizeNewPlayer()
   DEBUGIT(1)
   strcpy(Player.Name,     pPlayer->Name);
   strcpy(Player.Password, pPlayer->Password);
-  Player.Sex            = pPlayer->Sex;
   Player.Admin          = 'N';
   Player.Afk            = 'N';
   Player.Born           = time(NULL);
   Player.Color          = 'N';
   Player.Experience     = 0;
   Player.Level          = 1;
+  Player.Sex            = pPlayer->Sex;
+  Player.RoomNbr        = PLAYER_START_ROOM;
 }
 
 // The GetNextPlayerNbr function increments the PlayerNbr variable starting from 1 and continues
