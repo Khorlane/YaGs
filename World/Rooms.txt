@@ -1,43 +1,152 @@
-
-101 Front Yard
-You are standing in lush green grass that has
-been recently mowed. Your sneakers are beginning
-to get stained from all the grass clippings.
-Terrain: Grass
-Flags: None
-N     NE    E     SE    S     SW    W     NW    Up     Down
-00102 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxxx xxxxx
-
-102 Front Porch
-You stand on the front porch, before you is dark 
-red wooden door. In the center of the door is 
-large heavy iron knocker with an engraved snake
-encircling it.
-Terrain: Street
-Flags: NoFight
-N     NE    E     SE    S     SW    W     NW    Up    Down
-00103 xxxxx 00104 xxxxx 00101 xxxxx 00105 xxxxx xxxxx xxxxx
-
-103 Living Room
-The living room is spacious with a large fireplace
-on one wall and a spectacular painting hanging on
-the opposite wall.
-Terrain: Indoor
-Flags: None
+101 Back Porch
+You stand on the back porch, before you is vast 
+carpet of green grass. Some horses can be seen
+in the distance, grazing peacefully.
+Terrain: Concrete
+Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
 xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
 
-104 Side Yard
-Yep, you are indeed in the side yard. It is narrow,
-running down the length of the house.
-Terrain: Grass
-Flags: None
+102 Furnace
+A furnace is here. It isn't running, so all is quiet.
+Terrain: Indoor
+Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
-xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
 
-105 Side Yard
-Yep, you are indeed in the side yard.
-Terrain: Grass
-Flags: NoNPC
+103 Office
+This is a well furnished office. There is an L-shaped desk
+with several computers on it and a glass topped credenza 
+with a nice TV on top.
+Terrain: Indoor
+Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
-xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+104 Bathroom
+You step into a bathroom with two sinks, a shower, and the
+usual other fixtures you might expect.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+105 Bedroom
+Yep, a bedroom. You are not surprised to see a bed in this
+room.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+106 Breakfast Nook
+The Breakfast Nook is warm and cozy, a great to have breakfast.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+107 Attic
+This is the top of the stairs leading to and from the attic.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+108 Hot Water Heater
+A hot water heater is here.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+109 Hallway
+This hallway leads to the office and the library.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+110 Hallway
+This hallway leads to the bedroom and the kitchen.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+111 Kitchen
+All the meals to feed the family are prepared here.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+112 Shelves
+The are a number shelves here with various things stacked
+randomly on them.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+113 Library
+There are floor to ceiling bookselves on all four walls
+of this room. One book in particular stand out, "Designing
+Virtual Worlds" by Richard Bartle.
+Terrain: Indoor
+Flags:   NoFight
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+114 Laundry Room
+As you might expect, this room contains a washer and dryer.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+115 Hallway
+This is the central hallway with the Dining adjoining.
+Terrain: Indoor
+Flags:   NoNPC
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+116 Dining Room
+There is a large wooden table, carefully centered in room
+with a beautiful crystal chandelier hanging over it.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+117 Garage
+Two cars are parked here.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+118 Hallway
+This hallway serves as the foyer.
+Terrain: Indoor
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+119 Living Room
+On one wall is exquisite stone fireplace. A fine worked leather
+couch, with lamps on each side, faces the fireplace
+Terrain: Indoor
+Flags:   NoFight
+N     NE    E     SE    S     SW    W     NW    Up    Down
+xxxxx xxxxx xxxxx xxxxx 00102 xxxxx xxxxx xxxxx xxxxx xxxxx
+
+120 Front Porch
+You stand on the front porch, there is a dark red wooden 
+wooden door. In the center of the door is a large heavy
+iron knocker with an engraved snake encircling it.
+Terrain: Concrete
+Flags:   None
+N     NE    E     SE    S     SW    W     NW    Up    Down
+00103 xxxxx 00104 xxxxx 00101 xxxxx 00105 xxxxx xxxxx xxxxx

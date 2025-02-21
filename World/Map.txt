@@ -1,0 +1,6 @@
+https://www.dungeonscrawl.com/
+Click the 'Start Scrawling' button
+Click the 'Open save file' button
+Select Map.ds
+
+Note: Path radius is 12
