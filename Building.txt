@@ -1,0 +1,189 @@
+Builder's Guide
+===============
+This guide provides information on how to build and manage the game world in YaGs.
+It covers the structure of the game world, how to create and modify areas, and how
+to manage game objects and NPCs (non-player characters).
+
+Contents
+--------
+1 Introduction
+  1.1 Game World Structure
+  1.2 Rooms
+  1.3 Mobiles
+  1.4 Objects
+
+2 Building a World
+  2.1 Start with a map
+  2.2 Designing Areas
+
+3 Rooms and Exits
+  3.1 Creating Rooms
+  3.2 Adding Exits
+
+4 Mobiles and Objects
+  4.1 Creating Mobiles
+  4.2 Adding Objects
+
+5 World File Format
+  5.1 Room Format
+  5.2 Mobile Format
+  5.3 Object Format
+
+1 Introduction
+
+1.1 Game World Structure
+
+The game world in YaGs is structured as a series of interconnected rooms, each 
+with its own description, terrain type, and exits. The world is designed to be
+modular, allowing for easy expansion and modification. Each room can contain 
+various objects and NPCs, which players can interact with.
+
+1.2 Rooms
+
+Rooms are the basic building blocks of the game world. Each room has a unique
+identifier, a description, and a set of exits that connect it to other rooms. Rooms
+can have different terrain types, such as indoor, outdoor, or underwater, which
+affect how players interact with them.
+
+1.3 Mobiles
+
+Mobiles are non-player characters that inhabit the game world. They can be friendly,
+hostile, or neutral, and can interact with players in various ways. Mobiles can have
+their own unique behaviors, abilities, and items.
+
+1.4 Objects
+
+Objects are items that players can interact with in the game world. They can be
+found in rooms, carried by mobiles, or used by players. Objects can have various
+properties, such as weight, value, and usage instructions.
+
+2 Building a World
+
+2.1 Start with a map
+
+To build a world in YaGs, it is helpful to start with a map. This can be a simple
+sketch or a detailed diagram that outlines the layout of the game world. The map
+should include key locations, such as towns, dungeons, and landmarks, as well as
+the connections between them.
+
+2.2 Designing Areas
+
+Areas are larger sections of the game world that can contain multiple rooms. When
+designing an area, consider the theme, environment, and purpose of the area. Areas
+can be urban, rural, or wilderness, and can include various features such as buildings,
+natural formations, and landmarks.
+
+3 Rooms and Exits
+
+3.1 Creating Rooms
+
+To create a room in YaGs, you need to define its unique identifier, description,
+terrain type, and exits. The room identifier is a numeric code that uniquely identifies
+the room in the game world. The description should provide players with a vivid
+picture of the room's appearance and atmosphere. The terrain type indicates the
+environment of the room, such as indoor or outdoor.
+
+3.2 Adding Exits
+
+Exits connect rooms to each other and allow players to navigate the game world.
+Each exit should be defined with a direction (N, NE, E, SE, S, SW, W, NW, Up, Down)
+and the identifier of the room it leads to. Exits can also have additional properties,
+such as whether they are locked or require a key to open.
+
+4 Mobiles and Objects
+
+4.1 Creating Mobiles
+
+Mobiles can be created by defining their unique identifier, description, behavior,
+and any items they carry. The identifier is a numeric code that uniquely identifies
+the mobile in the game world. The description should provide players with information
+about the mobile's appearance and personality. Behavior can include actions such
+as attacking, fleeing, or interacting with players.
+
+4.2 Adding Objects
+
+Objects can be added to rooms or mobiles by defining their unique identifier, description,
+properties, and any actions they can perform. The identifier is a numeric code that
+uniquely identifies the object in the game world. The description should provide
+players with information about the object's appearance and purpose. Properties can
+include weight, value, and usage instructions, while actions can define how players
+can interact with the object.
+
+5 World File Format
+
+5.1 Room Format
+
+Each room in the world is defined in a specific format. The format includes the
+room identifier, description, terrain type, flags, and exits. The exits are defined
+with their directions and the identifiers of the rooms they lead to. The format is as follows:
+
+<RoomNbr> <RoomName>
+<Description>
+Terrain: <Terrain>
+Flags:   <Flags>
+N     NE    E     SE    S     SW    W     NW    Up    Down
+<RmN> <RmN> <RmN> <RmN> <RmN> <RmN> <RmN> <RmN> <RmN> <RmN>
+
+Where:
+<RoomNbr>     is the unique identifier for the room.
+<RoomName>    is the name of the room.
+<Description> is a detailed description of the room.
+<Terrain>     is the type of terrain (e.g., indoor, outdoor, underwater).
+<Flags>       are any special properties of the room (e.g., lit, dark, locked).
+<RmN>         are the identifiers of the rooms connected by exits in the specified directions.
+Directions are represented as N (North), NE (Northeast), E (East), SE (Southeast),
+  S (South), SW (Southwest), W (West), NW (Northwest), Up, and Down.
+
+5.2 Mobile Format
+
+Each mobile in the world is defined with a unique identifier, description, behavior,
+and any items they carry. The format is as follows:
+
+<MobileID>
+<Desc1>
+<Desc2>
+Attack:    <Attack>
+Level:     <Level>
+HitPoints: <HitPoints>
+ExpPoints: <ExpPoints>
+Loot:      <Loot>
+
+Where:
+<MobileID>  is the unique identifier for the mobile.
+<Desc1>     is a very short one-line description.
+<Desc2>     is a longer one-line description.
+<Desc3>     is an optional mulit-line description.
+<Attack>    is the type of attack the mobile uses. e.g., "claw", "bite", "stab".
+<Level>     is the level of the mobile, which affects its strength and abilities.
+<HitPoints> is the number of hit points the mobile has.
+<ExpPoints> is the amount of experience points awarded for defeating the mobile.
+<Loot>      is a list of items that the mobile can drop when defeated.
+
+Note: HitPoints and ExpPoints are ADDITIONAL to the base values which are computed 
+based on the mobile's level. Therefore, most mobiles will have a value of 0 for these fields.
+
+5.3 Object Format
+
+Each object in the world is defined with a unique identifier, description, properties,
+and any actions they can perform. The format is as follows:
+
+<ObjectID>
+<Desc1>
+<Desc2>
+<Desc3>
+Weight:  <Weight>
+Cost:    <Cost>
+Type:    <Type>
+Subtype: <SubType>
+Value:   <Value>
+
+Where:
+<ObjectID>  is the unique identifier for the object.
+<Desc1>     is a very short one-line description.
+<Desc2>     is a longer one-line description.
+<Desc3>     is an optional mulit-line description.
+<Weight>    is the weight of the object.
+<Cost>      is the value of the object in the game world.
+<Type>      is the type of object (e.g., weapon, armor, junk).
+<SubType>   is used to further define the object, specifying its specific type (e.g., sword, helmet).
+<Value>     is used to define the object's effectiveness or power.

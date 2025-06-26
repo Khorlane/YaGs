@@ -1,21 +1,74 @@
-This file is for admins only.
 
-Admin Commands
---------------
+Administrator's Guide
+========================
+This file contains information pertaining to the administration of YaGs, including
+how to use admin commands, manage player files, and perform other administrative tasks.
+
+Contents
+--------
+1 Welcome to YaGs
+  1.1 Introduction
+  1.2 Execution Environment
+  1.3 Operating System
+
+2 Admin Commands
+	2.1 Advance
+	2.2 Playerfile
+	2.3 Shutdown
+
+1 Welcome to YaGs
+
+1.1 Introduction
+
+YaGs is an original work written in C and is available on GitHub at https://github.com/Khorlane/YaGs.
+It is a multiplayer game that allows players to explore a virtual world, interact with
+other players, and engage in various activities. The game is designed to be text-based,
+making it accessible to a wide range of players. As an administrator, you have the
+ability to manage players, control game settings, and ensure a smooth gaming experience.
+YaGs is designed to be user-friendly, and this guide will help you navigate the
+administrative features available to you.
+
+1.2 Execution Environment
+
+YaGs is executed in a terminal environment. It requires a C compiler to build the game
+and a terminal to run it. The game is designed to be run on a server, allowing multiple
+players to connect and interact with each other in real-time. The game files are organized
+into several directories, including the World folder for game data, the Library folder for
+help files, and the Player folder for player data. The game uses a player file named
+Player.yags, which contains information about all players in the game. This file is
+located in the World folder and is essential for managing player data. The game also
+uses a Help.txt file located in the Library folder, which provides players with information
+about the game, including commands, rules, and other important details.
+
+1.3 Operating System
+
+YaGs is designed to run on Unix-like operating systems, including Linux and macOS.
+It is not compatible with Windows without modifications. The game relies on standard
+C libraries and terminal capabilities, making it suitable for environments that support
+text-based applications. The game can be compiled using a C compiler such as GCC or Clang,
+and it is recommended to run it in a terminal that supports ANSI escape codes for color
+and formatting. The game is designed to be lightweight and efficient, allowing it to run
+on a wide range of hardware, from low-end systems to more powerful servers. The game
+is also designed to be modular, allowing for easy updates and modifications to the game
+world, player data, and other game settings. The game uses a simple file structure,
+making it easy to navigate and manage. The main game executable is located in the root
+directory of the YaGs project.
+
+2 Admin Commands
 
 Admin commands can be issued by players with Admin Flag set to 'Y'. The first
 player to log into the game is the admin.
 
 These commands are not in Help.txt(see Library folder).
 
-Advance
+2.1 Advance
 format: advance <player> <level>
 This command will advance or demote a player to the specified level.
 
-Playerfile
+2.2 Playerfile
 format: playerfile
 List all players in the Player.yags file (see World folder).
 
-Shutdown
+2.3 Shutdown
 format: shutdown
 Disconnects all players and shuts down the game.

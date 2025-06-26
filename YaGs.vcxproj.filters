@@ -36,6 +36,8 @@
     <Text Include="World\Rooms.txt">
       <Filter>World</Filter>
     </Text>
+    <Text Include="Admin.txt" />
+    <Text Include="Building.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="World\Map.ds">
