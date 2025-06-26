@@ -140,10 +140,10 @@ FILE               *PlayerFile;                       // Player file
 FILE               *ValidNamesFile;                   // Valid names file
 
 // Structures
-fd_set              InpSet;                           // File Descriptor Set structure
-struct linger       Linger;                           // Linger structure
-struct sockaddr_in  SocketAddr;                       // Socket Address structure
-struct timeval      TimeOut;                          // Time value structure
+fd_set             InpSet;                            // File Descriptor Set structure
+struct linger      Linger;                            // Linger structure
+struct sockaddr_in SocketAddr;                        // Socket Address structure
+struct timeval     TimeOut;                           // Time value structure
 
 // Color codes
 char              *Normal        = "\x1B[0;m";        // NORMAL     &N
@@ -185,7 +185,7 @@ typedef enum PlayerStates
 } PlayerState;
 
 // The PlayerList struct represents a data structure for managing a list of connected players,
-// containing various attributes such as socket information, player state, name, password, 
+// containing various attributes such as socket information, player state, name, password,
 // experience, and pointers to the next and previous players in the list.
 struct PlayerList
 {
@@ -246,6 +246,7 @@ void    DisconnectPlayers();
 void    DoAdvance();
 void    DoColor();
 void    DoHelp();
+void    DoLook();
 void    DoPlayed();
 void    DoPlayerfile();
 void    DoQuit();
@@ -292,7 +293,7 @@ void    WritePlayerToFile();
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Commands is a structure that holds various character pointers representing different attributes
-// related to commands, such as name, admin status, level, position, social interactions, 
+// related to commands, such as name, admin status, level, position, social interactions,
 // fight commands, words, parts, and messages.
 struct sCommands
 {
@@ -316,6 +317,7 @@ char *CommandTable[][9] = {
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"look",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -327,11 +329,12 @@ char *CommandTable[][9] = {
 
 // DoCommand is an array of function pointers, each pointing to a function that takes no parameters
 // and returns void, allowing for the execution of various commands such as DoAdvance, DoColor, and others.
-void (*DoCommand[])(void) = 
+void (*DoCommand[])(void) =
 { // This list and the CommandTable MUST BE in the same order
-  DoAdvance, 
+  DoAdvance,
   DoColor,
   DoHelp,
+  DoLook,
   DoPlayed,
   DoPlayerfile,
   DoQuit,
@@ -373,7 +376,7 @@ void HeartBeat()
   DEBUGIT(2)
 }
 
-// The ProcessPlayerInput function processes input from all players in a linked list, executing 
+// The ProcessPlayerInput function processes input from all players in a linked list, executing
 // commands based on the input received and clearing the input buffer after processing.
 void ProcessPlayerInput()
 {
@@ -393,7 +396,7 @@ void ProcessPlayerInput()
   }
 }
 
-// The ProcessCommand function processes a command by trimming and logging it, 
+// The ProcessCommand function processes a command by trimming and logging it,
 // checking the player's online status, and executing the command if it is valid.
 void ProcessCommand()
 {
@@ -408,7 +411,7 @@ void ProcessCommand()
   Word(1, Command, MudCmd);
   LowerCase(MudCmd);
   if (MudCmdOk())
-  { 
+  {
     DoCommand[CommandNbr]();
   }
 }
@@ -599,6 +602,15 @@ void DoHelp()
   }
   fclose(HelpFile);
   strcat(pPlayer->Output, "\r\n");
+  Prompt(pPlayer);
+}
+
+// The DoLook function displays the current room and its contents to the player.
+void DoLook()
+{
+  DEBUGIT(1)
+  sprintf(Buffer, "You are in room %d, looking around, you see nothing special.\r\n", pPlayer->RoomNbr);
+  strcat(pPlayer->Output, Buffer);
   Prompt(pPlayer);
 }
 
@@ -944,7 +956,7 @@ void GetPlayerOnline()
   }
   strcpy(LogMsg,"ERROR: Logic - should never get here!");
   AbortIt();
-}  
+}
 
 // The SendGreeting function reads a greeting message from a specified file and appends its contents
 // to a player's output, handling errors related to file operations.
@@ -976,7 +988,7 @@ void SendGreeting()
   fclose(GreetingFile);
 }
 
-// The SendMotd function reads a message of the day (MOTD) from a specified file and appends its 
+// The SendMotd function reads a message of the day (MOTD) from a specified file and appends its
 // contents to a player's output buffer, handling errors related to file operations.
 void SendMotd()
 {
@@ -1010,7 +1022,7 @@ void SendMotd()
 // Log
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The OpenLog function initializes a log file by constructing its name from predefined directory and 
+// The OpenLog function initializes a log file by constructing its name from predefined directory and
 // file constants, attempts to open it for writing, and handles any errors that occur during this process.
 void OpenLog()
 { // Do not add DEBUGIT
@@ -1195,7 +1207,7 @@ void GetPlayerInput()
   }
 }
 
-// The SendPlayerOutput function processes and sends output messages to connected players, 
+// The SendPlayerOutput function processes and sends output messages to connected players,
 // handling disconnection for those who have not provided input within a specified time limit.
 void SendPlayerOutput()
 {
@@ -1305,7 +1317,7 @@ void ShutItDown()
 // and adds it to a linked list of players, handling both the first node and subsequent nodes appropriately.
 void AddToPlayerList()
 {
-  DEBUGIT(1)  
+  DEBUGIT(1)
   pPlayer = (struct PlayerList *)malloc(sizeof(struct PlayerList));
   pPlayerCurr = pPlayer;
   if (pPlayerHead != NULL)
@@ -1408,7 +1420,7 @@ void CopyPlayerListToPlayer()
 // Player file
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The OpenFiles function attempts to open a player file for reading and writing, constructing
+// The OpenPlayerFile function attempts to open a player file for reading and writing, constructing
 // the file path from predefined directory and file name constants, and handles errors by
 // logging a message and aborting the operation if the file cannot be opened.
 void OpenPlayerFile()
@@ -1465,7 +1477,7 @@ bool PlayerNameValid()
 // player data from a file until a match is found or the end of the file is reached, returning
 // a boolean value indicating whether a match was found.
 bool PlayerNameValidOld()
-{  
+{
   DEBUGIT(1)
   Found     = false;
   EndFile   = false;
@@ -1753,7 +1765,7 @@ void AbortIt()
   exit(1);
 }
 
-// The Color function processes a player's output string to replace color codes indicated 
+// The Color function processes a player's output string to replace color codes indicated
 // by '&' with corresponding ANSI color codes, modifying the output accordingly.
 void Color()
 {
@@ -1827,7 +1839,7 @@ void Color()
   }
 }
 
-// The GetTime function retrieves the current time in a human-readable format, converting 
+// The GetTime function retrieves the current time in a human-readable format, converting
 // it from seconds since the Unix epoch and removing the trailing newline character.
 void GetTime()
 { // Do not add DEBUGIT
@@ -1875,7 +1887,7 @@ bool MudCmdOk()
           strcat(pPlayer->Output, Buffer);
         }
         else
-        { 
+        {
           strcat(pPlayer->Output, Commands.Message);
         }
         strcat(pPlayer->Output, "\r\n\r\n");
@@ -1893,7 +1905,7 @@ bool MudCmdOk()
   return false;
 }
 
-// The Sleep function is designed to pause the execution of a program for a specified duration, 
+// The Sleep function is designed to pause the execution of a program for a specified duration,
 // utilizing either usleep or select based on the environment configuration to manage CPU usage effectively.
 void Sleep()
 {
@@ -1907,7 +1919,7 @@ void Sleep()
     #include <sys/select.h>                 //   Visual Studio, and WSL (Windows Subsystem for Linux)
     struct timeval TimeOut;                 //   Ubuntu, then for some strange reason, usleep() does not
     TimeOut.tv_sec = 0;                     //   does not actually sleep.
-    TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should  
+    TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should
     select(0, NULL, NULL, NULL, &TimeOut);  //   adjust SLEEP_TIME until you are happy.
   }
 }

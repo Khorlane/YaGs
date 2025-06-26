@@ -83,6 +83,21 @@
     <ClCompile Include="YaGs.c" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Library\Greeting.txt" />
+    <Text Include="Library\Help.txt" />
+    <Text Include="Library\Motd.txt" />
+    <Text Include="Library\ValidNames.txt" />
+    <Text Include="World\Map.txt" />
+    <Text Include="World\Mobiles.txt" />
+    <Text Include="World\Objects.txt" />
+    <Text Include="World\Rooms.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="World\Map.ds" />
+    <None Include="World\Player.yags" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="World\Map.png" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

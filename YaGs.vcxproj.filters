@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="YaGs.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Library">
+      <UniqueIdentifier>{938cbcf9-f847-4df0-a679-5a5fde8033ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{e02df51f-943f-4536-8c3b-20ce7945e7cc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Library\Greeting.txt">
+      <Filter>Library</Filter>
+    </Text>
+    <Text Include="Library\Help.txt">
+      <Filter>Library</Filter>
+    </Text>
+    <Text Include="Library\Motd.txt">
+      <Filter>Library</Filter>
+    </Text>
+    <Text Include="Library\ValidNames.txt">
+      <Filter>Library</Filter>
+    </Text>
+    <Text Include="World\Map.txt">
+      <Filter>World</Filter>
+    </Text>
+    <Text Include="World\Mobiles.txt">
+      <Filter>World</Filter>
+    </Text>
+    <Text Include="World\Objects.txt">
+      <Filter>World</Filter>
+    </Text>
+    <Text Include="World\Rooms.txt">
+      <Filter>World</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="World\Map.ds">
+      <Filter>World</Filter>
+    </None>
+    <None Include="World\Player.yags">
+      <Filter>World</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="World\Map.png">
+      <Filter>World</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
