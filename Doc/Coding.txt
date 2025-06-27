@@ -52,6 +52,8 @@ Commands
   Command-related definitions
 Main
   Contains the main game loop including startup, event handling, and shutdown
+All Do functions
+  Every command has a corresponding `Do` function that handles the command logic
 General player communication
   Functions for sending messages to players
 Get player online

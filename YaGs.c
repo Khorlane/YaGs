@@ -117,7 +117,7 @@ char                *TmpStr2  = aTmpStr2;             // Temp string 2 too
 char                *CmdParm2 = aTmpStr2;             // Command Parameter 2
 char                aTmpStr3[1024];                   // Temp string 3
 char                *TmpStr3  = aTmpStr3;             // Temp string 3 too
-char                *CmdParm3 = aTmpStr3;             // Command Parameter 2
+char                *CmdParm3 = aTmpStr3;             // Command Parameter 3
 char                Buffer[2048];                     // Just a buffer
 char                Command[1024];                    // The command from the player
 char                LogMsg[100];                      // Log message
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
   ShutItDown();
 }
 
-// The HeartBeat function handles the heartbeat of the game server, 
+// The HeartBeat function handles the heartbeat of the game server,
 // which can be used for periodic tasks or checks.
 void HeartBeat()
 {
@@ -419,6 +419,66 @@ void ProcessCommand()
     DoCommand[CommandNbr]();
   }
 }
+
+// The MudCmdOk function checks if a given command is valid by comparing it against a command table,
+// verifying user permissions, and ensuring the command meets the required word count, returning true
+// if the command is valid and false otherwise.
+bool MudCmdOk()
+{
+  DEBUGIT(1)
+  i = 0;
+  while (CommandTable[i][0] != NULL)
+  {
+    if (Equal(MudCmd, (char*)CommandTable[i][0]))
+    {
+      CommandNbr        = (int)i;
+      Commands.Name     = (char*)CommandTable[i][0];
+      Commands.Admin    = (char*)CommandTable[i][1];
+      Commands.Level    = (char*)CommandTable[i][2];
+      Commands.Position = (char*)CommandTable[i][3];
+      Commands.Social   = (char*)CommandTable[i][4];
+      Commands.Fight    = (char*)CommandTable[i][5];
+      Commands.MinWords = (char*)CommandTable[i][6];
+      Commands.MaxWords = (char*)CommandTable[i][7];
+      Commands.Message  = (char*)CommandTable[i][8];
+      // Admin command?
+      if (Equal(Commands.Admin, "Y"))
+      {
+        if (pPlayer->Admin == 'N')
+        {
+          break;
+        }
+      }
+      // Check minimum/maximum words
+      if (Words(Command) < atoi(Commands.MinWords) || Words(Command) > atoi(Commands.MaxWords))
+      {
+        if (Equal(Commands.Message, "None"))
+        {
+          sprintf(Buffer, "%s %s %s %s %s %s %s %s", "Too many or too few words in command,", "Min:", Commands.MinWords, "Max:", Commands.MaxWords, "Refer to help", Commands.Name, "\r\n");
+          strcat(pPlayer->Output, Buffer);
+        }
+        else
+        {
+          strcat(pPlayer->Output, Commands.Message);
+        }
+        strcat(pPlayer->Output, "\r\n\r\n");
+        Prompt(pPlayer);
+        return false;
+      }
+      // Command is OK!
+      return true;
+    }
+    i++;
+  }
+  // Command is none of the above
+  strcat(pPlayer->Output, "Huh?\r\n\r\n");
+  Prompt(pPlayer);
+  return false;
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// All Do functions
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // The DoAdvance function advances a player's level in a game, updating their experience and notifying
 // both the target player and the acting player of the change, while also handling various conditions
@@ -1851,62 +1911,6 @@ void GetTime()
   CurrentTime = ctime(&CurrentTimeSec);     // Convert to human readable
   x = strlen(CurrentTime);                  // Get rid of the '\n'
   CurrentTime[x - 1] = '\0';                  //   at the end of string returned by ctime()
-}
-
-// The MudCmdOk function checks if a given command is valid by comparing it against a command table,
-// verifying user permissions, and ensuring the command meets the required word count, returning true
-// if the command is valid and false otherwise.
-bool MudCmdOk()
-{
-  DEBUGIT(1)
-    i = 0;
-  while (CommandTable[i][0] != NULL)
-  {
-    if (Equal(MudCmd, (char*)CommandTable[i][0]))
-    {
-      CommandNbr        = (int)i;
-      Commands.Name     = (char*)CommandTable[i][0];
-      Commands.Admin    = (char*)CommandTable[i][1];
-      Commands.Level    = (char*)CommandTable[i][2];
-      Commands.Position = (char*)CommandTable[i][3];
-      Commands.Social   = (char*)CommandTable[i][4];
-      Commands.Fight    = (char*)CommandTable[i][5];
-      Commands.MinWords = (char*)CommandTable[i][6];
-      Commands.MaxWords = (char*)CommandTable[i][7];
-      Commands.Message  = (char*)CommandTable[i][8];
-      // Admin command?
-      if (Equal(Commands.Admin, "Y"))
-      {
-        if (pPlayer->Admin == 'N')
-        {
-          break;
-        }
-      }
-      // Check minimum/maximum words
-      if (Words(Command) < atoi(Commands.MinWords) || Words(Command) > atoi(Commands.MaxWords))
-      {
-        if (Equal(Commands.Message, "None"))
-        {
-          sprintf(Buffer, "%s %s %s %s %s %s %s %s", "Too many or too few words in command,", "Min:", Commands.MinWords, "Max:", Commands.MaxWords, "Refer to help", Commands.Name, "\r\n");
-          strcat(pPlayer->Output, Buffer);
-        }
-        else
-        {
-          strcat(pPlayer->Output, Commands.Message);
-        }
-        strcat(pPlayer->Output, "\r\n\r\n");
-        Prompt(pPlayer);
-        return false;
-      }
-      // Command is OK!
-      return true;
-    }
-    i++;
-  }
-  // Command is none of the above
-  strcat(pPlayer->Output, "Huh?\r\n\r\n");
-  Prompt(pPlayer);
-  return false;
 }
 
 // The Sleep function is designed to pause the execution of a program for a specified duration,
