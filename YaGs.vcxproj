@@ -83,8 +83,9 @@
     <ClCompile Include="YaGs.c" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Admin.txt" />
-    <Text Include="Building.txt" />
+    <Text Include="Doc\Admin.txt" />
+    <Text Include="Doc\Building.txt" />
+    <Text Include="Doc\Coding.txt" />
     <Text Include="Library\Greeting.txt" />
     <Text Include="Library\Help.txt" />
     <Text Include="Library\Motd.txt" />

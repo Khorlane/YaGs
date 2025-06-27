@@ -1,0 +1,138 @@
+Coder's Guide
+=============
+This guide provides information about the YaGs code and how it is organized. 
+YaGs is written in C and follows a modular structure, allowing for easy expansion
+and modification. YaGs is designed to run on Unix-like operating systems, including
+Linux and macOS. It is not compatible with Windows OS without modifications, mainly
+due to its reliance on bsd sockets, which require different header files for Windows
+OS and some code changes.
+
+Contents
+1 Introduction
+  1.1 Code Structure
+  1.2 Sections
+  1.3 Functions and Variables
+2 Coding Standards
+  2.1 Naming Conventions
+  2.2 Code Formatting
+  2.3 Comments and Documentation
+3 Building and Compiling
+  3.1 Build System
+  3.2 Compiling the Code
+4 Debugging and Testing
+  4.1 Debugging Tools
+  4.2 Testing Procedures
+  
+1 Introduction
+
+1.1 Code Structure
+
+The YaGs codebase is wholly contained in a single file, `yags.c`, which is organized
+into several sections. The code is structured to facilitate readability and maintainability.
+Each section is responsible for a specific aspect of the game, such as the main 
+game loop, event handling, and game state management. The code is written in C, 
+following standard practices for clarity and efficiency.
+
+1.2 Sections
+
+YaGs is divided into section, with each section responsible for a specific aspect
+of the game. Key sections are:
+
+Include   
+  Stardard library header files, there are no additional headers
+Macros
+  Simple 1:1 replacement macros, with the exception of DEBUGIT
+Globals
+  Contains global variables used throughout the game
+Player
+  Player-related definitions
+Functions
+  Contains ALL functions used in the game
+Commands
+  Command-related definitions
+Main
+  Contains the main game loop including startup, event handling, and shutdown
+General player communication
+  Functions for sending messages to players
+Get player online
+  Functions related to getting a player logged on and into the game
+Log
+  Functions for logging player actions and game events
+Sockets
+  Functions for handling network communication
+Startup and Shutdown
+  Functions for initializing and cleaning up the game environment
+Player list
+  Functions for managing the list of players currently online
+Player file
+  Functions for loading and saving player data
+Strings
+  Functions for string manipulation and formatting
+Miscellaneous
+  Miscellaneous utility functions that do not fit into other categories
+
+1.3 Functions and Variables
+
+The code is organized into functions and variables that are grouped by functionality.
+Each function is designed to perform a specific task, such as handling player input,
+updating the game state, or rendering messages. Variables are used to store game
+state information, such as player health, inventory items, and room descriptions.
+
+2 Coding Standards
+
+2.1 Naming Conventions
+
+Functions and variables should be named using descriptive identifiers that clearly
+indicate their purpose. Use CamelCase for function names and variables, do not 
+separate words by underscores. For example instead of `game_start_msg` use 
+`GameStartMsg`. 
+
+Constants should be defined in all uppercase and separate by underscore (e.g. `YAGS_DIR`).
+
+Enums should be named using Snake Case with the first letter of each word capitalized
+(e.g. `Wait_Player_Name`).
+
+2.2 Code Formatting
+
+Code should be formatted consistently, with proper indentation and spacing. Use 2
+spaces for indentation and ensure that each line does not exceed 80 characters.
+Functions should be separated by a single blank line, and comments should be used
+to explain complex logic or important sections of code.
+
+2.3 Comments and Documentation
+
+Comments should be used to explain the purpose of functions, variables, and complex
+logic. Each function should have a brief description of its purpose, parameters, 
+and return values.
+
+3 Building and Compiling
+
+3.1 Build System
+
+YaGs does not require complex a build system based on `Makefile` to manage the 
+compilation process. To build YaGs, run the command:
+gcc YaGs.c -o YaGs
+
+3.2 Compiling the Code
+	
+To compile the code, ensure you have the necessary development tools installed, 
+such as a C compiler (e.g., GCC), you don't need make. The compilation process
+will generate an executable file that can be run to start the game. If there are
+any errors during compilation, they will be displayed in the terminal, and you
+should address them before proceeding.
+
+4 Debugging and Testing
+  
+4.1 Debugging Tools
+	
+YaGs supports debugging using tools like GDB (GNU Debugger). You can compile the 
+code with debugging symbols by adding the `-g` flag to the compilation command.
+This allows you to run the game in GDB and inspect variables, set breakpoints,
+and step through the code to identify issues.
+
+4.2 Testing Procedures
+
+Testing is an essential part of the development process. You should write unit 
+tests for critical functions and modules to ensure they work as expected. Most
+importantly, perform manual testing by playing the game and checking for bugs or
+inconsistencies in gameplay.

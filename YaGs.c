@@ -347,6 +347,8 @@ void (*DoCommand[])(void) =
 // Main
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// The main function initializes the game server, enters a loop to handle player interactions,
+// checks for new players, processes player input, sends output to players, and handles game shutdown.
 int main(int argc, char **argv)
 {
   StartItUp();
@@ -371,6 +373,8 @@ int main(int argc, char **argv)
   ShutItDown();
 }
 
+// The HeartBeat function handles the heartbeat of the game server, 
+// which can be used for periodic tasks or checks.
 void HeartBeat()
 {
   DEBUGIT(2)
