@@ -7,6 +7,9 @@ Linux and macOS. It is not compatible with Windows OS without modifications, mai
 due to its reliance on bsd sockets, which require different header files for Windows
 OS and some code changes.
 
+YaGs is not complete, by any stretch of the imagination. There are MANY things that
+need to be added before considering it to be `ready for players`.
+
 Contents
 1 Introduction
   1.1 Code Structure
@@ -22,6 +25,22 @@ Contents
 4 Debugging and Testing
   4.1 Debugging Tools
   4.2 Testing Procedures
+5 Code Explanation
+  5.1 Overview
+  5.2 Marcros
+  5.3 Globals
+      5.3.1 Strings
+  5.4 Players
+      5.4.1 Player file
+      5.4.2 Player list
+  5.5 Commands
+      5.5.1 Adding a new command
+  5.6 Sockets
+      5.6.1 Berkeley sockets
+      5.6.2 Listening
+      5.6.3 Non-Blocking
+  5.7 Strings
+      5.7.1 Quality of life
   
 1 Introduction
 
@@ -138,3 +157,146 @@ Testing is an essential part of the development process. You should write unit
 tests for critical functions and modules to ensure they work as expected. Most
 importantly, perform manual testing by playing the game and checking for bugs or
 inconsistencies in gameplay.
+
+5 Code Explanation
+
+5.1 Overview
+
+YaGs code is intended to be, for the most part, self-explanatory. There are of
+course exceptions suh that, when reading through the code, one might scratch
+their head and wonder "what on earth is going on here?". Fortunately, we now
+have ChatGPT that can help understand the code. But there are still cases
+where the real meaning or intent of the code is still not clear. This section
+tries to anticipates areas of the code that might need that extra explanation.
+
+5.2 Macros
+
+Most macros are simple x = y replacements, DEBUGIT(dl) is an exception. This
+macro relies on the Log being `open`, so DO NOT add it to functions like
+StartItUp() or any function that is executed before the log is available.
+
+The value of YAGS_DIR might look strange to you. If you are using a Linux
+system, you should of course change this. The `/mnt/c` part is specific
+to using Windows and WSL. At the time of this writting, Ubuntu-22.04.3-LTS
+is being used via WSL on Windows.
+
+5.3 Globals
+
+Almost all variables are global variables and almost all functions DO NOT
+take or return anything. The exception here is the string functions like
+Up1stChar(), Word(), and Words().
+
+5.3.1 Strings
+
+There are no strings in C, only arrays of characters with the last character
+being a `\0`, know as a null-terminated string. YaGs deals with string a lot,
+so there are a number of techniques employeed to make dealing with these strings
+less painful. Global variable `TmpStr` is a case in point, defined once, used
+throughout the code. The aTmpStr[1024]/*TmpStr variables (and others like them)
+is the chosen technique for YaGs. Variables like CmdParm1, CmdParm2, CmdParm3
+are intended to add clarity to the the code. You also might find that all the
+file name variables share aTmpStr. This is because no two of these are used at
+the same time and during each use, the value is set and used. The code never
+assumes anything about the contents of these variables.
+
+5.4 Players
+
+5.4.1 Player file
+
+Persistent Player data is stored in Player.yags in the World folder. When a new
+player connects to YaGs and completes the log in steps, a player record is written
+to Player.yags. The player record is represented by struct sPlayer. In the event
+that fields are added or removed from sPlayer, then Player.yags needs to be wiped,
+as in delete it and re-create it empty. The first player to log into the game after
+a wipe is the implementor which means the Admin flag is set to `Y`.
+
+5.4.2 Player list
+
+As players connect and disconnect to/from the game, the PlayerList is maintained
+and reflects, real-time, the state of each player. If the PlayerList empty (no
+players conncected), the game goes to sleep and wakes up periodically to see if
+there is player trying to connect.
+
+The player list is the main driver for the whole game. For each player in the
+player list, check for input, if there is input, process the command (all input
+from players ARE commands). See ProcessPlayerInput(). The processing of commands
+results in some sort of output, so for each player in the player list, send the
+output to the player. See SendPlayerOutput().
+
+5.5 Commands
+
+5.5.1 Adding a new command
+
+Using the look command as an example
+- Add `DoLook` in the Functions section
+- Add `look` to CommandTable
+- Add `DoLook` to DoCommand (`void (*DoCommand[])(void) =`
+- Add a very simple implementation of `DoLook` in `All Do functions` section
+
+For example;
+void DoLook()
+{
+  DEBUGIT(1)
+  sprintf(Buffer, "You are in room %d, looking around, you see nothing special.\r\n", pPlayer->RoomNbr);
+  strcat(pPlayer->Output, Buffer);
+  Prompt(pPlayer);
+}
+
+Fire up the game and test your brand new command!
+
+5.5.2 Command table
+
+The command table, `CommandTable` defines each valid command with a number of attributes.
+These attributes are described by struct sCommands and are primarily intended to
+lessen the validating required by each Do<command> function, allowing some validation
+to be generalized and handled before the Do<command> get control. The is still a
+need for validation within each Do<command>, but avoids the need to check to see
+if the player's position (sleep, sit, stand) is valid in EVERY LAST SINGLE Do<command>.
+For example, the `look` command makes no sense if the player is sleeping.
+NOTE: at the time of this writting, player position is not in the game, but it will be.
+
+5.6 Sockets
+
+5.6.1 Berkeley sockets
+
+YaGs uses Berkeley (BSD) sockets and all code that uses this API is in the Sockets
+section. The primary socket functions are: socket(), bind(), listen(), accept(),
+select(), send(), recv(), and close(). The are a significant number of macros that
+are defined in <arpa/inet.h> and <sys/socket.h> and are used as standard practice
+when working with BSD sockets.
+
+5.6.2 Listening
+
+One of very first things a game server like YaGs must do is `listen` on a specific
+URL and port number. For YaGs, as you develop and test, you will most likely be
+using 127.0.0.1 port 7373 or localhost:7373 (either as they are the same). Before
+going live, you will need to modify this. In SocketListen() there is this line:
+SocketAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+change to:
+SocketAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+and put something other than 127.0.0.1!
+
+5.6.3 Non-Blocking
+
+A very important part of using BSD sockets is to NOT block when getting input from
+your players, and on the other hand, you need know whether or not there is any 
+input from a player. The code satifies both requirements via settings like
+`fcntl(Listen, F_SETFL, FNDELAY);`
+and checks like
+`if (FD_ISSET(Socket, &InpSet))`.
+
+5.7 Strings
+
+5.7.1 Quality of life functions
+
+In the Strings section of the code there are a number of functions that just make
+dealing with C-Style strings a little easier. Each string function is very focused,
+performing its mission as succinctly as possible. Many of the string functions modify
+the actual string not a copy of the string. For example, Trim() takes a string but 
+DOES NOT return a string, it modifies the string.
+
+The Equal() function is an example of syntactic sugar which allows you
+to write:
+if (Equal(Commands.Admin, "Y"))
+instead of
+if (!strcmp(Commands.Admin, "Y"))

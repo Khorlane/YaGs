@@ -300,7 +300,7 @@ struct sCommands
   char *Name;                                         // Command name
   char *Admin;                                        // This is an admin command
   char *Level;                                        // Player must be at this level to use the command
-  char *Position;                                     // Player must be in this position to use the command
+  char *Position;                                     // Player must be, at least, in this position to use the command
   char *Social;                                       // Is this a social command
   char *Fight;                                        // Can this command be issued during a fight
   char *MinWords;                                     // Minimum number of words in the command
@@ -317,7 +317,7 @@ char *CommandTable[][9] = {
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
-    {"look",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
