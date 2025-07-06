@@ -2151,15 +2151,13 @@ static void ReadFirstRoomFromFile()
   }
   // Read Exits
   if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
-  {
-    // Skip header line before Exits
+  { // Skip header line before Exits
     LineNumber++;
     sprintf(LogMsg, "ERROR: Failed to skip exits header line in %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
   if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
-  {
-    // Now read the actual Exits line
+  { // Now read the actual Exits line
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
@@ -2170,7 +2168,7 @@ static void ReadFirstRoomFromFile()
     AbortIt();
   }
   if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
-  {
+  { // Skip blank line after exits
     LineNumber++;
     sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
