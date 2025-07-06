@@ -90,6 +90,7 @@
     <Text Include="Library\Help.txt" />
     <Text Include="Library\Motd.txt" />
     <Text Include="Library\ValidNames.txt" />
+    <Text Include="Logs\Log.txt" />
     <Text Include="World\Map.txt" />
     <Text Include="World\Mobiles.txt" />
     <Text Include="World\Objects.txt" />

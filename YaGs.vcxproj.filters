@@ -13,6 +13,9 @@
     <Filter Include="Doc">
       <UniqueIdentifier>{30b6a051-eca5-4c9f-af27-2d8887b0b410}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Logs">
+      <UniqueIdentifier>{36f43203-a7a7-482c-a063-096ce4103b02}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Library\Greeting.txt">
@@ -47,6 +50,9 @@
     </Text>
     <Text Include="Doc\Coding.txt">
       <Filter>Doc</Filter>
+    </Text>
+    <Text Include="Logs\Log.txt">
+      <Filter>Logs</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>

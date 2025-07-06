@@ -91,7 +91,7 @@ N     NE    E     SE    S     SW    W     NW    Up    Down
 
 00113 Library
 There are floor to ceiling bookselves on all four walls
-of this room. One book in particular stand out, "Designing
+of this room. One book in particular stands out, "Designing
 Virtual Worlds" by Richard Bartle.
 Terrain: Indoor
 Flags:   NoFight
