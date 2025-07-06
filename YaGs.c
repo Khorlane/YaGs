@@ -2053,7 +2053,6 @@ static void ReadFirstRoomFromFile()
     sprintf(LogMsg, "ERROR: Open %s failed: %s", ROOMS_FILE, strerror(errno));
     AbortIt();
   }
-
   // Read RoomNumber and Name
   if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL) 
   {
@@ -2087,7 +2086,6 @@ static void ReadFirstRoomFromFile()
     sprintf(LogMsg, "ERROR: Failed to read RoomNumber and Name from %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
-
   // Read Description (multi-line until "Terrain" label is found)
   char  *DescriptionBuffer = NULL;
   size_t DescriptionLength = 0;
@@ -2121,7 +2119,6 @@ static void ReadFirstRoomFromFile()
     sprintf(LogMsg, "ERROR: No description found for room in %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
-
   // Read Terrain
   if (strncmp(Buffer, "Terrain: ", 9) == 0)
   {
@@ -2132,7 +2129,6 @@ static void ReadFirstRoomFromFile()
     sprintf(LogMsg, "ERROR: Invalid Terrain format in %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
-
   // Read Flags
   if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
   {
@@ -2153,18 +2149,17 @@ static void ReadFirstRoomFromFile()
     sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
-
   // Read Exits
-  // Skip header line before Exits
   if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
   {
+    // Skip header line before Exits
     LineNumber++;
     sprintf(LogMsg, "ERROR: Failed to skip exits header line in %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
-  // Now read the actual Exits line
   if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
   {
+    // Now read the actual Exits line
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
@@ -2172,6 +2167,12 @@ static void ReadFirstRoomFromFile()
   else
   {
     sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNumber);
+    AbortIt();
+  }
+  if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
+  {
+    LineNumber++;
+    sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNumber);
     AbortIt();
   }
   fclose(RoomFile);
