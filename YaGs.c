@@ -65,103 +65,103 @@
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Booleans
-bool                EndFile;                          // File access - End of file
-bool                Found;                            // File access - Record found
-bool                GameShutDown;                     // Set this to true to stop the game
-bool                NoPlayers;                        // True when we have no players
+bool                  EndFile;                         // File access - End of file
+bool                  Found;                           // File access - Record found
+bool                  GameShutDown;                    // Set this to true to stop the game
+bool                  NoPlayers;                       // True when we have no players
 
 // Numbers
-size_t              BufferLen;                        // Length of the string stored in Buffer
-long int            BytesRead;                        // Number of bytes read
-int                 CommandNbr;                       // Command number zero based
-time_t              CurrentTimeSec;                   // Current time in seconds
-socklen_t           LingerSize;                       // Size of Linger stucture
-int                 Listen;                           // Listening socket
-int                 MaxSocket;                        // Maximum socket value
-long                Offset;                           // Offset for fseek()
-int                 OptVal;                           // Set socket option value
-socklen_t           OptValSize;                       // Size of socket option value
-int                 PlayerNbr;                        // Plyayer number
-int                 ReturnValue1;                     // Return value
-size_t              ReturnValue2;                     // Return value
-long int            SendResult;                       // Number of bytes sent to player
-int                 Socket;                           // Socket value
-socklen_t           SocketAddrSize;                   // Size of Socket structure
-extern int          errno;                            // Error number set by fopen(), for example
-size_t              i;                                // A non-negative integer
-size_t              j;                                // A non-negative integer
-size_t              k;                                // A non-negative integer
-size_t              x;                                // A non-negative integer
-size_t              y;                                // A non-negative integer
-size_t              z;                                // A non-negative integer
+size_t                BufferLen;                      // Length of the string stored in Buffer
+long int              BytesRead;                      // Number of bytes read
+int                   CommandNbr;                     // Command number zero based
+time_t                CurrentTimeSec;                 // Current time in seconds
+socklen_t             LingerSize;                     // Size of Linger stucture
+int                   Listen;                         // Listening socket
+int                   MaxSocket;                      // Maximum socket value
+long                  Offset;                         // Offset for fseek()
+int                   OptVal;                         // Set socket option value
+socklen_t             OptValSize;                     // Size of socket option value
+int                   PlayerNbr;                      // Plyayer number
+int                   ReturnValue1;                   // Return value
+size_t                ReturnValue2;                   // Return value
+long int              SendResult;                     // Number of bytes sent to player
+int                   Socket;                         // Socket value
+socklen_t             SocketAddrSize;                 // Size of Socket structure
+extern int            errno;                          // Error number set by fopen(), for example
+size_t                i;                              // A non-negative integer
+size_t                j;                              // A non-negative integer
+size_t                k;                              // A non-negative integer
+size_t                x;                              // A non-negative integer
+size_t                y;                              // A non-negative integer
+size_t                z;                              // A non-negative integer
 
 //Pointers
-char               *CurrentTime;                      // Current timestamp
-struct PlayerList  *pActor;                           // Pointer to acting player in the player list
-struct PlayerList  *pPlayer;                          // Pointer to a player in the player list - generic usage
-struct PlayerList  *pPlayerSave;                      // Pointer to a player in the player list - save
-struct PlayerList  *pPlayerCurr;                      // Pointer to current player in the player list
-struct PlayerList  *pPlayerCurrSave;                  // Pointer to current player in the player list - save
-struct PlayerList  *pPlayerHead;                      // Pointer to the head of player list
-struct PlayerList  *pPlayerTail;                      // Pointer to the tail of player list
-struct PlayerList  *pTarget;                          // Pointer to target player in the player list
+char                 *CurrentTime;                    // Current timestamp
+struct PlayerList    *pActor;                         // Pointer to acting player in the player list
+struct PlayerList    *pPlayer;                        // Pointer to a player in the player list - generic usage
+struct PlayerList    *pPlayerSave;                    // Pointer to a player in the player list - save
+struct PlayerList    *pPlayerCurr;                    // Pointer to current player in the player list
+struct PlayerList    *pPlayerCurrSave;                // Pointer to current player in the player list - save
+struct PlayerList    *pPlayerHead;                    // Pointer to the head of player list
+struct PlayerList    *pPlayerTail;                    // Pointer to the tail of player list
+struct PlayerList    *pTarget;                        // Pointer to target player in the player list
 
 // Strings
-char                aTmpStr[1024];                    // Temp string
-char                *TmpStr   = aTmpStr;              // Temp string too
-char                aTmpStr1[1024];                   // Temp string 1
-char                *TmpStr1  = aTmpStr1;             // Temp string 1 too
-char                *CmdParm1 = aTmpStr1;             // Command Parameter 1
-char                aTmpStr2[1024];                   // Temp string 2
-char                *TmpStr2  = aTmpStr2;             // Temp string 2 too
-char                *CmdParm2 = aTmpStr2;             // Command Parameter 2
-char                aTmpStr3[1024];                   // Temp string 3
-char                *TmpStr3  = aTmpStr3;             // Temp string 3 too
-char                *CmdParm3 = aTmpStr3;             // Command Parameter 3
-char                Buffer[2048];                     // Just a buffer
-char                Command[1024];                    // The command from the player
-char                LogMsg[100];                      // Log message
-char                MsgTxt[100];                      // Message text
-char                MudCmd[10];                       // Mud command
-char                TheRest[50];                      // The rest of the command
+char                  aTmpStr[1024];                  // Temp string
+char                 *TmpStr   = aTmpStr;             // Temp string too
+char                  aTmpStr1[1024];                 // Temp string 1
+char                 *TmpStr1  = aTmpStr1;            // Temp string 1 too
+char                 *CmdParm1 = aTmpStr1;            // Command Parameter 1
+char                  aTmpStr2[1024];                 // Temp string 2
+char                 *TmpStr2  = aTmpStr2;            // Temp string 2 too
+char                 *CmdParm2 = aTmpStr2;            // Command Parameter 2
+char                  aTmpStr3[1024];                 // Temp string 3
+char                 *TmpStr3  = aTmpStr3;            // Temp string 3 too
+char                 *CmdParm3 = aTmpStr3;            // Command Parameter 3
+char                  Buffer[2048];                   // Just a buffer
+char                  Command[1024];                  // The command from the player
+char                  LogMsg[100];                    // Log message
+char                  MsgTxt[100];                    // Message text
+char                  MudCmd[10];                     // Mud command
+char                  TheRest[50];                    // The rest of the command
 
 // Files
-char               *GreetingFileName   = aTmpStr;     // Greeting file name
-char               *HelpFileName       = aTmpStr;     // Help file name
-char               *LogFileName        = aTmpStr;     // Log file name
-char               *MotdFileName       = aTmpStr;     // Message of the day file name
-char               *PlayerFileName     = aTmpStr;     // Player file name
-char               *ValidNamesFileName = aTmpStr;     // Valid names file name
-FILE               *GreetingFile;                     // Greeting file
-FILE               *HelpFile;                         // Help file
-FILE               *LogFile;                          // Log file
-FILE               *MotdFile;                         // Message of the day file
-FILE               *PlayerFile;                       // Player file
-FILE               *ValidNamesFile;                   // Valid names file
+char                 *GreetingFileName   = aTmpStr;   // Greeting file name
+char                 *HelpFileName       = aTmpStr;   // Help file name
+char                 *LogFileName        = aTmpStr;   // Log file name
+char                 *MotdFileName       = aTmpStr;   // Message of the day file name
+char                 *PlayerFileName     = aTmpStr;   // Player file name
+char                 *ValidNamesFileName = aTmpStr;   // Valid names file name
+FILE                 *GreetingFile;                   // Greeting file
+FILE                 *HelpFile;                       // Help file
+FILE                 *LogFile;                        // Log file
+FILE                 *MotdFile;                       // Message of the day file
+FILE                 *PlayerFile;                     // Player file
+FILE                 *ValidNamesFile;                 // Valid names file
 
 // Structures
-fd_set             InpSet;                            // File Descriptor Set structure
-struct linger      Linger;                            // Linger structure
-struct sockaddr_in SocketAddr;                        // Socket Address structure
-struct timeval     TimeOut;                           // Time value structure
+fd_set                InpSet;                         // File Descriptor Set structure
+struct linger         Linger;                         // Linger structure
+struct sockaddr_in    SocketAddr;                     // Socket Address structure
+struct timeval        TimeOut;                        // Time value structure
 
 // Color codes
-char              *Normal        = "\x1B[0;m";        // NORMAL     &N
-char              *BrightBlack   = "\x1B[1;30m";      // BBLACK     &K
-char              *BrightRed     = "\x1B[1;31m";      // BRED       &R
-char              *BrightGreen   = "\x1B[1;32m";      // BGREEN     &G
-char              *BrightYellow  = "\x1B[1;33m";      // BYELLOW    &Y
-char              *BrightBlue    = "\x1B[1;34m";      // BBLUE      &B
-char              *BrightMagenta = "\x1B[1;35m";      // BMAGENTA   &M
-char              *BrightCyan    = "\x1B[1;36m";      // BCYAN      &C
-char              *BrightWhite   = "\x1B[1;37m";      // BWHITE     &W
-char              *None          = "";                // No Color
+char                 *Normal        = "\x1B[0;m";     // NORMAL     &N
+char                 *BrightBlack   = "\x1B[1;30m";   // BBLACK     &K
+char                 *BrightRed     = "\x1B[1;31m";   // BRED       &R
+char                 *BrightGreen   = "\x1B[1;32m";   // BGREEN     &G
+char                 *BrightYellow  = "\x1B[1;33m";   // BYELLOW    &Y
+char                 *BrightBlue    = "\x1B[1;34m";   // BBLUE      &B
+char                 *BrightMagenta = "\x1B[1;35m";   // BMAGENTA   &M
+char                 *BrightCyan    = "\x1B[1;36m";   // BCYAN      &C
+char                 *BrightWhite   = "\x1B[1;37m";   // BWHITE     &W
+char                 *None          = "";             // No Color
 
 // Messages
-char               *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
-char               *GameStartMsg = "YaGs is starting";                    // Game starting message
-char               *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
-char               *GameWakeMsg  = "Waking up";                           // Game wake up message
+char                 *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
+char                 *GameStartMsg = "YaGs is starting";                    // Game starting message
+char                 *GameStopMsg  = "YaGs has shutdown";                   // Game stop message
+char                 *GameWakeMsg  = "Waking up";                           // Game wake up message
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Player
@@ -189,42 +189,42 @@ typedef enum PlayerStates
 // experience, and pointers to the next and previous players in the list.
 struct PlayerList
 {
-  int                Socket;                          // Socket number returned from accept()
-  PlayerState        State;                           // Player state
-  char               Name[50];                        // Player name
-  char               Password[50];                    // Player password
-  char               Afk;                             // Away from keyboard flag (Y/N)
-  char               Admin;                           // Admin flag (Y/N) - Controls which commands are available to the player
-  time_t             Born;                            // Time player was created
-  char               Color;                           // Color code (Y/N) Y means that player output is run through the Color() function
-  int                Experience;                      // Experience points
-  char               Level;                           // Player level
-  char               Sex;                             // Player sex (M/F)
-  int                RoomNbr;                         // Room number
-  char               Input[1024];                     // Player input buffer
-  char               Output[2048];                    // Player output buffer
-  int                BadPswdCount;                    // Number of bad passwords entered
-  int                PlayerNbr;                       // Player number
-  int                NoInputTick;                     // Ticks before checking if player is still there
-  int                NoInputCount;                    // Number of no input ticks
-  struct PlayerList *pPlayerNext;                     // Pointer to next player in the player list
-  struct PlayerList *pPlayerPrev;                     // Pointer to previous player in the player list
+  int                 Socket;                         // Socket number returned from accept()
+  PlayerState         State;                          // Player state
+  char                Name[50];                       // Player name
+  char                Password[50];                   // Player password
+  char                Afk;                            // Away from keyboard flag (Y/N)
+  char                Admin;                          // Admin flag (Y/N) - Controls which commands are available to the player
+  time_t              Born;                           // Time player was created
+  char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
+  int                 Experience;                     // Experience points
+  char                Level;                          // Player level
+  char                Sex;                            // Player sex (M/F)
+  int                 RoomNbr;                        // Room number
+  char                Input[1024];                    // Player input buffer
+  char                Output[2048];                   // Player output buffer
+  int                 BadPswdCount;                   // Number of bad passwords entered
+  int                 PlayerNbr;                      // Player number
+  int                 NoInputTick;                    // Ticks before checking if player is still there
+  int                 NoInputCount;                   // Number of no input ticks
+  struct PlayerList  *pPlayerNext;                    // Pointer to next player in the player list
+  struct PlayerList  *pPlayerPrev;                    // Pointer to previous player in the player list
 };
 
 // The Player structure represents a player in a game, encapsulating attributes such as
 // name, password, status flags, creation time, color preference, experience points, level, and sex.
 struct sPlayer
 {
-  char            Name[50];                           // Player name
-  char            Password[50];                       // Player password
-  char            Afk;                                // Away from keyboard flag (Y/N)
-  char            Admin;                              // Admin flag (Y/N) - Controls which commands are available to the player
-  time_t          Born;                               // Time player was created
-  char            Color;                              // Color code (Y/N) Y means that player output is run through the Color() function
-  int             Experience;                         // Experience points
-  char            Level;                              // Player level
-  char            Sex;                                // Player sex (M/F)
-  int             RoomNbr;                            // Room number
+  char                Name[50];                       // Player name
+  char                Password[50];                   // Player password
+  char                Afk;                            // Away from keyboard flag (Y/N)
+  char                Admin;                          // Admin flag (Y/N) - Controls which commands are available to the player
+  time_t              Born;                           // Time player was created
+  char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
+  int                 Experience;                     // Experience points
+  char                Level;                          // Player level
+  char                Sex;                            // Player sex (M/F)
+  int                 RoomNbr;                        // Room number
 } Player;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -233,22 +233,22 @@ struct sPlayer
 
 typedef struct Room
 {
-  int   RoomNumber;                                   // Room number (e.g., 101)
-  char *Name;                                         // Room name (e.g., "Back Porch")
-  char *Description;                                  // Room description (multi-line text)
-  char *Terrain;                                      // Terrain type (e.g., "Concrete", "Indoor")
-  char *Flags;                                        // Flags (e.g., "None", "NoFight")
-  char *Exits;                                        // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
+  int                 RoomNbr;                        // Room number (e.g., 101)
+  char               *Name;                           // Room name (e.g., "Back Porch")
+  char               *Description;                    // Room description (multi-line text)
+  char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
+  char               *Flags;                          // Flags (e.g., "None", "NoFight")
+  char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
 } Room;
 
 typedef struct RoomList
 {
-  Room            *pRoom;                             // Pointer to a Room struct
-  struct RoomList *pNextRoom;                         // Pointer to the next node in the list
+  Room               *pRoom;                          // Pointer to a Room struct
+  struct RoomList    *pNextRoom;                      // Pointer to the next node in the list
 } RoomList;
 
-Room      SingleRoom;
-RoomList *pRoomHead = NULL;
+Room                  SingleRoom;
+RoomList             *pRoomHead = NULL;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -321,21 +321,22 @@ void    zTestStuff();
 // fight commands, words, parts, and messages.
 struct sCommands
 {
-  char *Name;                                         // Command name
-  char *Admin;                                        // This is an admin command
-  char *Level;                                        // Player must be at this level to use the command
-  char *Position;                                     // Player must be, at least, in this position to use the command
-  char *Social;                                       // Is this a social command
-  char *Fight;                                        // Can this command be issued during a fight
-  char *MinWords;                                     // Minimum number of words in the command
-  char *MaxWords;                                     // Maximum number of words in the command
-  char *Message;                                      // Message to display if command is invalid
+  char               *Name;                           // Command name
+  char               *Admin;                          // This is an admin command
+  char               *Level;                          // Player must be at this level to use the command
+  char               *Position;                       // Player must be, at least, in this position to use the command
+  char               *Social;                         // Is this a social command
+  char               *Fight;                          // Can this command be issued during a fight
+  char               *MinWords;                       // Minimum number of words in the command
+  char               *MaxWords;                       // Maximum number of words in the command
+  char               *Message;                        // Message to display if command is invalid
 } Commands;
 
 // CommandTable is a two - dimensional array of character pointers that stores command information,
 // including command names, admin levels, positions, social interactions, fight options, word counts,
 // and associated messages.
-char *CommandTable[][9] = {
+char *CommandTable[][9] = 
+{
   //                                                   MIN  MAX
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
@@ -1977,10 +1978,10 @@ static void ReadRoomsFromFile()
   // Read rooms until $End is found
   while (true)
   {
-    // Read RoomNumber and Name
+    // Read Room Number and Name
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL) 
     {
-      sprintf(LogMsg, "ERROR: Failed to read RoomNumber and Name from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
     LineNumber++;
@@ -1992,14 +1993,14 @@ static void ReadRoomsFromFile()
       LogIt(LogMsg);
       break;
     }
-    // Extract RoomNumber (first word)
+    // Extract Room Number (first word)
     char *Token = strtok(Buffer, " ");
     if (Token == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to parse RoomNumber from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to parse Room Number from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    SingleRoom.RoomNumber = atoi(Token);
+    SingleRoom.RoomNbr = atoi(Token);
     // Extract Room Name (rest of the line)
     Token = strtok(NULL, "");
     if (Token == NULL) 
