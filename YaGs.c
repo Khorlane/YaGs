@@ -233,22 +233,22 @@ struct sPlayer
 
 typedef struct Room
 {
-  int   RoomNumber;        // Room number (e.g., 101)
-  char* Name;              // Room name (e.g., "Back Porch")
-  char* Description;       // Room description (multi-line text)
-  char* Terrain;           // Terrain type (e.g., "Concrete", "Indoor")
-  char* Flags;             // Flags (e.g., "None", "NoFight")
-  char* Exits;             // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
+  int   RoomNumber;                                   // Room number (e.g., 101)
+  char *Name;                                         // Room name (e.g., "Back Porch")
+  char *Description;                                  // Room description (multi-line text)
+  char *Terrain;                                      // Terrain type (e.g., "Concrete", "Indoor")
+  char *Flags;                                        // Flags (e.g., "None", "NoFight")
+  char *Exits;                                        // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
 } Room;
 
 typedef struct RoomList
 {
-  Room* pRoom;                  // Pointer to a Room struct
-  struct RoomList* pNextRoom;   // Pointer to the next node in the list
+  Room            *pRoom;                             // Pointer to a Room struct
+  struct RoomList *pNextRoom;                         // Pointer to the next node in the list
 } RoomList;
 
 Room      SingleRoom;
-RoomList* pRoomHead = NULL;
+RoomList *pRoomHead = NULL;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -1961,87 +1961,7 @@ void Sleep()
 // Helper funtions for world files (Rooms, Objects, Mobiles)
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// Dynamically allocate a Room structure and copy the contents of SingleRoom
-static Room *AllocateAndCopyRoom(const Room *sourceRoom) {
-  // Allocate memory for the new Room
-  Room *newRoom = (Room*)malloc(sizeof(Room));
-  if (newRoom == NULL) {
-    sprintf(LogMsg, "ERROR: Memory allocation failed for Room");
-    AbortIt();
-  }
-
-  // Copy the RoomNumber
-  newRoom->RoomNumber = sourceRoom->RoomNumber;
-
-  // Allocate and copy the Name
-  if (sourceRoom->Name != NULL) {
-    newRoom->Name = strdup(sourceRoom->Name);
-    if (newRoom->Name == NULL) {
-      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Name");
-      AbortIt();
-    }
-  }
-  else {
-    newRoom->Name = NULL;
-  }
-
-  // Allocate and copy the Description
-  if (sourceRoom->Description != NULL) {
-    newRoom->Description = strdup(sourceRoom->Description);
-    if (newRoom->Description == NULL) {
-      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Description");
-      AbortIt();
-    }
-  }
-  else {
-    newRoom->Description = NULL;
-  }
-
-  // Allocate and copy the Terrain
-  if (sourceRoom->Terrain != NULL) {
-    newRoom->Terrain = strdup(sourceRoom->Terrain);
-    if (newRoom->Terrain == NULL) {
-      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Terrain");
-      AbortIt();
-    }
-  }
-  else {
-    newRoom->Terrain = NULL;
-  }
-
-  // Allocate and copy the Flags
-  if (sourceRoom->Flags != NULL) {
-    newRoom->Flags = strdup(sourceRoom->Flags);
-    if (newRoom->Flags == NULL) {
-      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Flags");
-      AbortIt();
-    }
-  }
-  else {
-    newRoom->Flags = NULL;
-  }
-
-  // Allocate and copy the Exits
-  if (sourceRoom->Exits != NULL) {
-    newRoom->Exits = strdup(sourceRoom->Exits);
-    if (newRoom->Exits == NULL) {
-      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Exits");
-      AbortIt();
-    }
-  }
-  else {
-    newRoom->Exits = NULL;
-  }
-
-  return newRoom;
-}
-
-static void AddRoomToList()
-{
-  Room *newRoom = AllocateAndCopyRoom(&SingleRoom);
-}
-
-static void ReadFirstRoomFromFile()
+static void ReadRoomsFromFile()
 {
   char Buffer[1024];
   char RoomFilePath[1024];
@@ -2049,129 +1969,126 @@ static void ReadFirstRoomFromFile()
   sprintf(RoomFilePath, "%s/%s/%s", YAGS_DIR, WORLD_DIR, ROOMS_FILE);
 
   FILE *RoomFile = fopen(RoomFilePath, "r");
-  if (RoomFile == NULL) {
+  if (RoomFile == NULL) 
+  {
     sprintf(LogMsg, "ERROR: Open %s failed: %s", ROOMS_FILE, strerror(errno));
     AbortIt();
   }
-  // Read RoomNumber and Name
-  if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL) 
+  // Read rooms until $End is found
+  while (true)
   {
+    // Read RoomNumber and Name
+    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL) 
+    {
+      sprintf(LogMsg, "ERROR: Failed to read RoomNumber and Name from %s at line %d", ROOMS_FILE, LineNumber);
+      AbortIt();
+    }
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
+    // Stop processing if $End is found
+    if (strcmp(Buffer, "$End") == 0)
+    {
+      sprintf(LogMsg, "INFO: End of room data reached at line %d in %s", LineNumber, ROOMS_FILE);
+      LogIt(LogMsg);
+      break;
+    }
     // Extract RoomNumber (first word)
     char *Token = strtok(Buffer, " ");
-    if (Token != NULL)
-    {
-      SingleRoom.RoomNumber = atoi(Token);
-    }
-    else 
+    if (Token == NULL)
     {
       sprintf(LogMsg, "ERROR: Failed to parse RoomNumber from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
+    SingleRoom.RoomNumber = atoi(Token);
     // Extract Room Name (rest of the line)
     Token = strtok(NULL, "");
-    if (Token != NULL) 
-    {
-      SingleRoom.Name = strdup(Token);
-    }
-    else
+    if (Token == NULL) 
     {
       sprintf(LogMsg, "ERROR: Failed to parse Room Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-  }
-  else 
-  {
-    sprintf(LogMsg, "ERROR: Failed to read RoomNumber and Name from %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
-  }
-  // Read Description (multi-line until "Terrain" label is found)
-  char  *DescriptionBuffer = NULL;
-  size_t DescriptionLength = 0;
-  while (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
-  {
-    LineNumber++;
-    Buffer[strcspn(Buffer, "\n")] = '\0';
-    if (strncmp(Buffer, "Terrain: ", 9) == 0)
+    SingleRoom.Name = strdup(Token);
+    // Read Description (multi-line until "Terrain" label is found)
+    char  *DescriptionBuffer = NULL;
+    size_t DescriptionLength = 0;
+    while (true)
     {
-      break;
+      if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
+      {
+        sprintf(LogMsg, "ERROR: Failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
+        AbortIt();
+      }
+      LineNumber++;
+      Buffer[strcspn(Buffer, "\n")] = '\0';
+      if (strncmp(Buffer, "Terrain: ", 9) == 0)
+      {
+        break;
+      }
+      size_t lineLength = strlen(Buffer);
+      char *NewBuffer = realloc(DescriptionBuffer, DescriptionLength + lineLength + 2); // +2 for newline and null terminator
+      if (NewBuffer == NULL)
+      {
+        sprintf(LogMsg, "ERROR: Memory allocation failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
+        AbortIt();
+      }
+      DescriptionBuffer = NewBuffer;
+      strcpy(DescriptionBuffer + DescriptionLength, Buffer);
+      DescriptionLength += lineLength;
+      DescriptionBuffer[DescriptionLength] = '\n';
+      DescriptionLength++;
     }
-    size_t lineLength = strlen(Buffer);
-    char *NewBuffer = realloc(DescriptionBuffer, DescriptionLength + lineLength + 2); // +2 for newline and null terminator
-    if (NewBuffer == NULL)
+    if (DescriptionBuffer != NULL) 
     {
-      sprintf(LogMsg, "ERROR: Memory allocation failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
+      DescriptionBuffer[DescriptionLength] = '\0';
+      SingleRoom.Description = DescriptionBuffer;
+    }
+    else 
+    {
+      sprintf(LogMsg, "ERROR: No description found for room in %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    DescriptionBuffer = NewBuffer;
-    strcpy(DescriptionBuffer + DescriptionLength, Buffer);
-    DescriptionLength += lineLength;
-    DescriptionBuffer[DescriptionLength] = '\n';
-    DescriptionLength++;
-  }
-  if (DescriptionBuffer != NULL) {
-    DescriptionBuffer[DescriptionLength] = '\0';
-    SingleRoom.Description = DescriptionBuffer;
-  }
-  else 
-  {
-    sprintf(LogMsg, "ERROR: No description found for room in %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
-  }
-  // Read Terrain
-  if (strncmp(Buffer, "Terrain: ", 9) == 0)
-  {
+    // Read Terrain
+    if (!strncmp(Buffer, "Terrain: ", 9) == 0)
+    {
+      sprintf(LogMsg, "ERROR: Invalid Terrain format in %s at line %d", ROOMS_FILE, LineNumber);
+      AbortIt();
+    }
     SingleRoom.Terrain = strdup(Buffer + 9);
-  }
-  else
-  {
-    sprintf(LogMsg, "ERROR: Invalid Terrain format in %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
-  }
-  // Read Flags
-  if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
-  {
+    // Read Flags
+    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNumber);
+      AbortIt();
+    }
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
-    if (strncmp(Buffer, "Flags: ", 7) == 0)
-    {
-      SingleRoom.Flags = strdup(Buffer + 7);
-    }
-    else
+    if (!strncmp(Buffer, "Flags: ", 7) == 0)
     {
       sprintf(LogMsg, "ERROR: Invalid Flags format in %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-  }
-  else
-  {
-    sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
-  }
-  // Read Exits
-  if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
-  { // Skip header line before Exits
+    SingleRoom.Flags = strdup(Buffer + 7);
+    // Read Exits
+    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Failed to skip exits header line in %s at line %d", ROOMS_FILE, LineNumber);
+      AbortIt();
+    }
     LineNumber++;
-    sprintf(LogMsg, "ERROR: Failed to skip exits header line in %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
-  }
-  if (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
-  { // Now read the actual Exits line
+    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNumber);
+      AbortIt();
+    }
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
-  }
-  else
-  {
-    sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
-  }
-  if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
-  { // Skip blank line after exits
+    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNumber);
+      AbortIt();
+    }      
     LineNumber++;
-    sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNumber);
-    AbortIt();
   }
   fclose(RoomFile);
 }
@@ -2179,7 +2096,7 @@ static void ReadFirstRoomFromFile()
 void zTestStuff()
 {
   OpenLog();
-  ReadFirstRoomFromFile();
+  ReadRoomsFromFile();
   CloseLog();
   exit(0);
 }
