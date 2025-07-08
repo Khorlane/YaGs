@@ -256,17 +256,15 @@ RoomList             *pRoomTail = NULL;
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 void    AbortIt();
-void    AcceptNewPlayer();
 void    AddPlayerToFile();
 void    AddToPlayerList();
-void    CheckForNewPlayers();
+void    SocketCheckForNewPlayers();
 void    CloseLog();
 void    ClosePlayerFile();
 void    Color();
 void    CopyPlayerListToPlayer();
 void    CopyPlayerToPlayerList();
 void    DelFromPlayerList();
-void    DisconnectPlayers();
 void    DoAdvance();
 void    DoColor();
 void    DoHelp();
@@ -280,7 +278,6 @@ void    DoStatus();
 bool    Equal(char *Str1, char *Str2);
 void    GetNextPlayerNbr();
 long    GetPlayerFileOffset();
-void    GetPlayerInput();
 void    GetPlayerOnline();
 void    GetTime();
 void    HeartBeat();
@@ -305,11 +302,14 @@ Room   *RoomLookUp(int RoomNbr);
 void    RoomReadFile();
 void    SendGreeting();
 void    SendMotd();
-void    SendPlayerOutput();
 void    SendToAll();
 void    ShutItDown();
 void    Sleep();
+void    SocketAcceptNewPlayer();
+void    SocketGetPlayerInput();
+void    SocketDisconnectPlayers();
 void    SocketListen();
+void    SocketSendPlayerOutput();
 void    StartItUp();
 void    TerminateString(char* Buffer);
 void    Trim(char *Str);
@@ -388,19 +388,19 @@ int main(int argc, char **argv)
   while (!GameShutDown)
   {
     HeartBeat();
-    CheckForNewPlayers();
+    SocketCheckForNewPlayers();
     if (NoPlayers)
     {
       LogIt(GameSleepMsg);
       while (NoPlayers)
       {
         Sleep();
-        CheckForNewPlayers();
+        SocketCheckForNewPlayers();
       }
       LogIt(GameWakeMsg);
     }
     ProcessPlayerInput();
-    SendPlayerOutput();
+    SocketSendPlayerOutput();
     Sleep();
   }
   ShutItDown();
@@ -418,7 +418,7 @@ void HeartBeat()
 void ProcessPlayerInput()
 {
   DEBUGIT(2)
-  GetPlayerInput();
+  SocketGetPlayerInput();
   pPlayerCurr = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
@@ -1228,7 +1228,7 @@ void SocketListen()
 
 // The CheckForNewPlayers function monitors network sockets for new player connections and accepts
 // them if available, handling any errors that may occur during the process.
-void CheckForNewPlayers()
+void SocketCheckForNewPlayers()
 {
   DEBUGIT(2)
   FD_ZERO(&InpSet);
@@ -1255,13 +1255,13 @@ void CheckForNewPlayers()
   }
   if (FD_ISSET(Listen, &InpSet))
   {
-    AcceptNewPlayer();
+    SocketAcceptNewPlayer();
   }
 }
 
 // The AcceptNewPlayer function handles the acceptance of a new player connection by accepting a socket
 // connection, logging the connection details, and updating the player list and online status.
-void AcceptNewPlayer()
+void SocketAcceptNewPlayer()
 {
   DEBUGIT(1)
   NoPlayers = false;
@@ -1279,7 +1279,7 @@ void AcceptNewPlayer()
 
 // The GetPlayerInput function processes input from connected players by reading data from their
 // respective sockets and updating their input state accordingly.
-void GetPlayerInput()
+void SocketGetPlayerInput()
 {
   DEBUGIT(2)
   pPlayerCurr = pPlayerHead;
@@ -1309,7 +1309,7 @@ void GetPlayerInput()
 
 // The SendPlayerOutput function processes and sends output messages to connected players,
 // handling disconnection for those who have not provided input within a specified time limit.
-void SendPlayerOutput()
+void SocketSendPlayerOutput()
 {
   DEBUGIT(2)
   pPlayerCurr = pPlayerHead;
@@ -1354,12 +1354,12 @@ void SendPlayerOutput()
     }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
   }
-  DisconnectPlayers();
+  SocketDisconnectPlayers();
 }
 
 // The DisconnectPlayers function iterates through a list of players, disconnecting those whose state
 // is set to "Disconnect" by closing their sockets and removing them from the player list.
-void DisconnectPlayers()
+void SocketDisconnectPlayers()
 {
   DEBUGIT(2)
   pPlayerCurr = pPlayerHead;
@@ -1409,6 +1409,7 @@ void ShutItDown()
   RoomFreeList();
   ClosePlayerFile();
   CloseLog();
+  close(Listen);
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
