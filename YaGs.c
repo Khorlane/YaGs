@@ -702,10 +702,18 @@ void DoLook()
 {
   DEBUGIT(1)
   Room *pRoom = RoomLookUp(pPlayer->RoomNbr);
-  sprintf(Buffer, "&C%s&N (%d)\r\n", pRoom->Name, pPlayer->RoomNbr);
+  if (pPlayer->Admin == 'N')
+  {
+    sprintf(Buffer, "&C%s&N\r\n", pRoom->Name);
+  }
+  else
+  {
+    sprintf(Buffer, "&C%s&N &M[&N%d %s&M]&N\r\n", pRoom->Name, pPlayer->RoomNbr, pRoom->Terrain);
+  }
   strcat(pPlayer->Output, Buffer);
   sprintf(Buffer, "%s\r\n", pRoom->Description);
   strcat(pPlayer->Output, Buffer);
+  pRoom->Exits
   Prompt(pPlayer);
 }
 
@@ -1258,9 +1266,8 @@ void SocketCheckForNewPlayers()
   }
 }
 
-// Handle the acceptance of a new player connection by accepting a socket
-// connection, logging the connection details, and updating the player list
-// and online status.
+// Handle the acceptance of a new player connection by logging the connection
+// details, updating the player list, and managing the player's online status.
 void SocketAcceptNewPlayer()
 {
   DEBUGIT(1)
@@ -1617,15 +1624,15 @@ bool PlayerNameValidNew()
       sprintf(LogMsg, "ERROR: Read %s failed: %s", VALID_NAMES_FILE, strerror(errno));
       AbortIt();
     }
-    if (feof(ValidNamesFile))
-    {
-      Found = false;
-      break;
-    }
     Trim(Buffer);
     if (Equal(Command, Buffer))
     { // Match!
       Found = true;
+      break;
+    }
+    if (feof(ValidNamesFile))
+    {
+      Found = false;
       break;
     }
   }
