@@ -249,6 +249,7 @@ typedef struct RoomList
 
 Room                  SingleRoom;
 RoomList             *pRoomHead = NULL;
+RoomList             *pRoomTail = NULL;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -297,6 +298,11 @@ void    ProcessCommand();
 void    ProcessPlayerInput();
 void    Prompt(struct PlayerList *pPlayer);
 void    ReadPlayerFromFile();
+void    RoomAddToRoomList(Room *NewRoom);
+Room   *RoomAllocateAndCopy(const Room *SourceRoom);
+void    RoomFreeList();
+Room   *RoomLookUp(int RoomNbr);
+void    RoomReadFile();
 void    SendGreeting();
 void    SendMotd();
 void    SendPlayerOutput();
@@ -305,12 +311,13 @@ void    ShutItDown();
 void    Sleep();
 void    SocketListen();
 void    StartItUp();
+void    TerminateString(char* Buffer);
 void    Trim(char *Str);
 void    Up1stChar(char *Str);
 void    Word(size_t Nbr, char *Str1, char *Str2);
 size_t  Words(char *Str);
 void    WritePlayerToFile();
-void    zTestStuff();
+//void    zTestStuff();
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Commands
@@ -376,7 +383,7 @@ void (*DoCommand[])(void) =
 // checks for new players, processes player input, sends output to players, and handles game shutdown.
 int main(int argc, char **argv)
 {
-  zTestStuff();
+  //zTestStuff();
   StartItUp();
   while (!GameShutDown)
   {
@@ -699,7 +706,10 @@ void DoHelp()
 void DoLook()
 {
   DEBUGIT(1)
-  sprintf(Buffer, "You are in room %d, looking around, you see nothing special.\r\n", pPlayer->RoomNbr);
+  Room *pRoom = RoomLookUp(pPlayer->RoomNbr);
+  sprintf(Buffer, "&C%s&N (%d)\r\n", pRoom->Name, pPlayer->RoomNbr);
+  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "%s\r\n", pRoom->Description);
   strcat(pPlayer->Output, Buffer);
   Prompt(pPlayer);
 }
@@ -1378,6 +1388,7 @@ void StartItUp()
   OpenLog();
   SocketListen();
   OpenPlayerFile();
+  RoomReadFile();
 }
 
 // The Initialization function sets up the initial state of a game by resetting various
@@ -1395,6 +1406,7 @@ void Initialization()
 void ShutItDown()
 {
   DEBUGIT(1)
+  RoomFreeList();
   ClosePlayerFile();
   CloseLog();
 }
@@ -1753,6 +1765,31 @@ void LowerCase(char *Str)
   }
 }
 
+// Remove the trailing newline or carriage return character from a C-style string,
+void TerminateString(char *Buffer) 
+{
+  size_t len = strlen(Buffer);
+  if (len > 1 && Buffer[len - 2] == '\r' && Buffer[len - 1] == '\n')
+  { // Remove "\r\n"
+    Buffer[len - 2] = '\0'; 
+  }
+  else
+  if (len > 1 && Buffer[len - 2] == '\n' && Buffer[len - 1] == '\r') 
+  { // Remove "\n\r"
+    Buffer[len - 2] = '\0'; 
+  }
+  else 
+  if (len > 0 && Buffer[len - 1] == '\n')
+  { // Remove "\n"
+    Buffer[len - 1] = '\0';
+  }
+  else
+  if (len > 0 && Buffer[len - 1] == '\r')
+  { // Remove "\r"
+    Buffer[len - 1] = '\0';
+  }
+}
+
 // The Trim function removes leading and trailing whitespace characters from a given C-style string.
 void Trim(char *Str)
 {
@@ -1959,10 +1996,166 @@ void Sleep()
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-// Helper funtions for world files (Rooms, Objects, Mobiles)
+// Rooms
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-static void ReadRoomsFromFile()
+// Adds a new Room to the linked list of rooms
+void RoomAddToRoomList(Room *NewRoom)
+{
+  DEBUGIT(1)
+    // Allocate memory for a new RoomList node
+    RoomList *NewNode = (RoomList *)malloc(sizeof(RoomList));
+  if (NewNode == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for RoomList node");
+    AbortIt();
+  }
+
+  // Initialize the new node
+  NewNode->pRoom     = NewRoom;
+  NewNode->pNextRoom = NULL;
+  if (pRoomHead != NULL)
+  {
+    // Use pRoomTail to append the new node to the end of the list
+    pRoomTail->pNextRoom = NewNode;
+    pRoomTail = NewNode;
+  }
+  else
+  { // First room being added
+    pRoomHead = NewNode;
+    pRoomTail = NewNode;
+  }
+}
+
+// Dynamically allocate a Room structure, copy the contents of SingleRoom, return pointer to new Room structure
+Room *RoomAllocateAndCopy(const Room *SourceRoom)
+{
+  // Allocate memory for the new Room
+  Room *NewRoom = (Room*)malloc(sizeof(Room));
+  if (NewRoom == NULL) {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for Room");
+    AbortIt();
+  }
+  // Copy the RoomNumber
+  NewRoom->RoomNbr = SourceRoom->RoomNbr;
+  // Allocate and copy the Name
+  if (SourceRoom->Name != NULL)
+  {
+    NewRoom->Name = strdup(SourceRoom->Name);
+    if (NewRoom->Name == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Name");
+      AbortIt();
+    }
+  }
+  else
+  {
+    NewRoom->Name = NULL;
+  }
+  // Allocate and copy the Description
+  if (SourceRoom->Description != NULL)
+  {
+    NewRoom->Description = strdup(SourceRoom->Description);
+    if (NewRoom->Description == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Description");
+      AbortIt();
+    }
+  }
+  else
+  {
+    NewRoom->Description = NULL;
+  }
+
+  // Allocate and copy the Terrain
+  if (SourceRoom->Terrain != NULL)
+  {
+    NewRoom->Terrain = strdup(SourceRoom->Terrain);
+    if (NewRoom->Terrain == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Terrain");
+      AbortIt();
+    }
+  }
+  else
+  {
+    NewRoom->Terrain = NULL;
+  }
+  // Allocate and copy the Flags
+  if (SourceRoom->Flags != NULL)
+  {
+    NewRoom->Flags = strdup(SourceRoom->Flags);
+    if (NewRoom->Flags == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Flags");
+      AbortIt();
+    }
+  }
+  else {
+    NewRoom->Flags = NULL;
+  }
+  // Allocate and copy the Exits
+  if (SourceRoom->Exits != NULL)
+  {
+    NewRoom->Exits = strdup(SourceRoom->Exits);
+    if (NewRoom->Exits == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Room Exits");
+      AbortIt();
+    }
+  }
+  else
+  {
+    NewRoom->Exits = NULL;
+  }
+  return NewRoom;
+}
+
+// Free all dynamically allocated memory for the linked list of rooms
+void RoomFreeList()
+{
+  DEBUGIT(1)
+  RoomList *current = pRoomHead;
+  RoomList *next;
+  while (current != NULL)
+  {
+    next = current->pNextRoom;
+    if (current->pRoom != NULL)
+    {
+      free(current->pRoom->Name);
+      free(current->pRoom->Description);
+      free(current->pRoom->Terrain);
+      free(current->pRoom->Flags);
+      free(current->pRoom->Exits);
+      free(current->pRoom);
+    }
+    free(current);
+    current = next;
+  }
+  pRoomHead = NULL;
+  pRoomTail = NULL;
+}
+
+// The RoomLookUp function searches for a room in the linked list of rooms by its RoomNbr,
+// returning a pointer to the Room structure if found, or NULL if not found.
+Room *RoomLookUp(int RoomNbr)
+{
+  DEBUGIT(1)
+  RoomList *pRoomCurrent = pRoomHead;
+  while (pRoomCurrent != NULL)
+  {
+    if (pRoomCurrent->pRoom != NULL && pRoomCurrent->pRoom->RoomNbr == RoomNbr)
+    {
+      return pRoomCurrent->pRoom; // Return the matching Room pointer
+    }
+    pRoomCurrent = pRoomCurrent->pNextRoom;
+  }
+  return NULL;
+}
+
+// Read room data from a file, parsing the room number, name, description, etc
+// and stores it in the SingleRoom structure, which is then added to the linked list of rooms.
+void RoomReadFile()
 {
   char Buffer[1024];
   char RoomFilePath[1024];
@@ -1984,6 +2177,7 @@ static void ReadRoomsFromFile()
       sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
+    TerminateString(Buffer);
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     // Stop processing if $End is found
@@ -2019,6 +2213,7 @@ static void ReadRoomsFromFile()
         sprintf(LogMsg, "ERROR: Failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
         AbortIt();
       }
+      TerminateString(Buffer);
       LineNumber++;
       Buffer[strcspn(Buffer, "\n")] = '\0';
       if (strncmp(Buffer, "Terrain: ", 9) == 0)
@@ -2061,6 +2256,7 @@ static void ReadRoomsFromFile()
       sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
+    TerminateString(Buffer);
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     if (!strncmp(Buffer, "Flags: ", 7) == 0)
@@ -2081,6 +2277,7 @@ static void ReadRoomsFromFile()
       sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
+    TerminateString(Buffer);
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
@@ -2088,16 +2285,21 @@ static void ReadRoomsFromFile()
     {
       sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
-    }      
+    }
     LineNumber++;
+    Room *NewRoom = RoomAllocateAndCopy(&SingleRoom);
+    RoomAddToRoomList(NewRoom);
   }
   fclose(RoomFile);
 }
 
+/*
 void zTestStuff()
 {
   OpenLog();
-  ReadRoomsFromFile();
+  RoomReadFile();
+  RoomFreeList();
   CloseLog();
   exit(0);
 }
+*/
