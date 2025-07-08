@@ -298,6 +298,7 @@ void    ReadPlayerFromFile();
 void    RoomAddToRoomList(Room *NewRoom);
 Room   *RoomAllocateAndCopy(const Room *SourceRoom);
 void    RoomFreeList();
+char   *RoomGetExits(const Room *pRoom);
 Room   *RoomLookUp(int RoomNbr);
 void    RoomReadFile();
 void    SendGreeting();
@@ -704,16 +705,17 @@ void DoLook()
   Room *pRoom = RoomLookUp(pPlayer->RoomNbr);
   if (pPlayer->Admin == 'N')
   {
-    sprintf(Buffer, "&C%s&N\r\n", pRoom->Name);
+    sprintf(Buffer, "\r\n&C%s&N\r\n", pRoom->Name);
   }
   else
   {
-    sprintf(Buffer, "&C%s&N &M[&N%d %s&M]&N\r\n", pRoom->Name, pPlayer->RoomNbr, pRoom->Terrain);
+    sprintf(Buffer, "\r\n&C%s&N &M[&N%d %s&M]&N\r\n", pRoom->Name, pPlayer->RoomNbr, pRoom->Terrain);
   }
   strcat(pPlayer->Output, Buffer);
-  sprintf(Buffer, "%s\r\n", pRoom->Description);
+  sprintf(Buffer, "%s", pRoom->Description);
   strcat(pPlayer->Output, Buffer);
-  pRoom->Exits
+  sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomGetExits(pRoom));
+  strcat(pPlayer->Output, Buffer);
   Prompt(pPlayer);
 }
 
@@ -2130,6 +2132,48 @@ void RoomFreeList()
   }
   pRoomHead = NULL;
   pRoomTail = NULL;
+}
+
+// Parse the pRoom->Exits string and return a formatted string of available exits.
+char *RoomGetExits(const Room *pRoom)
+{
+  if (pRoom == NULL || pRoom->Exits == NULL) 
+  {
+    return strdup("");
+  }
+  const char *Directions[] = 
+  {
+    "North", "NorthEast", "East", "SouthEast", "South",
+    "SouthWest", "West", "NorthWest", "Up", "Down"
+  };
+  char *Result = (char*)malloc(256);
+  if (Result == NULL) {
+    sprintf(LogMsg, "ERROR: Memory allocation failed in RoomGetExits");
+    AbortIt();
+  }
+  Result[0] = '\0';
+  // Tokenize the Exits string and map valid room numbers to directions.
+  char *ExitsCopy = strdup(pRoom->Exits);
+  if (ExitsCopy == NULL) 
+  {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for exitsCopy in RoomGetExits");
+    AbortIt();
+  }
+  char *Token = strtok(ExitsCopy, " ");
+  for (i = 0; Token != NULL && i < 10; i++) 
+  {
+    if (strcmp(Token, "xxxxx") != 0) 
+    {
+      if (strlen(Result) > 0) 
+      {
+        strcat(Result, " ");
+      }
+      strcat(Result, Directions[i]);
+    }
+    Token = strtok(NULL, " ");
+  }
+  free(ExitsCopy);
+  return Result;
 }
 
 // Search for a room in the linked list of rooms by its RoomNbr. Return a pointer
