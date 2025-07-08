@@ -311,7 +311,7 @@ void    SocketDisconnectPlayers();
 void    SocketListen();
 void    SocketSendPlayerOutput();
 void    StartItUp();
-void    TerminateString(char* Buffer);
+void    StripTrailingNlCr(char* Buffer);
 void    Trim(char *Str);
 void    Up1stChar(char *Str);
 void    Word(size_t Nbr, char *Str1, char *Str2);
@@ -474,17 +474,15 @@ bool MudCmdOk()
       Commands.MinWords = (char*)CommandTable[i][6];
       Commands.MaxWords = (char*)CommandTable[i][7];
       Commands.Message  = (char*)CommandTable[i][8];
-      // Admin command?
       if (Equal(Commands.Admin, "Y"))
-      {
+      { // Admin command?
         if (pPlayer->Admin == 'N')
         {
           break;
         }
       }
-      // Check minimum/maximum words
       if (Words(Command) < atoi(Commands.MinWords) || Words(Command) > atoi(Commands.MaxWords))
-      {
+      { // Too many or too few words
         if (Equal(Commands.Message, "None"))
         {
           sprintf(Buffer, "%s %s %s %s %s %s %s %s", "Too many or too few words in command,", "Min:", Commands.MinWords, "Max:", Commands.MaxWords, "Refer to help", Commands.Name, "\r\n");
@@ -513,9 +511,8 @@ bool MudCmdOk()
 // All Do functions
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The DoAdvance function advances a player's level in a game, updating their experience and notifying
-// both the target player and the acting player of the change, while also handling various conditions
-// such as invalid levels and ensuring the target player is online.
+// Advance a player's level in a game, updating their experience and notifying
+// both the target player and the acting player of the change.
 void DoAdvance()
 {
   DEBUGIT(1)
@@ -590,8 +587,8 @@ void DoAdvance()
   pPlayer = pActor;
 }
 
-// The DoColor function manages the player's color settings in a game, allowing them to toggle
-// color output on or off and providing appropriate feedback based on their current setting.
+// Manage the player's color settings in a game, allowing them to toggle color
+// output on or off.
 void DoColor()
 {
   DEBUGIT(1)
@@ -628,8 +625,7 @@ void DoColor()
   WritePlayerToFile();
 }
 
-// The DoHelp function retrieves and displays help information from a specified help file based on
-// user input, handling errors and formatting the output for the player.
+// Retrieve and display help information from the help file.
 void DoHelp()
 {
   DEBUGIT(1)
@@ -660,9 +656,8 @@ void DoHelp()
     {
       break;
     }
-    // Just 'Help' was entered
     if (Words(Command) == 1)
-    {
+    { // Just 'Help' was entered
       if (Equal(Buffer, "Help:"))
       {
         strcpy(Buffer, "\r\n");
@@ -702,7 +697,7 @@ void DoHelp()
   Prompt(pPlayer);
 }
 
-// The DoLook function displays the current room and its contents to the player.
+// Display the current room and its contents to the player.
 void DoLook()
 {
   DEBUGIT(1)
@@ -714,8 +709,9 @@ void DoLook()
   Prompt(pPlayer);
 }
 
-// The DoPlayed function calculates the elapsed time since a player's birth in days, hours, minutes,
-// and seconds, formats this information into a string, and appends it to the player's output.
+// Calculate the elapsed time since a player's birth in days, hours, minutes,
+// and seconds. Format this information into a string and append it to the
+// player's output.
 void DoPlayed()
 {
   DEBUGIT(1)
@@ -723,8 +719,8 @@ void DoPlayed()
   double ElapsedTime;
   int Days, Hours, Minutes, Seconds;
 
-  CurrentTime = time(NULL); // Get the current time
-  ElapsedTime = difftime(CurrentTime, pPlayer->Born); // Calculate the difference in seconds
+  CurrentTime = time(NULL);
+  ElapsedTime = difftime(CurrentTime, pPlayer->Born);
   // Calculate days, hours, minutes, and seconds
   Days        = (int)(ElapsedTime / (24 * 3600));
   ElapsedTime = fmod(ElapsedTime, (24 * 3600));
@@ -738,8 +734,8 @@ void DoPlayed()
   Prompt(pPlayer);
 }
 
-// The DoPlayerfile function generates a formatted player file listing by reading player data from
-// the player file and appending it to the output buffer of a player structure.
+// Generate a formatted player file listing by reading player data from the
+// player file.
 void DoPlayerfile()
 {
   DEBUGIT(1)
@@ -764,8 +760,8 @@ void DoPlayerfile()
   Prompt(pPlayer);
 }
 
-// The DoQuit function handles the process of disconnecting a player by copying the player list, writing
-// player data to a file, updating the output message, and changing the player's state to "Disconnect."
+// Handle the process of disconnecting a player by saving their data to the
+// player file and changing their state to "Disconnect."
 void DoQuit()
 {
   DEBUGIT(1)
@@ -776,7 +772,7 @@ void DoQuit()
   pPlayer->State = Disconnect;
 }
 
-// The DoShutdown function initiates the shutdown process of the game by setting a shutdown flag,
+// Initiate the shutdown process of the game by setting a shutdown flag,
 // displaying a shutdown message, and notifying all connected users.
 void DoShutdown()
 {
@@ -786,6 +782,7 @@ void DoShutdown()
   SendToAll();
 }
 
+// Generates a status report for the player.
 void DoStatus()
 {
   DEBUGIT(1)
@@ -797,8 +794,8 @@ void DoStatus()
   sprintf(Buffer, "AFK: %c\r\n", pPlayer->Afk);
   strcat(pPlayer->Output, Buffer);
   // Born
-  char *TimeStr = ctime(&pPlayer->Born); // Convert the birth time to a date string
-  TimeStr[strlen(TimeStr) - 1] = '\0';   //   and remove the newline character
+  char *TimeStr = ctime(&pPlayer->Born);
+  TimeStr[strlen(TimeStr) - 1] = '\0';
   sprintf(Buffer, "Born: %s\r\n", TimeStr);
   strcat(pPlayer->Output, Buffer);
   // Color
@@ -818,12 +815,11 @@ void DoStatus()
   {
     strcat(pPlayer->Output, "Your are an Admin!\r\n");
   }
-
   strcat(pPlayer->Output, "\r\n");
   Prompt(pPlayer);
 }
 
-// The DoWho function outputs a formatted list of online players, including their names and levels, to the player's output buffer.
+// Display a formatted list of online players, with level, etc.
 void DoWho()
 {
   DEBUGIT(1)
@@ -851,15 +847,14 @@ void DoWho()
 // General player communication
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The Prompt function appends a prompt string ("> ") to the Output member of a PlayerList structure, which is passed as a pointer.
+// Append a prompt string ("> ") to the player output.
 void Prompt(struct PlayerList *pPlayer)
 {
   DEBUGIT(1)
   strcat(pPlayer->Output,"> ");
 }
 
-// The SendToAll function sends a message to all players in a linked list, ensuring that the
-// original player context is preserved during the operation.
+// Send a message to all players that are online.
 void SendToAll()
 {
   DEBUGIT(1)
@@ -868,6 +863,11 @@ void SendToAll()
   pPlayerCurr     = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
+    if (pPlayerCurr->State != Online)
+    {
+      pPlayerCurr = pPlayerCurr->pPlayerNext;
+      continue;
+    }
     pPlayer = pPlayerCurr;
     if (pPlayer != pPlayerSave)
     {
@@ -885,9 +885,9 @@ void SendToAll()
 // Get player online
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The GetPlayerOnline function manages the online status and interactions of players in a game, handling
-// various states such as greeting new players, validating names and passwords, and prompting for input
-// based on the player's current state.
+// Manage the online status and interactions of players in a game, handling
+// various states such as greeting new players, validating names and passwords,
+// and prompting for input based on the player's current state.
 void GetPlayerOnline()
 {
   DEBUGIT(1)
@@ -1058,8 +1058,8 @@ void GetPlayerOnline()
   AbortIt();
 }
 
-// The SendGreeting function reads a greeting message from a specified file and appends its contents
-// to a player's output, handling errors related to file operations.
+// Read a greeting message from the greeting file and append its contents to
+// a player's output.
 void SendGreeting()
 {
   DEBUGIT(1)
@@ -1088,8 +1088,8 @@ void SendGreeting()
   fclose(GreetingFile);
 }
 
-// The SendMotd function reads a message of the day (MOTD) from a specified file and appends its
-// contents to a player's output buffer, handling errors related to file operations.
+// Read a message of the day (MOTD) from the MOTD file and append its contents
+// to a player's output buffer.
 void SendMotd()
 {
   DEBUGIT(1)
@@ -1122,8 +1122,7 @@ void SendMotd()
 // Log
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The OpenLog function initializes a log file by constructing its name from predefined directory and
-// file constants, attempts to open it for writing, and handles any errors that occur during this process.
+// Initialize a log file and write the game start message.
 void OpenLog()
 { // Do not add DEBUGIT
   sprintf(LogFileName,"%s%s%s%s%s",YAGS_DIR,"/",LOG_DIR,"/",LOG_FILE);
@@ -1137,8 +1136,8 @@ void OpenLog()
   LogIt(VERSION);
 }
 
-// The LogIt function logs a message to a specified log file, prepending the current time to the
-// message for timestamping.
+// Log a message to a specified log file, prepending the current time to the
+// message for accurate timestamping.
 void LogIt(char *LogMsg)
 {
   GetTime();
@@ -1146,8 +1145,7 @@ void LogIt(char *LogMsg)
   fflush(LogFile);
 }
 
-// The CloseLog function is responsible for closing the log file and logging a game stop message,
-// ensuring proper cleanup of logging resources.
+// Close the log file and write the game stop message.
 void CloseLog()
 {
   DEBUGIT(1)
@@ -1159,8 +1157,9 @@ void CloseLog()
 // Sockets
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The SocketListen function initializes a listening socket for incoming TCP connections, configures
-// it with various socket options, binds it to a specified port, and begins listening for connections.
+// The SocketListen function initializes a listening socket for incoming TCP
+// connections, configures it with various socket options, binds it to a
+// specified port, and begins listening for connections.
 void SocketListen()
 {
   DEBUGIT(1)
@@ -1226,8 +1225,8 @@ void SocketListen()
   LogIt(LogMsg);
 }
 
-// The CheckForNewPlayers function monitors network sockets for new player connections and accepts
-// them if available, handling any errors that may occur during the process.
+// Monitor network sockets for new player connections and accept them if
+// available, handling any errors that may occur during the process.
 void SocketCheckForNewPlayers()
 {
   DEBUGIT(2)
@@ -1259,8 +1258,9 @@ void SocketCheckForNewPlayers()
   }
 }
 
-// The AcceptNewPlayer function handles the acceptance of a new player connection by accepting a socket
-// connection, logging the connection details, and updating the player list and online status.
+// Handle the acceptance of a new player connection by accepting a socket
+// connection, logging the connection details, and updating the player list
+// and online status.
 void SocketAcceptNewPlayer()
 {
   DEBUGIT(1)
@@ -1277,8 +1277,8 @@ void SocketAcceptNewPlayer()
   GetPlayerOnline();
 }
 
-// The GetPlayerInput function processes input from connected players by reading data from their
-// respective sockets and updating their input state accordingly.
+// Process input from connected players by reading data from their respective
+// sockets and updating their input state accordingly.
 void SocketGetPlayerInput()
 {
   DEBUGIT(2)
@@ -1307,8 +1307,8 @@ void SocketGetPlayerInput()
   }
 }
 
-// The SendPlayerOutput function processes and sends output messages to connected players,
-// handling disconnection for those who have not provided input within a specified time limit.
+// Process and send output messages to connected players, handling disconnection
+// for those who have not provided input within a specified time limit.
 void SocketSendPlayerOutput()
 {
   DEBUGIT(2)
@@ -1357,8 +1357,8 @@ void SocketSendPlayerOutput()
   SocketDisconnectPlayers();
 }
 
-// The DisconnectPlayers function iterates through a list of players, disconnecting those whose state
-// is set to "Disconnect" by closing their sockets and removing them from the player list.
+// Iterate through the player list, disconnecting players set to the "Disconnect"
+// state by closing their sockets and removing them from the player list.
 void SocketDisconnectPlayers()
 {
   DEBUGIT(2)
@@ -1380,8 +1380,8 @@ void SocketDisconnectPlayers()
 // Start up and shutdown
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The StartItUp function initializes the system by performing a series of setup tasks,
-// including initialization, logging, socket listening, and file opening.
+// Initialize the system by performing a series of setup tasks, including
+// initialization, logging, socket listening, and file opening.
 void StartItUp()
 { // Do not add DEBUGIT
   Initialization();
@@ -1391,8 +1391,8 @@ void StartItUp()
   RoomReadFile();
 }
 
-// The Initialization function sets up the initial state of a game by resetting various
-// player-related variables and ensuring that the game is not shut down.
+// Set up the initial state of a game by resetting various player-related
+// variables and setting the game state.
 void Initialization()
 { // Do not add DEBUGIT
   GameShutDown = false;
@@ -1402,7 +1402,7 @@ void Initialization()
   pPlayerCurr  = NULL;
 }
 
-// The ShutItDown function is responsible for gracefully shutting down the game by closing files and logs.
+// Gracefully shut down the game by closing files and logs.
 void ShutItDown()
 {
   DEBUGIT(1)
@@ -1416,8 +1416,9 @@ void ShutItDown()
 // Player list
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The AddToPlayerList function allocates memory for a new player node, initializes its properties,
-// and adds it to a linked list of players, handling both the first node and subsequent nodes appropriately.
+// Allocate memory for a new player node, initialize its properties, and add it
+// to a linked list of players, handling both the first node and subsequent
+// nodes appropriately.
 void AddToPlayerList()
 {
   DEBUGIT(1)
@@ -1442,8 +1443,9 @@ void AddToPlayerList()
   pPlayer->pPlayerNext = NULL;
 }
 
-// The DelFromPlayerList function removes the current player node from a doubly linked list of players,
-// handling cases for deleting the head, tail, or a middle node, and updates the list pointers accordingly.
+// Remove the current player node from a doubly linked list of players, handling
+// cases for deleting the head, tail, or a middle node, and update the list
+// pointers accordingly.
 void DelFromPlayerList()
 {
   DEBUGIT(1)
@@ -1482,8 +1484,9 @@ void DelFromPlayerList()
   free(pPlayer);
 }
 
-// The CopyPlayerToPlayerList function copies the attributes of a player from a source player object
-// to a destination player object, initializing various fields such as name, password, admin status, and experience level.
+// Copy attributes of a player from a source player object to a destination
+// player object, initializing various fields such as name, password, admin
+// status, and experience level.
 void CopyPlayerToPlayerList()
 {
   DEBUGIT(1)
@@ -1503,7 +1506,8 @@ void CopyPlayerToPlayerList()
   pPlayer->NoInputCount   = 0;
 }
 
-// The CopyPlayerListToPlayer function copies the attributes of a player from a source player structure (pPlayer) to a target player structure (Player).
+// Copy the attributes of a player from a source player structure (pPlayer) to a
+// target player structure (Player).
 void CopyPlayerListToPlayer()
 {
   DEBUGIT(1)
@@ -1523,9 +1527,7 @@ void CopyPlayerListToPlayer()
 // Player file
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The OpenPlayerFile function attempts to open a player file for reading and writing, constructing
-// the file path from predefined directory and file name constants, and handles errors by
-// logging a message and aborting the operation if the file cannot be opened.
+// Open the player file for reading and writing.
 void OpenPlayerFile()
 {
   DEBUGIT(1)
@@ -1538,17 +1540,16 @@ void OpenPlayerFile()
   }
 }
 
-// The ClosePlayerFile function is responsible for closing the PlayerFile file stream, ensuring that
-// any resources associated with it are properly released.
+// Close the player file.
 void ClosePlayerFile()
 {
   DEBUGIT(1)
   fclose(PlayerFile);
 }
 
-// The GetPlayerFileOffset function calculates and returns the file offset for a player based on the
-// size of the Player structure and current value of PlayerNbr, effectively determining the byte position
-// in a file where a specific player's data would be stored.
+// Calculate and return the file offset for a player based on the size of the
+// Player structure and current value of PlayerNbr, effectively determining
+// the byte position in a file where a specific player's data would be stored.
 long GetPlayerFileOffset()
 {
   DEBUGIT(1)
@@ -1558,8 +1559,7 @@ long GetPlayerFileOffset()
   return Offset;
 }
 
-// The PlayerNameValid function checks the validity of a player's name based on the current state of
-// the player, returning true if valid or triggering an error if an unexpected state is encountered.
+// Check the validity of the player's name.
 bool PlayerNameValid()
 {
   DEBUGIT(1)
@@ -1576,9 +1576,7 @@ bool PlayerNameValid()
   return false;
 }
 
-// The PlayerNameValidOld function checks if a player's name matches a specified command by reading
-// player data from a file until a match is found or the end of the file is reached, returning
-// a boolean value indicating whether a match was found.
+// Check if a player's name matches an existing player in the player file.
 bool PlayerNameValidOld()
 {
   DEBUGIT(1)
@@ -1599,8 +1597,7 @@ bool PlayerNameValidOld()
   return Found;
 }
 
-// The PlayerNameValidNew function checks if a given player name exists in a predefined list of
-// valid names stored in a file, returning true if a match is found and false otherwise.
+// Check if a player name exists in a predefined list of valid names.
 bool PlayerNameValidNew()
 {
   DEBUGIT(1)
@@ -1636,8 +1633,7 @@ bool PlayerNameValidNew()
   return Found;
 }
 
-// The ReadPlayerFromFile function reads player data from a file, handling potential errors
-// and end-of-file conditions during the read operation.
+// Read player data from the player file.
 void ReadPlayerFromFile()
 {
   DEBUGIT(1)
@@ -1655,8 +1651,7 @@ void ReadPlayerFromFile()
   }
 }
 
-// The WritePlayerToFile function writes the current player's data to a file,
-// ensuring proper file positioning and error handling during the write operation.
+// Write player data to the player file.
 void WritePlayerToFile()
 {
   DEBUGIT(1)
@@ -1681,9 +1676,8 @@ void WritePlayerToFile()
   }
 }
 
-// The AddPlayerToFile function adds a player record to a file,
-// initializing the player as an admin if the file is empty,
-// and includes error handling for file operations.
+// Add a player record to a file, initializing the player as an admin if the
+// file is empty.
 void AddPlayerToFile()
 {
   DEBUGIT(1)
@@ -1712,9 +1706,7 @@ void AddPlayerToFile()
   }
 }
 
-// The InitalizeNewPlayer function initializes a new player by copying their name and password from
-// a provided player structure, setting default values for various player attributes, and recording
-// the current time as their birth timestamp.
+// Initializes a new player record.
 void InitalizeNewPlayer()
 {
   DEBUGIT(1)
@@ -1730,8 +1722,7 @@ void InitalizeNewPlayer()
   Player.RoomNbr        = PLAYER_START_ROOM;
 }
 
-// The GetNextPlayerNbr function increments the PlayerNbr variable starting from 1 and continues
-// to read player data from a file until the end of the file is reached.
+// Determines the next PlayerNbr by reading the player file until EOF.
 void GetNextPlayerNbr()
 {
   DEBUGIT(1)
@@ -1749,14 +1740,15 @@ void GetNextPlayerNbr()
 // Strings
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The Equal function compares two C-style strings for equality and returns true if they are identical and false otherwise.
+// Compare two C-style strings for equality and return true if they are identical
+// and false otherwise.
 bool Equal(char *Str1, char *Str2)
 {
   DEBUGIT(2)
   return (!strcmp(Str1, Str2));
 }
 
-// The LowerCase function converts all characters in the input C-style string Str to their lowercase equivalents.
+// Convert all characters in the input C-style string Str to lowercase.
 void LowerCase(char *Str)
 {
   DEBUGIT(2)
@@ -1766,8 +1758,8 @@ void LowerCase(char *Str)
   }
 }
 
-// Remove the trailing newline or carriage return character from a C-style string,
-void TerminateString(char *Buffer) 
+// Remove the trailing new line or carriage return character from a C-style string,
+void StripTrailingNlCr(char *Buffer) 
 {
   size_t len = strlen(Buffer);
   if (len > 1 && Buffer[len - 2] == '\r' && Buffer[len - 1] == '\n')
@@ -1791,7 +1783,7 @@ void TerminateString(char *Buffer)
   }
 }
 
-// The Trim function removes leading and trailing whitespace characters from a given C-style string.
+// Remove leading and trailing whitespace characters from a given C-style string.
 void Trim(char *Str)
 {
   DEBUGIT(2)
@@ -1818,15 +1810,15 @@ void Trim(char *Str)
   }
 }
 
-// The Up1stChar function takes a pointer to a character string and converts the first character of the string to uppercase.
+// Convert the first character of a string to uppercase.
 void Up1stChar(char *Str)
 {
   DEBUGIT(2)
   Str[0] = (char)toupper(Str[0]);
 }
 
-// The Word function extracts the N-th word from the input string Str1 and copies it into the output string Str2,
-// where Nbr specifies the word position to extract.
+// Extract the N-th word from the input string Str1 and copy it into the output
+// string Str2, where Nbr specifies the word position to extract.
 void Word(size_t Nbr, char *Str1, char *Str2)
 {
   DEBUGIT(2)
@@ -1856,8 +1848,7 @@ void Word(size_t Nbr, char *Str1, char *Str2)
   Str2[j] = '\0';
 }
 
-// The Words function counts and returns the number of words in a given null-terminated string,
-// where words are defined as sequences of non-space characters separated by whitespace.
+// Return the number of words in a string.
 size_t Words(char *Str)
 {
   DEBUGIT(2)
@@ -1885,7 +1876,7 @@ size_t Words(char *Str)
 // Miscellaneous
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// The AbortIt function logs a message, closes the log, and then terminates the program with an exit status of 1.
+// Log a message, close the log, and then terminate the program.
 void AbortIt()
 { // Do not add DEBUGIT
   LogIt(LogMsg);
@@ -1893,8 +1884,8 @@ void AbortIt()
   exit(1);
 }
 
-// The Color function processes a player's output string to replace color codes indicated
-// by '&' with corresponding ANSI color codes, modifying the output accordingly.
+// Process a player's output string to replace color codes indicated by '&' with
+// corresponding ANSI color codes, modifying the output accordingly.
 void Color()
 {
   DEBUGIT(2)
@@ -1967,18 +1958,16 @@ void Color()
   }
 }
 
-// The GetTime function retrieves the current time in a human-readable format, converting
-// it from seconds since the Unix epoch and removing the trailing newline character.
+// Retrieve the current time in a human-readable format.
 void GetTime()
 { // Do not add DEBUGIT
   CurrentTimeSec = time(NULL);              // Seconds since Epoch, 1970-01-01 00:00:00 +0000 (UTC)
   CurrentTime = ctime(&CurrentTimeSec);     // Convert to human readable
   x = strlen(CurrentTime);                  // Get rid of the '\n'
-  CurrentTime[x - 1] = '\0';                  //   at the end of string returned by ctime()
+  CurrentTime[x - 1] = '\0';                //   at the end of string returned by ctime()
 }
 
-// The Sleep function is designed to pause the execution of a program for a specified duration,
-// utilizing either usleep or select based on the environment configuration to manage CPU usage effectively.
+// Pause the game execution for SLEEP_TIME to manage CPU usage effectively.
 void Sleep()
 {
   DEBUGIT(2)
@@ -2000,7 +1989,7 @@ void Sleep()
 // Rooms
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// Adds a new Room to the linked list of rooms
+// Add a new Room to the linked list of rooms
 void RoomAddToRoomList(Room *NewRoom)
 {
   DEBUGIT(1)
@@ -2011,7 +2000,6 @@ void RoomAddToRoomList(Room *NewRoom)
     sprintf(LogMsg, "ERROR: Memory allocation failed for RoomList node");
     AbortIt();
   }
-
   // Initialize the new node
   NewNode->pRoom     = NewRoom;
   NewNode->pNextRoom = NULL;
@@ -2028,7 +2016,8 @@ void RoomAddToRoomList(Room *NewRoom)
   }
 }
 
-// Dynamically allocate a Room structure, copy the contents of SingleRoom, return pointer to new Room structure
+// Dynamically allocate a Room structure, copy the contents of SingleRoom, and
+// return a pointer to the newly allocated Room structure.
 Room *RoomAllocateAndCopy(const Room *SourceRoom)
 {
   // Allocate memory for the new Room
@@ -2067,7 +2056,6 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   {
     NewRoom->Description = NULL;
   }
-
   // Allocate and copy the Terrain
   if (SourceRoom->Terrain != NULL)
   {
@@ -2137,8 +2125,8 @@ void RoomFreeList()
   pRoomTail = NULL;
 }
 
-// The RoomLookUp function searches for a room in the linked list of rooms by its RoomNbr,
-// returning a pointer to the Room structure if found, or NULL if not found.
+// Search for a room in the linked list of rooms by its RoomNbr. Return a pointer
+// to the Room structure if found, or NULL if not found.
 Room *RoomLookUp(int RoomNbr)
 {
   DEBUGIT(1)
@@ -2154,8 +2142,8 @@ Room *RoomLookUp(int RoomNbr)
   return NULL;
 }
 
-// Read room data from a file, parsing the room number, name, description, etc
-// and stores it in the SingleRoom structure, which is then added to the linked list of rooms.
+// Read room data from a file, parsing the room number, name, etc, store it in
+// the SingleRoom structure, which is then added to the linked list of rooms.
 void RoomReadFile()
 {
   char Buffer[1024];
@@ -2178,7 +2166,7 @@ void RoomReadFile()
       sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    TerminateString(Buffer);
+    StripTrailingNlCr(Buffer);
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     // Stop processing if $End is found
@@ -2214,7 +2202,7 @@ void RoomReadFile()
         sprintf(LogMsg, "ERROR: Failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
         AbortIt();
       }
-      TerminateString(Buffer);
+      StripTrailingNlCr(Buffer);
       LineNumber++;
       Buffer[strcspn(Buffer, "\n")] = '\0';
       if (strncmp(Buffer, "Terrain: ", 9) == 0)
@@ -2257,7 +2245,7 @@ void RoomReadFile()
       sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    TerminateString(Buffer);
+    StripTrailingNlCr(Buffer);
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     if (!strncmp(Buffer, "Flags: ", 7) == 0)
@@ -2278,7 +2266,7 @@ void RoomReadFile()
       sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    TerminateString(Buffer);
+    StripTrailingNlCr(Buffer);
     LineNumber++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
