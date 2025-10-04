@@ -480,7 +480,7 @@ bool MudCmdOk()
   {
     if (Equal(MudCmd, (char*)CommandTable[i][CMD_NAME]))
     {
-      CommandNbr        = (int)i;
+      CommandNbr = (int)i;
       if ((size_t)CommandNbr >= CmdDoCount)
       { // If CommandNbr is out of range for DoCommand array, something is really wrong
         sprintf(Buffer, "FATAL: CommandNbr out of range (%d) for DoCommand size %zu", CommandNbr, CmdDoCount);
