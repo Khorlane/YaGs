@@ -73,6 +73,8 @@ bool                  NoPlayers;                       // True when we have no p
 // Numbers
 size_t                BufferLen;                      // Length of the string stored in Buffer
 long int              BytesRead;                      // Number of bytes read
+size_t                CmdDoCount;                     // Count of function pointers in the DoCommand array
+size_t                CmdTableCount;                  // Count of entries in the CommandTable array
 int                   CommandNbr;                     // Command number zero based
 time_t                CurrentTimeSec;                 // Current time in seconds
 socklen_t             LingerSize;                     // Size of Linger stucture
@@ -315,6 +317,7 @@ void    StartItUp();
 void    StripTrailingNlCr(char* Buffer);
 void    Trim(char *Str);
 void    Up1stChar(char *Str);
+void    ValidateCommandTable();
 void    Word(size_t Nbr, char *Str1, char *Str2);
 size_t  Words(char *Str);
 void    WritePlayerToFile();
@@ -340,10 +343,21 @@ struct sCommands
   char               *Message;                        // Message to display if command is invalid
 } Commands;
 
+// CommandTable column indexes
+#define CMD_NAME       0
+#define CMD_ADMIN      1
+#define CMD_LEVEL      2
+#define CMD_POSITION   3
+#define CMD_SOCIAL     4
+#define CMD_FIGHT      5
+#define CMD_MIN_WORDS  6
+#define CMD_MAX_WORDS  7
+#define CMD_MESSAGE    8
+
 // CommandTable is a two - dimensional array of character pointers that stores command information,
 // including command names, admin levels, positions, social interactions, fight options, word counts,
 // and associated messages.
-char *CommandTable[][9] = 
+char *CommandTable[][9] =
 {
   //                                                   MIN  MAX
   // Name          Admin Level Position  Social Fight Words Words Message
@@ -448,6 +462,7 @@ void ProcessCommand()
   }
   Word(1, Command, MudCmd);
   LowerCase(MudCmd);
+
   if (MudCmdOk())
   {
     DoCommand[CommandNbr]();
@@ -461,20 +476,26 @@ bool MudCmdOk()
 {
   DEBUGIT(1)
   i = 0;
-  while (CommandTable[i][0] != NULL)
+  while (CommandTable[i][CMD_NAME] != NULL)
   {
-    if (Equal(MudCmd, (char*)CommandTable[i][0]))
+    if (Equal(MudCmd, (char*)CommandTable[i][CMD_NAME]))
     {
       CommandNbr        = (int)i;
-      Commands.Name     = (char*)CommandTable[i][0];
-      Commands.Admin    = (char*)CommandTable[i][1];
-      Commands.Level    = (char*)CommandTable[i][2];
-      Commands.Position = (char*)CommandTable[i][3];
-      Commands.Social   = (char*)CommandTable[i][4];
-      Commands.Fight    = (char*)CommandTable[i][5];
-      Commands.MinWords = (char*)CommandTable[i][6];
-      Commands.MaxWords = (char*)CommandTable[i][7];
-      Commands.Message  = (char*)CommandTable[i][8];
+      if ((size_t)CommandNbr >= CmdDoCount)
+      { // If CommandNbr is out of range for DoCommand array, something is really wrong
+        sprintf(Buffer, "FATAL: CommandNbr out of range (%d) for DoCommand size %zu", CommandNbr, CmdDoCount);
+        LogIt(Buffer);
+        AbortIt();
+      }
+      Commands.Name     = (char*)CommandTable[i][CMD_NAME];
+      Commands.Admin    = (char*)CommandTable[i][CMD_ADMIN];
+      Commands.Level    = (char*)CommandTable[i][CMD_LEVEL];
+      Commands.Position = (char*)CommandTable[i][CMD_POSITION];
+      Commands.Social   = (char*)CommandTable[i][CMD_SOCIAL];
+      Commands.Fight    = (char*)CommandTable[i][CMD_FIGHT];
+      Commands.MinWords = (char*)CommandTable[i][CMD_MIN_WORDS];
+      Commands.MaxWords = (char*)CommandTable[i][CMD_MAX_WORDS];
+      Commands.Message  = (char*)CommandTable[i][CMD_MESSAGE];
       if (Equal(Commands.Admin, "Y"))
       { // Admin command?
         if (pPlayer->Admin == 'N')
@@ -1395,6 +1416,7 @@ void StartItUp()
 { // Do not add DEBUGIT
   Initialization();
   OpenLog();
+  ValidateCommandTable();
   SocketListen();
   OpenPlayerFile();
   RoomReadFile();
@@ -1768,19 +1790,19 @@ void LowerCase(char *Str)
 }
 
 // Remove the trailing new line or carriage return character from a C-style string,
-void StripTrailingNlCr(char *Buffer) 
+void StripTrailingNlCr(char *Buffer)
 {
   size_t len = strlen(Buffer);
   if (len > 1 && Buffer[len - 2] == '\r' && Buffer[len - 1] == '\n')
   { // Remove "\r\n"
-    Buffer[len - 2] = '\0'; 
+    Buffer[len - 2] = '\0';
   }
   else
-  if (len > 1 && Buffer[len - 2] == '\n' && Buffer[len - 1] == '\r') 
+  if (len > 1 && Buffer[len - 2] == '\n' && Buffer[len - 1] == '\r')
   { // Remove "\n\r"
-    Buffer[len - 2] = '\0'; 
+    Buffer[len - 2] = '\0';
   }
-  else 
+  else
   if (len > 0 && Buffer[len - 1] == '\n')
   { // Remove "\n"
     Buffer[len - 1] = '\0';
@@ -1994,6 +2016,24 @@ void Sleep()
   }
 }
 
+// Validate CommandTable & DoCommand alignment
+void ValidateCommandTable()
+{
+  DEBUGIT(1)
+  CmdDoCount    = sizeof(DoCommand) / sizeof(DoCommand[0]);
+  CmdTableCount = 0;
+  while (CommandTable[CmdTableCount][0] != NULL)
+  {
+    CmdTableCount++;
+  }
+  if (CmdDoCount != CmdTableCount)
+  {
+    sprintf(Buffer, "FATAL: Command table/handler mismatch. CommandTable=%zu DoCommand=%zu", CmdTableCount, CmdDoCount);
+    LogIt(Buffer);
+    AbortIt();
+  }
+}
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Rooms
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -2137,11 +2177,11 @@ void RoomFreeList()
 // Parse the pRoom->Exits string and return a formatted string of available exits.
 char *RoomGetExits(const Room *pRoom)
 {
-  if (pRoom == NULL || pRoom->Exits == NULL) 
+  if (pRoom == NULL || pRoom->Exits == NULL)
   {
     return strdup("");
   }
-  const char *Directions[] = 
+  const char *Directions[] =
   {
     "North", "NorthEast", "East", "SouthEast", "South",
     "SouthWest", "West", "NorthWest", "Up", "Down"
@@ -2154,17 +2194,17 @@ char *RoomGetExits(const Room *pRoom)
   Result[0] = '\0';
   // Tokenize the Exits string and map valid room numbers to directions.
   char *ExitsCopy = strdup(pRoom->Exits);
-  if (ExitsCopy == NULL) 
+  if (ExitsCopy == NULL)
   {
     sprintf(LogMsg, "ERROR: Memory allocation failed for exitsCopy in RoomGetExits");
     AbortIt();
   }
   char *Token = strtok(ExitsCopy, " ");
-  for (i = 0; Token != NULL && i < 10; i++) 
+  for (i = 0; Token != NULL && i < 10; i++)
   {
-    if (strcmp(Token, "xxxxx") != 0) 
+    if (strcmp(Token, "xxxxx") != 0)
     {
-      if (strlen(Result) > 0) 
+      if (strlen(Result) > 0)
       {
         strcat(Result, " ");
       }
@@ -2203,7 +2243,7 @@ void RoomReadFile()
   sprintf(RoomFilePath, "%s/%s/%s", YAGS_DIR, WORLD_DIR, ROOMS_FILE);
 
   FILE *RoomFile = fopen(RoomFilePath, "r");
-  if (RoomFile == NULL) 
+  if (RoomFile == NULL)
   {
     sprintf(LogMsg, "ERROR: Open %s failed: %s", ROOMS_FILE, strerror(errno));
     AbortIt();
@@ -2212,7 +2252,7 @@ void RoomReadFile()
   while (true)
   {
     // Read Room Number and Name
-    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL) 
+    if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
       sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
@@ -2237,7 +2277,7 @@ void RoomReadFile()
     SingleRoom.RoomNbr = atoi(Token);
     // Extract Room Name (rest of the line)
     Token = strtok(NULL, "");
-    if (Token == NULL) 
+    if (Token == NULL)
     {
       sprintf(LogMsg, "ERROR: Failed to parse Room Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
@@ -2273,12 +2313,12 @@ void RoomReadFile()
       DescriptionBuffer[DescriptionLength] = '\n';
       DescriptionLength++;
     }
-    if (DescriptionBuffer != NULL) 
+    if (DescriptionBuffer != NULL)
     {
       DescriptionBuffer[DescriptionLength] = '\0';
       SingleRoom.Description = DescriptionBuffer;
     }
-    else 
+    else
     {
       sprintf(LogMsg, "ERROR: No description found for room in %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
