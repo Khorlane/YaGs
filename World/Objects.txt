@@ -1,7 +1,8 @@
-Hammer
-a hammer
-a hammer is here.
-The handle of this hammer is long and fits
+Id:      Hammer
+Desc1:   a hammer
+Desc2:   a hammer is here.
+Desc3:   
+  The handle of this hammer is long and fits
 comfortably into the hand. The iron head is 
 lashed to the handle with rawhide.
 Weight:  3
@@ -10,10 +11,11 @@ Type:    Weapon
 Subtype: Hammer
 Value:   59
 
-ShortSword
-a short sword
-a short sword is here.
-This short sword has a very sharp double-edged
+Id:      ShortSword
+Desc1:   a short sword
+Desc2:   a short sword is here.
+Desc3:   
+  This short sword has a very sharp double-edged
 blade. It is light and maneuverable, yet able to
 provide many different types of attacks.
 Weight:  3
@@ -22,20 +24,22 @@ Type:    Weapon
 Subtype: Sword
 Value:   118
 
-RatFoot
-a rat foot
-a rat food is here.
-This rat foot once belonged to a rat, now it is mine!
+Id: RatFoot
+Desc1:   a rat foot
+Desc2:   a rat foot is here.
+Desc3:   
+  This rat foot once belonged to a rat, now it is mine!
 Weight:  1
 Cost:    5
 Type:    Junk
 Subtype: None
 Value:   0
 
-SmallDagger
-a small dagger
-a small dagger is here.
-This dagger once belonged to a sneaky thief, but I took
+Id:      SmallDagger
+Desc1:   a small dagger
+Desc2:   a small dagger is here.
+Desc3:   
+  This dagger once belonged to a sneaky thief, but I took
 it from him!
 Weight:  2
 Cost:    10
