@@ -1,23 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="YaGs.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="Library">
-      <UniqueIdentifier>{938cbcf9-f847-4df0-a679-5a5fde8033ad}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="World">
-      <UniqueIdentifier>{e02df51f-943f-4536-8c3b-20ce7945e7cc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Doc">
-      <UniqueIdentifier>{30b6a051-eca5-4c9f-af27-2d8887b0b410}</UniqueIdentifier>
+      <UniqueIdentifier>{1885a228-bf78-4dcf-a35e-c1c23bff845f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library">
+      <UniqueIdentifier>{cf3d8d05-b25f-4877-a887-76e454ff9069}</UniqueIdentifier>
     </Filter>
     <Filter Include="Logs">
-      <UniqueIdentifier>{36f43203-a7a7-482c-a063-096ce4103b02}</UniqueIdentifier>
+      <UniqueIdentifier>{437b9d5f-a1fa-41ac-a0cc-3465c31fcb86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{ad1cccd8-2ed6-4257-8950-3af8dee49e65}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Doc\Admin.txt">
+      <Filter>Doc</Filter>
+    </Text>
+    <Text Include="Doc\Building.txt">
+      <Filter>Doc</Filter>
+    </Text>
+    <Text Include="Doc\Coding.txt">
+      <Filter>Doc</Filter>
+    </Text>
     <Text Include="Library\Greeting.txt">
       <Filter>Library</Filter>
     </Text>
@@ -30,8 +36,8 @@
     <Text Include="Library\ValidNames.txt">
       <Filter>Library</Filter>
     </Text>
-    <Text Include="World\Map.txt">
-      <Filter>World</Filter>
+    <Text Include="Logs\Log.txt">
+      <Filter>Logs</Filter>
     </Text>
     <Text Include="World\Mobiles.txt">
       <Filter>World</Filter>
@@ -42,30 +48,5 @@
     <Text Include="World\Rooms.txt">
       <Filter>World</Filter>
     </Text>
-    <Text Include="Doc\Admin.txt">
-      <Filter>Doc</Filter>
-    </Text>
-    <Text Include="Doc\Building.txt">
-      <Filter>Doc</Filter>
-    </Text>
-    <Text Include="Doc\Coding.txt">
-      <Filter>Doc</Filter>
-    </Text>
-    <Text Include="Logs\Log.txt">
-      <Filter>Logs</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="World\Map.ds">
-      <Filter>World</Filter>
-    </None>
-    <None Include="World\Player.yags">
-      <Filter>World</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="World\Map.png">
-      <Filter>World</Filter>
-    </Image>
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
       <Configuration>Debug</Configuration>
@@ -35,7 +35,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{4360e24b-add9-4a3e-b991-aae78ef64830}</ProjectGuid>
+    <ProjectGuid>{b34f02e0-8a72-45ef-a7c6-9b7970cf16ed}</ProjectGuid>
     <Keyword>Linux</Keyword>
     <RootNamespace>YaGs</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
@@ -43,7 +43,6 @@
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
     <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
-    <ProjectName>YaGs</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -76,9 +75,6 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <WSLPath>Ubuntu-22.04.3-LTS</WSLPath>
-  </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="YaGs.c" />
   </ItemGroup>
@@ -91,17 +87,9 @@
     <Text Include="Library\Motd.txt" />
     <Text Include="Library\ValidNames.txt" />
     <Text Include="Logs\Log.txt" />
-    <Text Include="World\Map.txt" />
     <Text Include="World\Mobiles.txt" />
     <Text Include="World\Objects.txt" />
     <Text Include="World\Rooms.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="World\Map.ds" />
-    <None Include="World\Player.yags" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="World\Map.png" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
