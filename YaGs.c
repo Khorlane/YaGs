@@ -269,6 +269,7 @@ void    CopyPlayerToPlayerList();
 void    DelFromPlayerList();
 void    DoAdvance();
 void    DoColor();
+void    DoGo();
 void    DoHelp();
 void    DoLook();
 void    DoPlayed();
@@ -363,6 +364,7 @@ char *CommandTable[][9] =
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -380,6 +382,7 @@ void (*DoCommand[])(void) =
 { // This list and the CommandTable MUST BE in the same order
   DoAdvance,
   DoColor,
+  DoGo,
   DoHelp,
   DoLook,
   DoPlayed,
@@ -645,6 +648,23 @@ void DoColor()
   }
   CopyPlayerListToPlayer();
   WritePlayerToFile();
+}
+
+// Go in a specified direction
+void DoGo()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+	LowerCase(CmdParm1);
+  if (Equal(CmdParm1, "north") || Equal(CmdParm1, "n"))
+  {
+    pPlayer->RoomNbr = 101; // Temporary
+    strcat(pPlayer->Output, "You go north\r\n\r\n");
+    Prompt(pPlayer);
+    return;
+	}
+  strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
+  Prompt(pPlayer);
 }
 
 // Retrieve and display help information from the help file.
