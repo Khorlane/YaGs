@@ -11,6 +11,7 @@ Contents
   1.2 Rooms
   1.3 Mobiles
   1.4 Objects
+  1.5 Relationships
 
 2 Building a World
   2.1 Start with a map
@@ -56,6 +57,34 @@ their own unique behaviors, abilities, and items.
 Objects are items that players can interact with in the game world. They can be
 found in rooms, carried by mobiles, or used by players. Objects can have various
 properties, such as weight, value, and usage instructions.
+
+1.5 Relationships
+
+Relationships between Rooms, Players, Mobiles, and Objects are:
+- Rooms may contain 0 to n Players
+- Rooms may contain 0 to n Mobiles
+- Rooms may contain 0 to n Objects
+
+- a Player is always in 1 and only 1 Room
+- a Player has Inventory and Equipment
+- a Player may have 0 to n Objects in their Inventory
+- a Player may have 0 to n Objects Equiped
+
+- a Mobile is always in 1 and only 1 Room
+- a Mobile has Loot which is actually Objects
+- a Mobile may have 0 to n Objects that drop as Loot when killed
+
+- an Object may be in 0 to n Rooms (laying on the ground)
+- an Object may be in 0 to n Player Inventories
+- an Object may be in 0 to n Player Equipments
+- an Object may be assigned to 0 to n Mobiles as Loot
+
+- a Room may be a Shop
+- a Shop must be a Room
+- a Shop sells 1 to n Objects
+- a Shop has 1 and only 1 Mobile (the Shopkeeper)
+
+These relationships are dynamic and change as the game is played.
 
 2 Building a World
 
@@ -187,3 +216,6 @@ Where:
 <Type>      is the type of object (e.g., weapon, armor, junk).
 <SubType>   is used to further define the object, specifying its specific type (e.g., sword, helmet).
 <Value>     is used to define the object's effectiveness or power.
+
+
+6.0
