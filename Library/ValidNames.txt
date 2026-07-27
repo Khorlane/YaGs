@@ -1,8 +1,8 @@
-james
-bob
-joe
-sarah
-lisa
-amy
-steve
-dawn
+James
+Bob
+Joe
+Sarah
+Lisa
+Amy
+Steve
+Dawn

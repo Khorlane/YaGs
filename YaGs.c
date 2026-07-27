@@ -292,6 +292,7 @@ void    InitalizeNewPlayer();
 void    Initialization();
 void    LogIt(char *LogMsg);
 void    LowerCase(char *Str);
+void    NormalizePlayerName(char *Name);
 bool    MudCmdOk();
 void    OpenLog();
 void    OpenPlayerFile();
@@ -988,6 +989,7 @@ void GetPlayerOnline()
   //***********************************
   if (pPlayer->State == Wait_Player_Name)
   {
+    NormalizePlayerName(Command);
     if (PlayerNameValid())
     { // Name is valid, ask for password
       CopyPlayerToPlayerList();
@@ -1053,6 +1055,7 @@ void GetPlayerOnline()
   //***********************************
   if (pPlayer->State == Wait_New_Player_Name)
   {
+    NormalizePlayerName(Command);
     if (PlayerNameValid())
     { // Name is valid, ask for password
       strcpy(pPlayer->Name, Command);
@@ -1814,6 +1817,14 @@ void LowerCase(char *Str)
   {
     Str[i] = (char)tolower(Str[i]);
   }
+}
+
+// Convert a player name to lowercase, then capitalize the first character.
+void NormalizePlayerName(char *Name)
+{
+  DEBUGIT(2)
+  LowerCase(Name);
+  Up1stChar(Name);
 }
 
 // Remove the trailing new line or carriage return character from a C-style string,
