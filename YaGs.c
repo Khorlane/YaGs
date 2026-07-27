@@ -189,6 +189,7 @@ typedef enum PlayerStates
 // The PlayerList struct represents a data structure for managing a list of connected players,
 // containing various attributes such as socket information, player state, name, password,
 // experience, and pointers to the next and previous players in the list.
+typedef struct PlayerList PlayerList;
 struct PlayerList
 {
   int                 Socket;                         // Socket number returned from accept()
@@ -209,8 +210,8 @@ struct PlayerList
   int                 PlayerNbr;                      // Player number
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
-  struct PlayerList  *pPlayerNext;                    // Pointer to next player in the player list
-  struct PlayerList  *pPlayerPrev;                    // Pointer to previous player in the player list
+  PlayerList         *pPlayerNext;                    // Pointer to next player in the player list
+  PlayerList         *pPlayerPrev;                    // Pointer to previous player in the player list
 };
 
 // The Player structure represents a player in a game, encapsulating attributes such as
