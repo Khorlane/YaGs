@@ -888,9 +888,12 @@ void DoWho()
   pPlayerCurr     = pPlayerHead;
   while (pPlayerCurr != NULL)
   {
-    sprintf(Buffer, "%-10s %2s %2i", pPlayerCurr->Name, " ", pPlayerCurr->Level);
-    strcat(pPlayer->Output, Buffer);
-    strcat(pPlayer->Output, "\r\n");
+    if (pPlayerCurr->State == Online)
+    {
+      sprintf(Buffer, "%-10s %2s %2i", pPlayerCurr->Name, " ", pPlayerCurr->Level);
+      strcat(pPlayer->Output, Buffer);
+      strcat(pPlayer->Output, "\r\n");
+    }
     pPlayerCurr = pPlayerCurr->pPlayerNext;
   }
   strcat(pPlayer->Output, "\r\n");
