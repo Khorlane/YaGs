@@ -269,7 +269,7 @@ when working with BSD sockets.
 
 One of very first things a game server like YaGs must do is `listen` on a specific
 URL and port number. For YaGs, as you develop and test, you will most likely be
-using 127.0.0.1 port 7373 or localhost:7373 (either as they are the same). Before
+using 127.0.0.1 port 3737 or localhost:3737 (either as they are the same). Before
 going live, you will need to modify this. In SocketListen() there is this line:
 SocketAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 change to:

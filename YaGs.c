@@ -38,7 +38,7 @@ static inline void __builtin_free(void *Ptr)         //   while parsing newer gl
 // Configuration
 #define DEBUGIT(dl)           if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
 #define DEBUGIT_LVL           1                       // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
-#define PORT                  7373                    // Port number
+#define PORT                  3737                    // Port number
 #define SLEEP_TIME            0400000                 // Sleep for a short period of time
 #define USE_USLEEP            'N'                     // Use usleep() Y or N
 // Directories
