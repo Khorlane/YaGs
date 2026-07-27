@@ -12,7 +12,7 @@ static inline void __builtin_free(void *Ptr)         //   while parsing newer gl
 {                                                    //   __builtin_free is in stdlib.h and Intellisense
   (void)Ptr;                                         //   doesn't understand and throws warning:
 }                                                    //   Warning	VCR001	Function definition for '__builtin_free' not found.
-#endif                                               // This is block is here to shut Intellisense up
+#endif                                               // This block is here to shut Intellisense up
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Includes
