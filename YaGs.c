@@ -7,6 +7,13 @@
 #pragma GCC diagnostic push                           // Ignore warnings about sections
 #pragma GCC diagnostic ignored "-Wunreachable-code"   //   of unreachable code.
 
+#ifdef __INTELLISENSE__                              // Visual Studio does not recognize this GCC built-in
+static inline void __builtin_free(void *Ptr)         //   while parsing newer glibc headers.
+{                                                    //   __builtin_free is in stdlib.h and Intellisense
+  (void)Ptr;                                         //   doesn't understand and throws warning:
+}                                                    //   Warning	VCR001	Function definition for '__builtin_free' not found.
+#endif                                               // This is block is here to shut Intellisense up
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Includes
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -23,10 +30,6 @@
 #include <sys/socket.h>                               // This and arpa/inet - a whole plethora of socket related stuff
 #include <time.h>                                     // time(), ctime()
 #include <unistd.h>                                   // close(), read(), getuid(), usleep(), fsync()
-
-#ifndef __builtin_free                                // Prevents E0020 identifier "_builtin_free" is undefined
-#define __builtin_free free                           //   in stdio.hand in stdlib.h
-#endif                                                // This doesn't seem to have anything to do with the code in YaGs.c
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Macros
