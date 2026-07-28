@@ -389,21 +389,22 @@ struct sDirection
 {
   char               *ShortName;                      // Abbreviated direction
   char               *LongName;                       // Full direction name
+  char               *DisplayName;                    // Direction shown in room exits
 };
 
 struct sDirection DirectionTable[] =
 {
-  {"n",  "north"},
-  {"ne", "northeast"},
-  {"e",  "east"},
-  {"se", "southeast"},
-  {"s",  "south"},
-  {"sw", "southwest"},
-  {"w",  "west"},
-  {"nw", "northwest"},
-  {"u",  "up"},
-  {"d",  "down"},
-  {NULL,  NULL}
+  {"n",  "north",     "North"},
+  {"ne", "northeast", "NorthEast"},
+  {"e",  "east",      "East"},
+  {"se", "southeast", "SouthEast"},
+  {"s",  "south",     "South"},
+  {"sw", "southwest", "SouthWest"},
+  {"w",  "west",      "West"},
+  {"nw", "northwest", "NorthWest"},
+  {"u",  "up",        "Up"},
+  {"d",  "down",      "Down"},
+  {NULL, NULL,        NULL}
 };
 
 // CommandTable column indexes
@@ -2397,11 +2398,6 @@ char *RoomGetExits(const Room *pRoom)
   {
     return strdup("");
   }
-  const char *Directions[] =
-  {
-    "North", "NorthEast", "East", "SouthEast", "South",
-    "SouthWest", "West", "NorthWest", "Up", "Down"
-  };
   char *Result = (char*)malloc(256);
   if (Result == NULL) {
     sprintf(LogMsg, "ERROR: Memory allocation failed in RoomGetExits");
@@ -2424,7 +2420,7 @@ char *RoomGetExits(const Room *pRoom)
       {
         strcat(Result, " ");
       }
-      strcat(Result, Directions[i]);
+      strcat(Result, DirectionTable[i].DisplayName);
     }
     Token = strtok(NULL, " ");
   }
