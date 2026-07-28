@@ -65,7 +65,7 @@ This hallway leads to the office and the library.
 Terrain: Indoor
 Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
-xxxxx 00103 00110 xxxxx 00114 00113 xxxxx xxxxx xxxxx xxxxx
+xxxxx xxxxx 00110 xxxxx 00114 00113 xxxxx 00103 xxxxx xxxxx
 
 00110 Hallway
 This hallway leads to the bedroom and the kitchen.

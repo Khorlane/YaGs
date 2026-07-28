@@ -80,6 +80,8 @@ size_t                CmdDoCount;                     // Count of function point
 size_t                CmdTableCount;                  // Count of entries in the CommandTable array
 int                   CommandNbr;                     // Command number zero based
 time_t                CurrentTimeSec;                 // Current time in seconds
+int                   DestinationRoomNbr;             // Room number player is moving into
+int                   DirectionNbr;                   // The DirectionTable index of the direction
 socklen_t             LingerSize;                     // Size of Linger stucture
 int                   Listen;                         // Listening socket
 int                   MaxSocket;                      // Maximum socket value
@@ -128,7 +130,9 @@ char                  Command[1024];                  // The command from the pl
 char                  LogMsg[100];                    // Log message
 char                  MsgTxt[100];                    // Message text
 char                  MudCmd[10];                     // Mud command
+char                 *Parameters;                     // Command parameters
 char                  TheRest[50];                    // The rest of the command
+char                 *RoomExits;                      // Formatted room exits
 
 // Files
 char                 *GreetingFileName   = aTmpStr;   // Greeting file name
@@ -254,6 +258,9 @@ typedef struct RoomList
   RoomList           *pNextRoom;                      // Pointer to the next node in the list
 } RoomList;
 
+Room                 *CurrentRoom;
+Room                 *DestinationRoom;
+Room                 *pRoom;
 Room                  SingleRoom;
 RoomList             *pRoomHead = NULL;
 RoomList             *pRoomTail = NULL;
@@ -537,7 +544,7 @@ void ProcessCommandAlias()
   {
     if (Equal(MudCmd, CommandAliasTable[i].Alias))
     {
-      char *Parameters = strchr(Command, ' ');
+      Parameters = strchr(Command, ' ');
       if (Parameters == NULL)
       {
         strcpy(Command, CommandAliasTable[i].Command);
@@ -552,7 +559,6 @@ void ProcessCommandAlias()
     }
     i++;
   }
-
   if (Words(Command) == 1)
   {
     strcpy(CmdParm1, MudCmd);
@@ -567,8 +573,7 @@ void ProcessCommandAlias()
   {
     return;
   }
-
-  int DirectionNbr = DirectionLookUp(CmdParm1);
+  DirectionNbr = DirectionLookUp(CmdParm1);
   if (DirectionNbr < 0)
   {
     return;
@@ -786,15 +791,14 @@ void DoGo()
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
   LowerCase(CmdParm1);
-  int DirectionNbr = DirectionLookUp(CmdParm1);
+  DirectionNbr = DirectionLookUp(CmdParm1);
   if (DirectionNbr < 0)
   {
     strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
     Prompt(pPlayer);
     return;
   }
-
-  Room *CurrentRoom = RoomLookUp(pPlayer->RoomNbr);
+  CurrentRoom = RoomLookUp(pPlayer->RoomNbr);
   if (CurrentRoom == NULL || CurrentRoom->Exits == NULL)
   {
     sprintf(LogMsg, "ERROR: Player is in missing room %d", pPlayer->RoomNbr);
@@ -803,7 +807,6 @@ void DoGo()
     Prompt(pPlayer);
     return;
   }
-
   Word((size_t)DirectionNbr + 1, CurrentRoom->Exits, CmdParm2);
   if (Equal(CmdParm2, "xxxxx"))
   {
@@ -811,19 +814,17 @@ void DoGo()
     Prompt(pPlayer);
     return;
   }
-
-  int DestinationNbr = atoi(CmdParm2);
-  Room *DestinationRoom = RoomLookUp(DestinationNbr);
+  DestinationRoomNbr = atoi(CmdParm2);
+  DestinationRoom = RoomLookUp(DestinationRoomNbr);
   if (DestinationRoom == NULL)
   {
-    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestinationNbr);
+    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestinationRoomNbr);
     LogIt(LogMsg);
     strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
     Prompt(pPlayer);
     return;
   }
-
-  pPlayer->RoomNbr = DestinationNbr;
+  pPlayer->RoomNbr = DestinationRoomNbr;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
   strcat(pPlayer->Output, Buffer);
   DoLook();
@@ -921,7 +922,7 @@ void DoKill()
 void DoLook()
 {
   DEBUGIT(1)
-  Room *pRoom = RoomLookUp(pPlayer->RoomNbr);
+  pRoom = RoomLookUp(pPlayer->RoomNbr);
   if (pPlayer->Admin == 'N')
   {
     sprintf(Buffer, "\r\n&C%s&N\r\n", pRoom->Name);
@@ -933,7 +934,7 @@ void DoLook()
   strcat(pPlayer->Output, Buffer);
   sprintf(Buffer, "%s", pRoom->Description);
   strcat(pPlayer->Output, Buffer);
-  char *RoomExits = RoomGetExits(pRoom);
+  RoomExits = RoomGetExits(pRoom);
   sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomExits);
   strcat(pPlayer->Output, Buffer);
   free(RoomExits);
