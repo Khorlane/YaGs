@@ -11,7 +11,7 @@
 static inline void __builtin_free(void *Ptr)         //   while parsing newer glibc headers.
 {                                                    //   __builtin_free is in stdlib.h and Intellisense
   (void)Ptr;                                         //   doesn't understand and throws warning:
-}                                                    //   Warning	VCR001	Function definition for '__builtin_free' not found.
+}                                                    //   Warning VCR001  Function definition for '__builtin_free' not found.
 #endif                                               // This block is here to shut Intellisense up
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -272,10 +272,14 @@ void    Color();
 void    CopyPlayerListToPlayer();
 void    CopyPlayerToPlayerList();
 void    DelFromPlayerList();
+int     DirectionLookUp(char *Direction);
 void    DoAdvance();
 void    DoColor();
+void    DoEquipment();
 void    DoGo();
 void    DoHelp();
+void    DoInventory();
+void    DoKill();
 void    DoLook();
 void    DoPlayed();
 void    DoPlayerfile();
@@ -300,6 +304,7 @@ void    OpenPlayerFile();
 bool    PlayerNameValid();
 bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
+void    ProcessCommandAlias();
 void    ProcessCommand();
 void    ProcessPlayerInput();
 void    Prompt(struct PlayerList *pPlayer);
@@ -350,6 +355,44 @@ struct sCommands
   char               *Message;                        // Message to display if command is invalid
 } Commands;
 
+// Command aliases provide abbreviated forms of commands.
+struct sCommandAlias
+{
+  char               *Alias;                          // Command alias
+  char               *Command;                        // Full command name
+};
+
+struct sCommandAlias CommandAliasTable[] =
+{
+  {"l",  "look"},
+  {"k",  "kill"},
+  {"i",  "inventory"},
+  {"eq", "equipment"},
+  {NULL,  NULL}
+};
+
+// Direction aliases and names are ordered to match the exits in Rooms.txt.
+struct sDirection
+{
+  char               *ShortName;                      // Abbreviated direction
+  char               *LongName;                       // Full direction name
+};
+
+struct sDirection DirectionTable[] =
+{
+  {"n",  "north"},
+  {"ne", "northeast"},
+  {"e",  "east"},
+  {"se", "southeast"},
+  {"s",  "south"},
+  {"sw", "southwest"},
+  {"w",  "west"},
+  {"nw", "northwest"},
+  {"u",  "up"},
+  {"d",  "down"},
+  {NULL,  NULL}
+};
+
 // CommandTable column indexes
 #define CMD_NAME       0
 #define CMD_ADMIN      1
@@ -370,8 +413,11 @@ char *CommandTable[][9] =
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"equipment",  "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"inventory",  "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"kill",       "N",  "1",  "stand",  "N",   "Y",  "1",  "2",  "None"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -388,8 +434,11 @@ void (*DoCommand[])(void) =
 { // This list and the CommandTable MUST BE in the same order
   DoAdvance,
   DoColor,
+  DoEquipment,
   DoGo,
   DoHelp,
+  DoInventory,
+  DoKill,
   DoLook,
   DoPlayed,
   DoPlayerfile,
@@ -471,11 +520,78 @@ void ProcessCommand()
   }
   Word(1, Command, MudCmd);
   LowerCase(MudCmd);
+  ProcessCommandAlias();
 
   if (MudCmdOk())
   {
     DoCommand[CommandNbr]();
   }
+}
+
+// Expand command aliases and normalize movement commands before validation.
+void ProcessCommandAlias()
+{
+  DEBUGIT(1)
+  i = 0;
+  while (CommandAliasTable[i].Alias != NULL)
+  {
+    if (Equal(MudCmd, CommandAliasTable[i].Alias))
+    {
+      char *Parameters = strchr(Command, ' ');
+      if (Parameters == NULL)
+      {
+        strcpy(Command, CommandAliasTable[i].Command);
+      }
+      else
+      {
+        sprintf(TmpStr, "%s%s", CommandAliasTable[i].Command, Parameters);
+        strcpy(Command, TmpStr);
+      }
+      strcpy(MudCmd, CommandAliasTable[i].Command);
+      break;
+    }
+    i++;
+  }
+
+  if (Words(Command) == 1)
+  {
+    strcpy(CmdParm1, MudCmd);
+  }
+  else
+  if (Equal(MudCmd, "go") && Words(Command) == 2)
+  {
+    Word(2, Command, CmdParm1);
+    LowerCase(CmdParm1);
+  }
+  else
+  {
+    return;
+  }
+
+  int DirectionNbr = DirectionLookUp(CmdParm1);
+  if (DirectionNbr < 0)
+  {
+    return;
+  }
+  sprintf(Command, "go %s", DirectionTable[DirectionNbr].LongName);
+  strcpy(MudCmd, "go");
+}
+
+// Return the index of a direction by its short or long name.
+int DirectionLookUp(char *Direction)
+{
+  DEBUGIT(1)
+  i = 0;
+  while (DirectionTable[i].ShortName != NULL)
+  {
+    if (Equal(Direction, DirectionTable[i].ShortName) ||
+        Equal(Direction, DirectionTable[i].LongName))
+    {
+      return (int)i;
+    }
+    i++;
+  }
+  return -1;
 }
 
 // The MudCmdOk function checks if a given command is valid by comparing it against a command table,
@@ -656,19 +772,27 @@ void DoColor()
   WritePlayerToFile();
 }
 
+// Display the player's equipment.
+void DoEquipment()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "You have absolutely no equipment!\r\n\r\n");
+  Prompt(pPlayer);
+}
+
 // Go in a specified direction
 void DoGo()
 {
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
-	LowerCase(CmdParm1);
+  LowerCase(CmdParm1);
   if (Equal(CmdParm1, "north") || Equal(CmdParm1, "n"))
   {
     pPlayer->RoomNbr = 101; // Temporary
     strcat(pPlayer->Output, "You go north\r\n\r\n");
     Prompt(pPlayer);
     return;
-	}
+  }
   strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
   Prompt(pPlayer);
 }
@@ -742,6 +866,22 @@ void DoHelp()
   }
   fclose(HelpFile);
   strcat(pPlayer->Output, "\r\n");
+  Prompt(pPlayer);
+}
+
+// Display the player's inventory.
+void DoInventory()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "You look into your bag and find it empty\r\n\r\n");
+  Prompt(pPlayer);
+}
+
+// Attack something.
+void DoKill()
+{
+  DEBUGIT(1)
+  strcat(pPlayer->Output, "You kill something\r\n\r\n");
   Prompt(pPlayer);
 }
 
