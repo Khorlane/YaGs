@@ -51,7 +51,7 @@ This is the top of the stairs leading to and from the attic.
 Terrain: Indoor
 Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
-xxxxx xxxxx xxxxx 00108 xxxxx xxxxx xxxxx xxxxx xxxxx 00117
+xxxxx xxxxx 00108 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx 00117
 
 00108 Hot Water Heater
 A hot water heater is here.
@@ -118,7 +118,7 @@ with a beautiful crystal chandelier hanging over it.
 Terrain: Indoor
 Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
-xxxxx xxxxx 00116 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx
+xxxxx xxxxx xxxxx xxxxx 00119 xxxxx 00115 xxxxx xxxxx xxxxx
 
 00117 Garage
 Two cars are parked here.

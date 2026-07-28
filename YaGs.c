@@ -413,10 +413,10 @@ char *CommandTable[][9] =
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
-    {"equipment",  "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
-    {"inventory",  "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"kill",       "N",  "1",  "stand",  "N",   "Y",  "1",  "2",  "None"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -786,15 +786,47 @@ void DoGo()
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
   LowerCase(CmdParm1);
-  if (Equal(CmdParm1, "north") || Equal(CmdParm1, "n"))
+  int DirectionNbr = DirectionLookUp(CmdParm1);
+  if (DirectionNbr < 0)
   {
-    pPlayer->RoomNbr = 101; // Temporary
-    strcat(pPlayer->Output, "You go north\r\n\r\n");
+    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
     Prompt(pPlayer);
     return;
   }
-  strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
-  Prompt(pPlayer);
+
+  Room *CurrentRoom = RoomLookUp(pPlayer->RoomNbr);
+  if (CurrentRoom == NULL || CurrentRoom->Exits == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Player is in missing room %d", pPlayer->RoomNbr);
+    LogIt(LogMsg);
+    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
+    Prompt(pPlayer);
+    return;
+  }
+
+  Word((size_t)DirectionNbr + 1, CurrentRoom->Exits, CmdParm2);
+  if (Equal(CmdParm2, "xxxxx"))
+  {
+    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
+    Prompt(pPlayer);
+    return;
+  }
+
+  int DestinationNbr = atoi(CmdParm2);
+  Room *DestinationRoom = RoomLookUp(DestinationNbr);
+  if (DestinationRoom == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestinationNbr);
+    LogIt(LogMsg);
+    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
+    Prompt(pPlayer);
+    return;
+  }
+
+  pPlayer->RoomNbr = DestinationNbr;
+  sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
+  strcat(pPlayer->Output, Buffer);
+  DoLook();
 }
 
 // Retrieve and display help information from the help file.
@@ -901,8 +933,10 @@ void DoLook()
   strcat(pPlayer->Output, Buffer);
   sprintf(Buffer, "%s", pRoom->Description);
   strcat(pPlayer->Output, Buffer);
-  sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomGetExits(pRoom));
+  char *RoomExits = RoomGetExits(pRoom);
+  sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomExits);
   strcat(pPlayer->Output, Buffer);
+  free(RoomExits);
   Prompt(pPlayer);
 }
 
