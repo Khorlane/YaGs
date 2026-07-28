@@ -100,6 +100,8 @@ long int              SendResult;                     // Number of bytes sent to
 int                   Seconds;                        // Played time in seconds
 int                   Socket;                         // Socket value
 socklen_t             SocketAddrSize;                 // Size of Socket structure
+size_t                StrLen;                         // String length
+int                   WordState;                      // Tracks WordState: NotWord | InWord
 extern int            errno;                          // Error number set by fopen(), for example
 size_t                i;                              // A non-negative integer
 size_t                j;                              // A non-negative integer
@@ -109,7 +111,11 @@ size_t                y;                              // A non-negative integer
 size_t                z;                              // A non-negative integer
 
 //Pointers
+char                 *pColor;                         // Selected color code string
 char                 *CurrentTimeTxt;                 // Current timestamp text
+char                 *pOutput;                        // Pointer into Player->Output
+char                 *pOutPlus1;                      // Pointer to pOutput + 1
+char                 *pTmpStr;                        // Pointer into TmpStr
 struct PlayerList    *pActor;                         // Pointer to acting player in the player list
 struct PlayerList    *pPlayer;                        // Pointer to a player in the player list - generic usage
 struct PlayerList    *pPlayerSave;                    // Pointer to a player in the player list - save
@@ -1029,9 +1035,9 @@ void DoStatus()
   sprintf(Buffer, "AFK: %c\r\n", pPlayer->Afk);
   strcat(pPlayer->Output, Buffer);
   // Born
-  char *TimeStr = ctime(&pPlayer->Born);
-  TimeStr[strlen(TimeStr) - 1] = '\0';
-  sprintf(Buffer, "Born: %s\r\n", TimeStr);
+  strcpy(TmpStr, ctime(&pPlayer->Born));
+  TmpStr[strlen(TmpStr) - 1] = '\0';
+  sprintf(Buffer, "Born: %s\r\n", TmpStr);
   strcat(pPlayer->Output, Buffer);
   // Color
   sprintf(Buffer, "Color: %c\r\n", pPlayer->Color);
@@ -2009,25 +2015,25 @@ void NormalizePlayerName(char *Name)
 // Remove the trailing new line or carriage return character from a C-style string,
 void StripTrailingNlCr(char *Buffer)
 {
-  size_t len = strlen(Buffer);
-  if (len > 1 && Buffer[len - 2] == '\r' && Buffer[len - 1] == '\n')
+  StrLen = strlen(Buffer);
+  if (StrLen > 1 && Buffer[StrLen - 2] == '\r' && Buffer[StrLen - 1] == '\n')
   { // Remove "\r\n"
-    Buffer[len - 2] = '\0';
+    Buffer[StrLen - 2] = '\0';
   }
   else
-  if (len > 1 && Buffer[len - 2] == '\n' && Buffer[len - 1] == '\r')
+  if (StrLen > 1 && Buffer[StrLen - 2] == '\n' && Buffer[StrLen - 1] == '\r')
   { // Remove "\n\r"
-    Buffer[len - 2] = '\0';
+    Buffer[StrLen - 2] = '\0';
   }
   else
-  if (len > 0 && Buffer[len - 1] == '\n')
+  if (StrLen > 0 && Buffer[StrLen - 1] == '\n')
   { // Remove "\n"
-    Buffer[len - 1] = '\0';
+    Buffer[StrLen - 1] = '\0';
   }
   else
-  if (len > 0 && Buffer[len - 1] == '\r')
+  if (StrLen > 0 && Buffer[StrLen - 1] == '\r')
   { // Remove "\r"
-    Buffer[len - 1] = '\0';
+    Buffer[StrLen - 1] = '\0';
   }
 }
 
@@ -2102,18 +2108,17 @@ size_t Words(char *Str)
   DEBUGIT(2)
   #define NotWord 0
   #define InWord  1
-  int State;
-  State = 0;
+  WordState = 0;
   x = 0;
   for (i = 0; Str[i]; i++)
   {
     if (isspace(Str[i]))
     {
-      State = NotWord;
+      WordState = NotWord;
     }
-    else if (State == NotWord)
+    else if (WordState == NotWord)
     {
-      State = InWord;
+      WordState = InWord;
       x++;
     }
   }
@@ -2137,72 +2142,68 @@ void AbortIt()
 void Color()
 {
   DEBUGIT(2)
-  char* Str1; // Points to pPlayer->Output
-  char* Str2; // Points to TmpStr
-  char* Str3; // Points to 'next char' in Str1 (pPlayer->Output)
-  char* Str4; // Points to the selected color code string
   if (strchr(pPlayer->Output, '&') == NULL) return;
-  Str1 = &pPlayer->Output[0];
-  Str2 = &TmpStr[0];
-  while (*Str1)
+  pOutput = &pPlayer->Output[0];
+  pTmpStr = &TmpStr[0];
+  while (*pOutput)
   { // Loop here until we hit an '&'
-    while (*Str1 != '&')
+    while (*pOutput != '&')
     {
-      *Str2 = *Str1;
-      if (*Str1 == '\0')
+      *pTmpStr = *pOutput;
+      if (*pOutput == '\0')
       { // We are done
-        *Str2 = '\0';
+        *pTmpStr = '\0';
         strcpy(pPlayer->Output, TmpStr);
         return;
       }
-      Str1++;
-      Str2++;
+      pOutput++;
+      pTmpStr++;
     }
     // We hit an '&'
-    Str3 = Str1;
-    Str3++;
-    switch (*Str3)
+    pOutPlus1 = pOutput;
+    pOutPlus1++;
+    switch (*pOutPlus1)
     {
     case 'N':
-      Str4 = Normal;
+      pColor = Normal;
       break;
     case 'K':
-      Str4 = BrightBlack;
+      pColor = BrightBlack;
       break;
     case 'R':
-      Str4 = BrightRed;
+      pColor = BrightRed;
       break;
     case 'G':
-      Str4 = BrightGreen;
+      pColor = BrightGreen;
       break;
     case 'Y':
-      Str4 = BrightYellow;
+      pColor = BrightYellow;
       break;
     case 'B':
-      Str4 = BrightBlue;
+      pColor = BrightBlue;
       break;
     case 'M':
-      Str4 = BrightMagenta;
+      pColor = BrightMagenta;
       break;
     case 'C':
-      Str4 = BrightCyan;
+      pColor = BrightCyan;
       break;
     case 'W':
-      Str4 = BrightWhite;
+      pColor = BrightWhite;
       break;
     }
     if (pPlayer->Color == 'N')
     {
-      Str4 = None;
+      pColor = None;
     }
-    while (*Str4 != '\0')
+    while (*pColor != '\0')
     { // Copy the color code string
-      *Str2 = *Str4;
-      Str2++;
-      Str4++;
+      *pTmpStr = *pColor;
+      pTmpStr++;
+      pColor++;
     }
-    Str1++;
-    Str1++;
+    pOutput++;
+    pOutput++;
   }
 }
 
@@ -2222,11 +2223,10 @@ void Sleep()
   if (USE_USLEEP == 'Y')                    // Sleeping the game is one way to avoid needless
   {                                         //   consumption of CPU. Typically, usleep() works
     usleep(SLEEP_TIME);                     //   just fine for this purpose. Using select() is
-  }                                         //   another (not recommended) means of sleeping a
-  else                                      //   process.
-  {                                         // If the YaGs development environment is Windows 10,
-    #include <sys/select.h>                 //   Visual Studio, and WSL (Windows Subsystem for Linux)
-    struct timeval TimeOut;                 //   Ubuntu, then for some strange reason, usleep() does not
+  }                                         //   another (not recommended) means of sleeping a process
+  else                                      // If the YaGs development environment is Windows 11,
+  {                                         //   Visual Studio, and WSL (Windows Subsystem for Linux)
+    #include <sys/select.h>                 //   Ubuntu, then for some strange reason, usleep() does not
     TimeOut.tv_sec = 0;                     //   does not actually sleep.
     TimeOut.tv_usec = SLEEP_TIME;           // So this messy function is the result. You should
     select(0, NULL, NULL, NULL, &TimeOut);  //   adjust SLEEP_TIME until you are happy.
