@@ -82,11 +82,14 @@ int                   CommandNbr;                     // Command number zero bas
 time_t                CurrentTime;                    // Current time for played calculation
 time_t                CurrentTimeSec;                 // Current time in seconds
 int                   Days;                           // Played time in days
+size_t                DescriptionLength;              // Length of a room description
 int                   DestinationRoomNbr;             // Room number player is moving into
 int                   DirectionNbr;                   // The DirectionTable index of the direction
 double                ElapsedTime;                    // Elapsed player time
 int                   Hours;                          // Played time in hours
 socklen_t             LingerSize;                     // Size of Linger stucture
+int                   LineNumber;                     // Line number
+size_t                LineLength;                     // Length of a line read from a file
 int                   Listen;                         // Listening socket
 int                   MaxSocket;                      // Maximum socket value
 int                   Minutes;                        // Played time in minutes
@@ -113,9 +116,13 @@ size_t                z;                              // A non-negative integer
 //Pointers
 char                 *pColor;                         // Selected color code string
 char                 *CurrentTimeTxt;                 // Current timestamp text
+char                 *pDescriptionBuffer;             // Room description being assembled
+char                 *pExitsCopy;                     // Working copy of Room Exits
+char                 *pNewBuffer;                     // Newly allocated room description buffer
 char                 *pOutput;                        // Pointer into Player->Output
 char                 *pOutPlus1;                      // Pointer to pOutput + 1
 char                 *pTmpStr;                        // Pointer into TmpStr
+char                 *pToken;                         // It's a token
 struct PlayerList    *pActor;                         // Pointer to acting player in the player list
 struct PlayerList    *pPlayer;                        // Pointer to a player in the player list - generic usage
 struct PlayerList    *pPlayerSave;                    // Pointer to a player in the player list - save
@@ -152,12 +159,14 @@ char                 *HelpFileName       = aTmpStr;   // Help file name
 char                 *LogFileName        = aTmpStr;   // Log file name
 char                 *MotdFileName       = aTmpStr;   // Message of the day file name
 char                 *PlayerFileName     = aTmpStr;   // Player file name
+char                 *RoomFileName       = aTmpStr;   // Room file name
 char                 *ValidNamesFileName = aTmpStr;   // Valid names file name
 FILE                 *GreetingFile;                   // Greeting file
 FILE                 *HelpFile;                       // Help file
 FILE                 *LogFile;                        // Log file
 FILE                 *MotdFile;                       // Message of the day file
 FILE                 *PlayerFile;                     // Player file
+FILE                 *RoomFile;                       // Room file
 FILE                 *ValidNamesFile;                 // Valid names file
 
 // Structures
@@ -270,12 +279,16 @@ typedef struct RoomList
   RoomList           *pNextRoom;                      // Pointer to the next node in the list
 } RoomList;
 
-Room                 *CurrentRoom;
-Room                 *DestinationRoom;
-Room                 *pRoom;
 Room                  SingleRoom;
-RoomList             *pRoomHead = NULL;
-RoomList             *pRoomTail = NULL;
+Room                 *pCurrentRoom;
+Room                 *pDestinationRoom;
+Room                 *pNewRoom;
+Room                 *pRoom;
+RoomList             *pNewRoomListNode;
+RoomList             *pRoomListCurr = NULL;
+RoomList             *pRoomListHead = NULL;
+RoomList             *pRoomListNext = NULL;
+RoomList             *pRoomListTail = NULL;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -328,7 +341,7 @@ void    ProcessCommand();
 void    ProcessPlayerInput();
 void    Prompt(struct PlayerList *pPlayer);
 void    ReadPlayerFromFile();
-void    RoomAddToRoomList(Room *NewRoom);
+void    RoomAddToRoomList();
 Room   *RoomAllocateAndCopy(const Room *SourceRoom);
 void    RoomFreeList();
 char   *RoomGetExits(const Room *pRoom);
@@ -811,8 +824,8 @@ void DoGo()
     Prompt(pPlayer);
     return;
   }
-  CurrentRoom = RoomLookUp(pPlayer->RoomNbr);
-  if (CurrentRoom == NULL || CurrentRoom->Exits == NULL)
+  pCurrentRoom = RoomLookUp(pPlayer->RoomNbr);
+  if (pCurrentRoom == NULL || pCurrentRoom->Exits == NULL)
   {
     sprintf(LogMsg, "ERROR: Player is in missing room %d", pPlayer->RoomNbr);
     LogIt(LogMsg);
@@ -820,7 +833,7 @@ void DoGo()
     Prompt(pPlayer);
     return;
   }
-  Word((size_t)DirectionNbr + 1, CurrentRoom->Exits, CmdParm2);
+  Word((size_t)DirectionNbr + 1, pCurrentRoom->Exits, CmdParm2);
   if (Equal(CmdParm2, "xxxxx"))
   {
     strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
@@ -828,8 +841,8 @@ void DoGo()
     return;
   }
   DestinationRoomNbr = atoi(CmdParm2);
-  DestinationRoom = RoomLookUp(DestinationRoomNbr);
-  if (DestinationRoom == NULL)
+  pDestinationRoom = RoomLookUp(DestinationRoomNbr);
+  if (pDestinationRoom == NULL)
   {
     sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestinationRoomNbr);
     LogIt(LogMsg);
@@ -950,7 +963,6 @@ void DoLook()
   RoomExits = RoomGetExits(pRoom);
   sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomExits);
   strcat(pPlayer->Output, Buffer);
-  free(RoomExits);
   Prompt(pPlayer);
 }
 
@@ -2256,29 +2268,29 @@ void ValidateCommandTable()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Add a new Room to the linked list of rooms
-void RoomAddToRoomList(Room *NewRoom)
+void RoomAddToRoomList()
 {
   DEBUGIT(1)
-    // Allocate memory for a new RoomList node
-    RoomList *NewNode = (RoomList *)malloc(sizeof(RoomList));
-  if (NewNode == NULL)
+  // Allocate memory for a new RoomList node
+  pNewRoomListNode = (RoomList *)malloc(sizeof(RoomList));
+  if (pNewRoomListNode == NULL)
   {
     sprintf(LogMsg, "ERROR: Memory allocation failed for RoomList node");
     AbortIt();
   }
   // Initialize the new node
-  NewNode->pRoom     = NewRoom;
-  NewNode->pNextRoom = NULL;
-  if (pRoomHead != NULL)
+  pNewRoomListNode->pRoom     = pNewRoom;
+  pNewRoomListNode->pNextRoom = NULL;
+  if (pRoomListHead != NULL)
   {
     // Use pRoomTail to append the new node to the end of the list
-    pRoomTail->pNextRoom = NewNode;
-    pRoomTail = NewNode;
+    pRoomListTail->pNextRoom = pNewRoomListNode;
+    pRoomListTail = pNewRoomListNode;
   }
   else
   { // First room being added
-    pRoomHead = NewNode;
-    pRoomTail = NewNode;
+    pRoomListHead = pNewRoomListNode;
+    pRoomListTail = pNewRoomListNode;
   }
 }
 
@@ -2287,18 +2299,18 @@ void RoomAddToRoomList(Room *NewRoom)
 Room *RoomAllocateAndCopy(const Room *SourceRoom)
 {
   // Allocate memory for the new Room
-  Room *NewRoom = (Room*)malloc(sizeof(Room));
-  if (NewRoom == NULL) {
+  pNewRoom = (Room*)malloc(sizeof(Room));
+  if (pNewRoom == NULL) {
     sprintf(LogMsg, "ERROR: Memory allocation failed for Room");
     AbortIt();
   }
   // Copy the RoomNumber
-  NewRoom->RoomNbr = SourceRoom->RoomNbr;
+  pNewRoom->RoomNbr = SourceRoom->RoomNbr;
   // Allocate and copy the Name
   if (SourceRoom->Name != NULL)
   {
-    NewRoom->Name = strdup(SourceRoom->Name);
-    if (NewRoom->Name == NULL)
+    pNewRoom->Name = strdup(SourceRoom->Name);
+    if (pNewRoom->Name == NULL)
     {
       sprintf(LogMsg, "ERROR: Memory allocation failed for Room Name");
       AbortIt();
@@ -2306,13 +2318,13 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   }
   else
   {
-    NewRoom->Name = NULL;
+    pNewRoom->Name = NULL;
   }
   // Allocate and copy the Description
   if (SourceRoom->Description != NULL)
   {
-    NewRoom->Description = strdup(SourceRoom->Description);
-    if (NewRoom->Description == NULL)
+    pNewRoom->Description = strdup(SourceRoom->Description);
+    if (pNewRoom->Description == NULL)
     {
       sprintf(LogMsg, "ERROR: Memory allocation failed for Room Description");
       AbortIt();
@@ -2320,13 +2332,13 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   }
   else
   {
-    NewRoom->Description = NULL;
+    pNewRoom->Description = NULL;
   }
   // Allocate and copy the Terrain
   if (SourceRoom->Terrain != NULL)
   {
-    NewRoom->Terrain = strdup(SourceRoom->Terrain);
-    if (NewRoom->Terrain == NULL)
+    pNewRoom->Terrain = strdup(SourceRoom->Terrain);
+    if (pNewRoom->Terrain == NULL)
     {
       sprintf(LogMsg, "ERROR: Memory allocation failed for Room Terrain");
       AbortIt();
@@ -2334,26 +2346,26 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   }
   else
   {
-    NewRoom->Terrain = NULL;
+    pNewRoom->Terrain = NULL;
   }
   // Allocate and copy the Flags
   if (SourceRoom->Flags != NULL)
   {
-    NewRoom->Flags = strdup(SourceRoom->Flags);
-    if (NewRoom->Flags == NULL)
+    pNewRoom->Flags = strdup(SourceRoom->Flags);
+    if (pNewRoom->Flags == NULL)
     {
       sprintf(LogMsg, "ERROR: Memory allocation failed for Room Flags");
       AbortIt();
     }
   }
   else {
-    NewRoom->Flags = NULL;
+    pNewRoom->Flags = NULL;
   }
   // Allocate and copy the Exits
   if (SourceRoom->Exits != NULL)
   {
-    NewRoom->Exits = strdup(SourceRoom->Exits);
-    if (NewRoom->Exits == NULL)
+    pNewRoom->Exits = strdup(SourceRoom->Exits);
+    if (pNewRoom->Exits == NULL)
     {
       sprintf(LogMsg, "ERROR: Memory allocation failed for Room Exits");
       AbortIt();
@@ -2361,34 +2373,33 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   }
   else
   {
-    NewRoom->Exits = NULL;
+    pNewRoom->Exits = NULL;
   }
-  return NewRoom;
+  return pNewRoom;
 }
 
 // Free all dynamically allocated memory for the linked list of rooms
 void RoomFreeList()
 {
   DEBUGIT(1)
-  RoomList *current = pRoomHead;
-  RoomList *next;
-  while (current != NULL)
+  pRoomListCurr = pRoomListHead;
+  while (pRoomListCurr != NULL)
   {
-    next = current->pNextRoom;
-    if (current->pRoom != NULL)
+    pRoomListNext = pRoomListCurr->pNextRoom;
+    if (pRoomListCurr->pRoom != NULL)
     {
-      free(current->pRoom->Name);
-      free(current->pRoom->Description);
-      free(current->pRoom->Terrain);
-      free(current->pRoom->Flags);
-      free(current->pRoom->Exits);
-      free(current->pRoom);
+      free(pRoomListCurr->pRoom->Name);
+      free(pRoomListCurr->pRoom->Description);
+      free(pRoomListCurr->pRoom->Terrain);
+      free(pRoomListCurr->pRoom->Flags);
+      free(pRoomListCurr->pRoom->Exits);
+      free(pRoomListCurr->pRoom);
     }
-    free(current);
-    current = next;
+    free(pRoomListCurr);
+    pRoomListCurr = pRoomListNext;
   }
-  pRoomHead = NULL;
-  pRoomTail = NULL;
+  pRoomListHead = NULL;
+  pRoomListTail = NULL;
 }
 
 // Parse the pRoom->Exits string and return a formatted string of available exits.
@@ -2398,34 +2409,29 @@ char *RoomGetExits(const Room *pRoom)
   {
     return strdup("");
   }
-  char *Result = (char*)malloc(256);
-  if (Result == NULL) {
-    sprintf(LogMsg, "ERROR: Memory allocation failed in RoomGetExits");
-    AbortIt();
-  }
-  Result[0] = '\0';
+  TmpStr[0] = '\0';
   // Tokenize the Exits string and map valid room numbers to directions.
-  char *ExitsCopy = strdup(pRoom->Exits);
-  if (ExitsCopy == NULL)
+  pExitsCopy = strdup(pRoom->Exits);
+  if (pExitsCopy == NULL)
   {
     sprintf(LogMsg, "ERROR: Memory allocation failed for exitsCopy in RoomGetExits");
     AbortIt();
   }
-  char *Token = strtok(ExitsCopy, " ");
-  for (i = 0; Token != NULL && i < 10; i++)
+  pToken = strtok(pExitsCopy, " ");
+  for (i = 0; pToken != NULL && i < 10; i++)
   {
-    if (strcmp(Token, "xxxxx") != 0)
+    if (strcmp(pToken, "xxxxx") != 0)
     {
-      if (strlen(Result) > 0)
+      if (strlen(TmpStr) > 0)
       {
-        strcat(Result, " ");
+        strcat(TmpStr, " ");
       }
-      strcat(Result, DirectionTable[i].DisplayName);
+      strcat(TmpStr, DirectionTable[i].DisplayName);
     }
-    Token = strtok(NULL, " ");
+    pToken = strtok(NULL, " ");
   }
-  free(ExitsCopy);
-  return Result;
+  free(pExitsCopy);
+  return TmpStr;
 }
 
 // Search for a room in the linked list of rooms by its RoomNbr. Return a pointer
@@ -2433,14 +2439,14 @@ char *RoomGetExits(const Room *pRoom)
 Room *RoomLookUp(int RoomNbr)
 {
   DEBUGIT(1)
-  RoomList *pRoomCurrent = pRoomHead;
-  while (pRoomCurrent != NULL)
+  pRoomListCurr = pRoomListHead;
+  while (pRoomListCurr != NULL)
   {
-    if (pRoomCurrent->pRoom != NULL && pRoomCurrent->pRoom->RoomNbr == RoomNbr)
+    if (pRoomListCurr->pRoom != NULL && pRoomListCurr->pRoom->RoomNbr == RoomNbr)
     {
-      return pRoomCurrent->pRoom; // Return the matching Room pointer
+      return pRoomListCurr->pRoom; // Return the matching Room pointer
     }
-    pRoomCurrent = pRoomCurrent->pNextRoom;
+    pRoomListCurr = pRoomListCurr->pNextRoom;
   }
   return NULL;
 }
@@ -2449,12 +2455,8 @@ Room *RoomLookUp(int RoomNbr)
 // the SingleRoom structure, which is then added to the linked list of rooms.
 void RoomReadFile()
 {
-  char Buffer[1024];
-  char RoomFilePath[1024];
-  int LineNumber = 0;
-  sprintf(RoomFilePath, "%s/%s/%s", YAGS_DIR, WORLD_DIR, ROOMS_FILE);
-
-  FILE *RoomFile = fopen(RoomFilePath, "r");
+  sprintf(RoomFileName, "%s/%s/%s", YAGS_DIR, WORLD_DIR, ROOMS_FILE);
+  RoomFile = fopen(RoomFileName, "r");
   if (RoomFile == NULL)
   {
     sprintf(LogMsg, "ERROR: Open %s failed: %s", ROOMS_FILE, strerror(errno));
@@ -2480,24 +2482,24 @@ void RoomReadFile()
       break;
     }
     // Extract Room Number (first word)
-    char *Token = strtok(Buffer, " ");
-    if (Token == NULL)
+    pToken = strtok(Buffer, " ");
+    if (pToken == NULL)
     {
       sprintf(LogMsg, "ERROR: Failed to parse Room Number from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    SingleRoom.RoomNbr = atoi(Token);
+    SingleRoom.RoomNbr = atoi(pToken);
     // Extract Room Name (rest of the line)
-    Token = strtok(NULL, "");
-    if (Token == NULL)
+    pToken = strtok(NULL, "");
+    if (pToken == NULL)
     {
       sprintf(LogMsg, "ERROR: Failed to parse Room Name from %s at line %d", ROOMS_FILE, LineNumber);
       AbortIt();
     }
-    SingleRoom.Name = strdup(Token);
+    SingleRoom.Name = strdup(pToken);
     // Read Description (multi-line until "Terrain" label is found)
-    char  *DescriptionBuffer = NULL;
-    size_t DescriptionLength = 0;
+    pDescriptionBuffer = NULL;
+    DescriptionLength = 0;
     while (true)
     {
       if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
@@ -2512,23 +2514,23 @@ void RoomReadFile()
       {
         break;
       }
-      size_t lineLength = strlen(Buffer);
-      char *NewBuffer = realloc(DescriptionBuffer, DescriptionLength + lineLength + 2); // +2 for newline and null terminator
-      if (NewBuffer == NULL)
+      LineLength = strlen(Buffer);
+      pNewBuffer = realloc(pDescriptionBuffer, DescriptionLength + LineLength + 2); // +2 for newline and null terminator
+      if (pNewBuffer == NULL)
       {
         sprintf(LogMsg, "ERROR: Memory allocation failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
         AbortIt();
       }
-      DescriptionBuffer = NewBuffer;
-      strcpy(DescriptionBuffer + DescriptionLength, Buffer);
-      DescriptionLength += lineLength;
-      DescriptionBuffer[DescriptionLength] = '\n';
+      pDescriptionBuffer = pNewBuffer;
+      strcpy(pDescriptionBuffer + DescriptionLength, Buffer);
+      DescriptionLength += LineLength;
+      pDescriptionBuffer[DescriptionLength] = '\n';
       DescriptionLength++;
     }
-    if (DescriptionBuffer != NULL)
+    if (pDescriptionBuffer != NULL)
     {
-      DescriptionBuffer[DescriptionLength] = '\0';
-      SingleRoom.Description = DescriptionBuffer;
+      pDescriptionBuffer[DescriptionLength] = '\0';
+      SingleRoom.Description = pDescriptionBuffer;
     }
     else
     {
@@ -2579,8 +2581,8 @@ void RoomReadFile()
       AbortIt();
     }
     LineNumber++;
-    Room *NewRoom = RoomAllocateAndCopy(&SingleRoom);
-    RoomAddToRoomList(NewRoom);
+    pNewRoom = RoomAllocateAndCopy(&SingleRoom);
+    RoomAddToRoomList();
   }
   fclose(RoomFile);
 }
