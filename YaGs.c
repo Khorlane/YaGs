@@ -79,12 +79,17 @@ long int              BytesRead;                      // Number of bytes read
 size_t                CmdDoCount;                     // Count of function pointers in the DoCommand array
 size_t                CmdTableCount;                  // Count of entries in the CommandTable array
 int                   CommandNbr;                     // Command number zero based
+time_t                CurrentTime;                    // Current time for played calculation
 time_t                CurrentTimeSec;                 // Current time in seconds
+int                   Days;                           // Played time in days
 int                   DestinationRoomNbr;             // Room number player is moving into
 int                   DirectionNbr;                   // The DirectionTable index of the direction
+double                ElapsedTime;                    // Elapsed player time
+int                   Hours;                          // Played time in hours
 socklen_t             LingerSize;                     // Size of Linger stucture
 int                   Listen;                         // Listening socket
 int                   MaxSocket;                      // Maximum socket value
+int                   Minutes;                        // Played time in minutes
 long                  Offset;                         // Offset for fseek()
 int                   OptVal;                         // Set socket option value
 socklen_t             OptValSize;                     // Size of socket option value
@@ -92,6 +97,7 @@ int                   PlayerNbr;                      // Plyayer number
 int                   ReturnValue1;                   // Return value
 size_t                ReturnValue2;                   // Return value
 long int              SendResult;                     // Number of bytes sent to player
+int                   Seconds;                        // Played time in seconds
 int                   Socket;                         // Socket value
 socklen_t             SocketAddrSize;                 // Size of Socket structure
 extern int            errno;                          // Error number set by fopen(), for example
@@ -103,7 +109,7 @@ size_t                y;                              // A non-negative integer
 size_t                z;                              // A non-negative integer
 
 //Pointers
-char                 *CurrentTime;                    // Current timestamp
+char                 *CurrentTimeTxt;                 // Current timestamp text
 struct PlayerList    *pActor;                         // Pointer to acting player in the player list
 struct PlayerList    *pPlayer;                        // Pointer to a player in the player list - generic usage
 struct PlayerList    *pPlayerSave;                    // Pointer to a player in the player list - save
@@ -947,10 +953,6 @@ void DoLook()
 void DoPlayed()
 {
   DEBUGIT(1)
-  time_t CurrentTime;
-  double ElapsedTime;
-  int Days, Hours, Minutes, Seconds;
-
   CurrentTime = time(NULL);
   ElapsedTime = difftime(CurrentTime, pPlayer->Born);
   // Calculate days, hours, minutes, and seconds
@@ -1378,7 +1380,7 @@ void OpenLog()
 void LogIt(char *LogMsg)
 {
   GetTime();
-  fprintf(LogFile, "%s - %s\r\n", CurrentTime, LogMsg);
+  fprintf(LogFile, "%s - %s\r\n", CurrentTimeTxt, LogMsg);
   fflush(LogFile);
 }
 
@@ -2207,9 +2209,9 @@ void Color()
 void GetTime()
 { // Do not add DEBUGIT
   CurrentTimeSec = time(NULL);              // Seconds since Epoch, 1970-01-01 00:00:00 +0000 (UTC)
-  CurrentTime = ctime(&CurrentTimeSec);     // Convert to human readable
-  x = strlen(CurrentTime);                  // Get rid of the '\n'
-  CurrentTime[x - 1] = '\0';                //   at the end of string returned by ctime()
+  CurrentTimeTxt = ctime(&CurrentTimeSec);  // Convert to human readable
+  x = strlen(CurrentTimeTxt);               // Get rid of the '\n'
+  CurrentTimeTxt[x - 1] = '\0';             //   at the end of string returned by ctime()
 }
 
 // Pause the game execution for SLEEP_TIME to manage CPU usage effectively.
