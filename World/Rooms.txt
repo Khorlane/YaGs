@@ -149,6 +149,6 @@ iron knocker with an engraved snake encircling it.
 Terrain: Concrete
 Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
-00120 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx
+00118 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx
 
 $End

@@ -19,17 +19,17 @@ static inline void __builtin_free(void *Ptr)         //   while parsing newer gl
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 #include <arpa/inet.h>                                // This and sys/socket.h - a whole plethora of socket related stuff
-#include <ctype.h>                                    // tolower(), isspace()
-#include <errno.h>                                    // EINTR
+#include <ctype.h>                                    // isspace(), tolower(), toupper()
+#include <errno.h>                                    // errno, EINTR
 #include <fcntl.h>                                    // fcntl(), F_SETFL, FNDELAY
 #include <math.h>                                     // fmod()
-#include <stdbool.h>                                  // bool data type
-#include <stdio.h>                                    // Standard I/O
-#include <stdlib.h>                                   // exit() malloc()
-#include <string.h>                                   // strcat(), strcpy(), strcmp(), strlen()
+#include <stdbool.h>                                  // bool, true, false
+#include <stdio.h>                                    // a whole bunch of i/o functions
+#include <stdlib.h>                                   // atoi(), exit(), free(), malloc(), realloc()
+#include <string.h>                                   // a whole bunch of string functions
 #include <sys/socket.h>                               // This and arpa/inet - a whole plethora of socket related stuff
-#include <time.h>                                     // time(), ctime()
-#include <unistd.h>                                   // close(), read(), getuid(), usleep(), fsync()
+#include <time.h>                                     // ctime(), difftime(), time(), time_t
+#include <unistd.h>                                   // close(), fsync(), read(), usleep()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Macros
@@ -247,10 +247,11 @@ typedef struct Room
   char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
 } Room;
 
+typedef struct RoomList RoomList;
 typedef struct RoomList
 {
   Room               *pRoom;                          // Pointer to a Room struct
-  struct RoomList    *pNextRoom;                      // Pointer to the next node in the list
+  RoomList           *pNextRoom;                      // Pointer to the next node in the list
 } RoomList;
 
 Room                  SingleRoom;
@@ -1015,7 +1016,7 @@ void GetPlayerOnline()
     { // Password is valid
       SendMotd();
       pPlayer->State = Online;
-      Prompt(pPlayer);
+      DoLook();
       return;
     }
     // Wrong password
@@ -1097,7 +1098,7 @@ void GetPlayerOnline()
       CopyPlayerToPlayerList();
       SendMotd();
       pPlayer->State = Online;
-      Prompt(pPlayer);
+      DoLook();
       return;
     }
     // Check bad password count
