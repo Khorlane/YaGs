@@ -82,14 +82,14 @@ int                   CommandNbr;                     // Command number zero bas
 time_t                CurrentTime;                    // Current time for played calculation
 time_t                CurrentTimeSec;                 // Current time in seconds
 int                   Days;                           // Played time in days
-size_t                DescriptionLength;              // Length of a room description
-int                   DestinationRoomNbr;             // Room number player is moving into
+size_t                DescLen;                        // Length of a room description
+int                   DestRoomNbr;                    // Room number player is moving into
 int                   DirectionNbr;                   // The DirectionTable index of the direction
 double                ElapsedTime;                    // Elapsed player time
 int                   Hours;                          // Played time in hours
 socklen_t             LingerSize;                     // Size of Linger stucture
-int                   LineNumber;                     // Line number
-size_t                LineLength;                     // Length of a line read from a file
+int                   LineNbr;                        // Line number
+size_t                LineLen;                        // Length of a line read from a file
 int                   Listen;                         // Listening socket
 int                   MaxSocket;                      // Maximum socket value
 int                   Minutes;                        // Played time in minutes
@@ -116,7 +116,7 @@ size_t                z;                              // A non-negative integer
 //Pointers
 char                 *pColor;                         // Selected color code string
 char                 *CurrentTimeTxt;                 // Current timestamp text
-char                 *pDescriptionBuffer;             // Room description being assembled
+char                 *pDescBuffer;             // Room description being assembled
 char                 *pExitsCopy;                     // Working copy of Room Exits
 char                 *pNewBuffer;                     // Newly allocated room description buffer
 char                 *pOutput;                        // Pointer into Player->Output
@@ -266,7 +266,7 @@ typedef struct Room
 {
   int                 RoomNbr;                        // Room number (e.g., 101)
   char               *Name;                           // Room name (e.g., "Back Porch")
-  char               *Description;                    // Room description (multi-line text)
+  char               *Desc;                           // Room description (multi-line text)
   char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
   char               *Flags;                          // Flags (e.g., "None", "NoFight")
   char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
@@ -840,17 +840,17 @@ void DoGo()
     Prompt(pPlayer);
     return;
   }
-  DestinationRoomNbr = atoi(CmdParm2);
-  pDestinationRoom = RoomLookUp(DestinationRoomNbr);
+  DestRoomNbr = atoi(CmdParm2);
+  pDestinationRoom = RoomLookUp(DestRoomNbr);
   if (pDestinationRoom == NULL)
   {
-    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestinationRoomNbr);
+    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestRoomNbr);
     LogIt(LogMsg);
     strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
     Prompt(pPlayer);
     return;
   }
-  pPlayer->RoomNbr = DestinationRoomNbr;
+  pPlayer->RoomNbr = DestRoomNbr;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
   strcat(pPlayer->Output, Buffer);
   DoLook();
@@ -958,7 +958,7 @@ void DoLook()
     sprintf(Buffer, "\r\n&C%s&N &M[&N%d %s&M]&N\r\n", pRoom->Name, pPlayer->RoomNbr, pRoom->Terrain);
   }
   strcat(pPlayer->Output, Buffer);
-  sprintf(Buffer, "%s", pRoom->Description);
+  sprintf(Buffer, "%s", pRoom->Desc);
   strcat(pPlayer->Output, Buffer);
   RoomExits = RoomGetExits(pRoom);
   sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomExits);
@@ -2321,10 +2321,10 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
     pNewRoom->Name = NULL;
   }
   // Allocate and copy the Description
-  if (SourceRoom->Description != NULL)
+  if (SourceRoom->Desc != NULL)
   {
-    pNewRoom->Description = strdup(SourceRoom->Description);
-    if (pNewRoom->Description == NULL)
+    pNewRoom->Desc = strdup(SourceRoom->Desc);
+    if (pNewRoom->Desc == NULL)
     {
       sprintf(LogMsg, "ERROR: Memory allocation failed for Room Description");
       AbortIt();
@@ -2332,7 +2332,7 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   }
   else
   {
-    pNewRoom->Description = NULL;
+    pNewRoom->Desc = NULL;
   }
   // Allocate and copy the Terrain
   if (SourceRoom->Terrain != NULL)
@@ -2389,7 +2389,7 @@ void RoomFreeList()
     if (pRoomListCurr->pRoom != NULL)
     {
       free(pRoomListCurr->pRoom->Name);
-      free(pRoomListCurr->pRoom->Description);
+      free(pRoomListCurr->pRoom->Desc);
       free(pRoomListCurr->pRoom->Terrain);
       free(pRoomListCurr->pRoom->Flags);
       free(pRoomListCurr->pRoom->Exits);
@@ -2468,16 +2468,16 @@ void RoomReadFile()
     // Read Room Number and Name
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     StripTrailingNlCr(Buffer);
-    LineNumber++;
+    LineNbr++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     // Stop processing if $End is found
     if (strcmp(Buffer, "$End") == 0)
     {
-      sprintf(LogMsg, "INFO: End of room data reached at line %d in %s", LineNumber, ROOMS_FILE);
+      sprintf(LogMsg, "INFO: End of room data reached at line %d in %s", LineNbr, ROOMS_FILE);
       LogIt(LogMsg);
       break;
     }
@@ -2485,7 +2485,7 @@ void RoomReadFile()
     pToken = strtok(Buffer, " ");
     if (pToken == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to parse Room Number from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to parse Room Number from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     SingleRoom.RoomNbr = atoi(pToken);
@@ -2493,94 +2493,94 @@ void RoomReadFile()
     pToken = strtok(NULL, "");
     if (pToken == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to parse Room Name from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to parse Room Name from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     SingleRoom.Name = strdup(pToken);
     // Read Description (multi-line until "Terrain" label is found)
-    pDescriptionBuffer = NULL;
-    DescriptionLength = 0;
+    pDescBuffer = NULL;
+    DescLen = 0;
     while (true)
     {
       if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
       {
-        sprintf(LogMsg, "ERROR: Failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
+        sprintf(LogMsg, "ERROR: Failed while reading Description from %s at line %d", ROOMS_FILE, LineNbr);
         AbortIt();
       }
       StripTrailingNlCr(Buffer);
-      LineNumber++;
+      LineNbr++;
       Buffer[strcspn(Buffer, "\n")] = '\0';
       if (strncmp(Buffer, "Terrain: ", 9) == 0)
       {
         break;
       }
-      LineLength = strlen(Buffer);
-      pNewBuffer = realloc(pDescriptionBuffer, DescriptionLength + LineLength + 2); // +2 for newline and null terminator
+      LineLen = strlen(Buffer);
+      pNewBuffer = realloc(pDescBuffer, DescLen + LineLen + 2); // +2 for newline and null terminator
       if (pNewBuffer == NULL)
       {
-        sprintf(LogMsg, "ERROR: Memory allocation failed while reading Description from %s at line %d", ROOMS_FILE, LineNumber);
+        sprintf(LogMsg, "ERROR: Memory allocation failed while reading Description from %s at line %d", ROOMS_FILE, LineNbr);
         AbortIt();
       }
-      pDescriptionBuffer = pNewBuffer;
-      strcpy(pDescriptionBuffer + DescriptionLength, Buffer);
-      DescriptionLength += LineLength;
-      pDescriptionBuffer[DescriptionLength] = '\n';
-      DescriptionLength++;
+      pDescBuffer = pNewBuffer;
+      strcpy(pDescBuffer + DescLen, Buffer);
+      DescLen += LineLen;
+      pDescBuffer[DescLen] = '\n';
+      DescLen++;
     }
-    if (pDescriptionBuffer != NULL)
+    if (pDescBuffer != NULL)
     {
-      pDescriptionBuffer[DescriptionLength] = '\0';
-      SingleRoom.Description = pDescriptionBuffer;
+      pDescBuffer[DescLen] = '\0';
+      SingleRoom.Desc = pDescBuffer;
     }
     else
     {
-      sprintf(LogMsg, "ERROR: No description found for room in %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: No description found for room in %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     // Read Terrain
     if (!strncmp(Buffer, "Terrain: ", 9) == 0)
     {
-      sprintf(LogMsg, "ERROR: Invalid Terrain format in %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Invalid Terrain format in %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     SingleRoom.Terrain = strdup(Buffer + 9);
     // Read Flags
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     StripTrailingNlCr(Buffer);
-    LineNumber++;
+    LineNbr++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     if (!strncmp(Buffer, "Flags: ", 7) == 0)
     {
-      sprintf(LogMsg, "ERROR: Invalid Flags format in %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Invalid Flags format in %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     SingleRoom.Flags = strdup(Buffer + 7);
     // Read Exits
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to skip exits header line in %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to skip exits header line in %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
-    LineNumber++;
+    LineNbr++;
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
     StripTrailingNlCr(Buffer);
-    LineNumber++;
+    LineNbr++;
     Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
-      sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNumber);
+      sprintf(LogMsg, "ERROR: Failed to skip blank line after exits in %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
-    LineNumber++;
+    LineNbr++;
     pNewRoom = RoomAllocateAndCopy(&SingleRoom);
     RoomAddToRoomList();
   }
