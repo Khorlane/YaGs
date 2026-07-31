@@ -124,7 +124,7 @@ char                 *pOutPlus1;                      // Pointer to pOutput + 1
 char                 *pTmpStr;                        // Pointer into TmpStr
 char                 *pToken;                         // It's a token
 struct ConnList      *pActor;                         // Pointer to acting player in the connection list
-struct ConnList      *pPlayer;                        // Pointer to a connection in the connection list - generic usage
+struct ConnList      *pConn;                        // Pointer to a connection in the connection list - generic usage
 struct ConnList      *pConnSave;                      // Pointer to a connection in the connection list - save
 struct ConnList      *pConnCurr;                      // Pointer to current connection in the connection list
 struct ConnList      *pConnCurrSave;                  // Pointer to current connection in the connection list - save
@@ -595,11 +595,11 @@ void ProcessPlayerInput()
   pConnCurr = pConnHead;
   while (pConnCurr != NULL)
   {
-    pPlayer = pConnCurr;
-    if (pPlayer->Input[0] != '\0')
+    pConn = pConnCurr;
+    if (pConn->Input[0] != '\0')
     {
-      strcpy(Command, pPlayer->Input);
-      pPlayer->Input[0] = '\0';
+      strcpy(Command, pConn->Input);
+      pConn->Input[0] = '\0';
       ProcessCommand();
     }
     pConnCurr = pConnCurr->pConnNext;
@@ -613,7 +613,7 @@ void ProcessCommand()
   DEBUGIT(1)
   Trim(Command);
   LogIt(Command);
-  if (pPlayer->State != Online)
+  if (pConn->State != Online)
   {
     GetPlayerOnline();
     return;
@@ -721,7 +721,7 @@ bool MudCmdOk()
       Commands.Message  = (char*)CommandTable[i][CMD_MESSAGE];
       if (Equal(Commands.Admin, "Y"))
       { // Admin command?
-        if (pPlayer->Admin == 'N')
+        if (pConn->Admin == 'N')
         {
           break;
         }
@@ -731,14 +731,14 @@ bool MudCmdOk()
         if (Equal(Commands.Message, "None"))
         {
           sprintf(Buffer, "%s %s %s %s %s %s %s %s", "Too many or too few words in command,", "Min:", Commands.MinWords, "Max:", Commands.MaxWords, "Refer to help", Commands.Name, "\r\n");
-          strcat(pPlayer->Output, Buffer);
+          strcat(pConn->Output, Buffer);
         }
         else
         {
-          strcat(pPlayer->Output, Commands.Message);
+          strcat(pConn->Output, Commands.Message);
         }
-        strcat(pPlayer->Output, "\r\n\r\n");
-        Prompt(pPlayer);
+        strcat(pConn->Output, "\r\n\r\n");
+        Prompt(pConn);
         return false;
       }
       // Command is OK!
@@ -747,8 +747,8 @@ bool MudCmdOk()
     i++;
   }
   // Command is none of the above
-  strcat(pPlayer->Output, "Huh?\r\n\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "Huh?\r\n\r\n");
+  Prompt(pConn);
   return false;
 }
 
@@ -778,9 +778,9 @@ void DoAdvance()
   if (pTarget == NULL)
   {
     sprintf(Buffer, "%s %s", CmdParm1, "is not online\r\n");
-    strcat(pPlayer->Output, Buffer);
-    strcat(pPlayer->Output, "\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, Buffer);
+    strcat(pConn->Output, "\r\n");
+    Prompt(pConn);
     return;
   }
   Word(3, Command, CmdParm2);
@@ -789,21 +789,21 @@ void DoAdvance()
   if (x == y)
   { // New level same as current level
     sprintf(Buffer, "%s %s %s %s", CmdParm1, "is already at level", CmdParm2, "\r\n");
-    strcat(pPlayer->Output, Buffer);
-    strcat(pPlayer->Output, "\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, Buffer);
+    strcat(pConn->Output, "\r\n");
+    Prompt(pConn);
     return;
   }
   if (x > 127)
   { // Level is type char and max value is 127
     sprintf(Buffer, "%s %s %s", "Level", CmdParm2, "is invalid\r\n");
-    strcat(pPlayer->Output, Buffer);
-    strcat(pPlayer->Output, "\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, Buffer);
+    strcat(pConn->Output, "\r\n");
+    Prompt(pConn);
     return;
   }
   // Advance the target player
-  pActor = pPlayer;
+  pActor = pConn;
   if (x > y)
   {
     sprintf(TmpStr, "%s", "promoted");
@@ -826,10 +826,10 @@ void DoAdvance()
   strcat(pActor->Output, "\r\n\r\n");
   Prompt(pActor);
   // Save target player
-  pPlayer = pTarget;
+  pConn = pTarget;
   CopyConnListToPlayer();
   WritePlayerToFile();
-  pPlayer = pActor;
+  pConn = pActor;
 }
 
 // Manage the player's color settings in a game, allowing them to toggle color
@@ -839,16 +839,16 @@ void DoColor()
   DEBUGIT(1)
   if (Words(Command) == 1)
   {
-    if (pPlayer->Color == 'Y')
+    if (pConn->Color == 'Y')
     {
-      strcat(pPlayer->Output, "&CColor&N is &Mon&N.\r\n\r\n");
-      Prompt(pPlayer);
+      strcat(pConn->Output, "&CColor&N is &Mon&N.\r\n\r\n");
+      Prompt(pConn);
       return;
     }
-    if (pPlayer->Color == 'N')
+    if (pConn->Color == 'N')
     {
-      strcat(pPlayer->Output, "Color is off.\r\n\r\n");
-      Prompt(pPlayer);
+      strcat(pConn->Output, "Color is off.\r\n\r\n");
+      Prompt(pConn);
       return;
     }
   };
@@ -856,15 +856,15 @@ void DoColor()
   LowerCase(CmdParm1);
   if (Equal(CmdParm1, "on"))
   {
-    pPlayer->Color = 'Y';
-    strcat(pPlayer->Output, "You will now see &RP&Gr&Ye&Bt&Mt&Cy&N &RC&Go&Yl&Bo&Mr&Cs&N.\r\n\r\n");
-    Prompt(pPlayer);
+    pConn->Color = 'Y';
+    strcat(pConn->Output, "You will now see &RP&Gr&Ye&Bt&Mt&Cy&N &RC&Go&Yl&Bo&Mr&Cs&N.\r\n\r\n");
+    Prompt(pConn);
   }
   if (Equal(CmdParm1, "off"))
   {
-    pPlayer->Color = 'N';
-    strcat(pPlayer->Output, "Color is off.\r\n\r\n");
-    Prompt(pPlayer);
+    pConn->Color = 'N';
+    strcat(pConn->Output, "Color is off.\r\n\r\n");
+    Prompt(pConn);
   }
   CopyConnListToPlayer();
   WritePlayerToFile();
@@ -874,8 +874,8 @@ void DoColor()
 void DoEquipment()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "You have absolutely no equipment!\r\n\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "You have absolutely no equipment!\r\n\r\n");
+  Prompt(pConn);
 }
 
 // Go in a specified direction
@@ -887,39 +887,39 @@ void DoGo()
   DirectionNbr = DirectionLookUp(CmdParm1);
   if (DirectionNbr < 0)
   {
-    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "You go nowhere\r\n\r\n");
+    Prompt(pConn);
     return;
   }
-  pCurrentRoom = RoomLookUp(pPlayer->RoomNbr);
+  pCurrentRoom = RoomLookUp(pConn->RoomNbr);
   if (pCurrentRoom == NULL || pCurrentRoom->Exits == NULL)
   {
-    sprintf(LogMsg, "ERROR: Player is in missing room %d", pPlayer->RoomNbr);
+    sprintf(LogMsg, "ERROR: Player is in missing room %d", pConn->RoomNbr);
     LogIt(LogMsg);
-    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "You go nowhere\r\n\r\n");
+    Prompt(pConn);
     return;
   }
   Word((size_t)DirectionNbr + 1, pCurrentRoom->Exits, CmdParm2);
   if (Equal(CmdParm2, "xxxxx"))
   {
-    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "You go nowhere\r\n\r\n");
+    Prompt(pConn);
     return;
   }
   DestRoomNbr = atoi(CmdParm2);
   pDestinationRoom = RoomLookUp(DestRoomNbr);
   if (pDestinationRoom == NULL)
   {
-    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pPlayer->RoomNbr, DestRoomNbr);
+    sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pConn->RoomNbr, DestRoomNbr);
     LogIt(LogMsg);
-    strcat(pPlayer->Output, "You go nowhere\r\n\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "You go nowhere\r\n\r\n");
+    Prompt(pConn);
     return;
   }
-  pPlayer->RoomNbr = DestRoomNbr;
+  pConn->RoomNbr = DestRoomNbr;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
-  strcat(pPlayer->Output, Buffer);
+  strcat(pConn->Output, Buffer);
   DoLook();
 }
 
@@ -960,8 +960,8 @@ void DoHelp()
       {
         strcpy(Buffer, "\r\n");
       }
-      strcat(pPlayer->Output, Buffer);
-      strcat(pPlayer->Output,"\r\n");
+      strcat(pConn->Output, Buffer);
+      strcat(pConn->Output,"\r\n");
       if (Equal(Buffer, "Related help: 'Help Help' Newbie NPC Object Room"))
       {
         Found = true;
@@ -979,8 +979,8 @@ void DoHelp()
       Found = true;
       continue;
     }
-    strcat(pPlayer->Output, Buffer);
-    strcat(pPlayer->Output, "\r\n");
+    strcat(pConn->Output, Buffer);
+    strcat(pConn->Output, "\r\n");
     if (strstr(Buffer, "Related help:"))
     {
       break;
@@ -988,49 +988,49 @@ void DoHelp()
   }
   if (!Found)
   {
-    strcat(pPlayer->Output, "Help topic not found\r\n");
+    strcat(pConn->Output, "Help topic not found\r\n");
   }
   fclose(HelpFile);
-  strcat(pPlayer->Output, "\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
 }
 
 // Display the player's inventory.
 void DoInventory()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "You look into your bag and find it empty\r\n\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "You look into your bag and find it empty\r\n\r\n");
+  Prompt(pConn);
 }
 
 // Attack something.
 void DoKill()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "You kill something\r\n\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "You kill something\r\n\r\n");
+  Prompt(pConn);
 }
 
 // Display the current room and its contents to the player.
 void DoLook()
 {
   DEBUGIT(1)
-  pRoom = RoomLookUp(pPlayer->RoomNbr);
-  if (pPlayer->Admin == 'N')
+  pRoom = RoomLookUp(pConn->RoomNbr);
+  if (pConn->Admin == 'N')
   {
     sprintf(Buffer, "\r\n&C%s&N\r\n", pRoom->Name);
   }
   else
   {
-    sprintf(Buffer, "\r\n&C%s&N &M[&N%d %s&M]&N\r\n", pRoom->Name, pPlayer->RoomNbr, pRoom->Terrain);
+    sprintf(Buffer, "\r\n&C%s&N &M[&N%d %s&M]&N\r\n", pRoom->Name, pConn->RoomNbr, pRoom->Terrain);
   }
-  strcat(pPlayer->Output, Buffer);
+  strcat(pConn->Output, Buffer);
   sprintf(Buffer, "%s", pRoom->Desc);
-  strcat(pPlayer->Output, Buffer);
+  strcat(pConn->Output, Buffer);
   RoomExits = RoomGetExits(pRoom);
   sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomExits);
-  strcat(pPlayer->Output, Buffer);
-  Prompt(pPlayer);
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
 }
 
 // Calculate the elapsed time since a player's birth in days, hours, minutes,
@@ -1040,7 +1040,7 @@ void DoPlayed()
 {
   DEBUGIT(1)
   CurrentTime = time(NULL);
-  ElapsedTime = difftime(CurrentTime, pPlayer->Born);
+  ElapsedTime = difftime(CurrentTime, pConn->Born);
   // Calculate days, hours, minutes, and seconds
   Days        = (int)(ElapsedTime / (24 * 3600));
   ElapsedTime = fmod(ElapsedTime, (24 * 3600));
@@ -1049,9 +1049,9 @@ void DoPlayed()
   Minutes     = (int)(ElapsedTime / 60);
   Seconds     = (int)fmod(ElapsedTime, 60);
   sprintf(Buffer, "Your age is : %d days, %d hours, %d minutes, %d seconds\n", Days, Hours, Minutes, Seconds);
-  strcat(pPlayer->Output, Buffer);
-  strcat(pPlayer->Output, "\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, Buffer);
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
 }
 
 // Generate a formatted player file listing by reading player data from the
@@ -1059,25 +1059,25 @@ void DoPlayed()
 void DoPlayerfile()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "\r\n");
-  strcat(pPlayer->Output, "&C");
-  strcat(pPlayer->Output, "Player file listing\r\n");
-  strcat(pPlayer->Output, "&N");
-  strcat(pPlayer->Output, "-------------------\r\n");
-  strcat(pPlayer->Output, "Name       Admin Color Level Experience\r\n");
+  strcat(pConn->Output, "\r\n");
+  strcat(pConn->Output, "&C");
+  strcat(pConn->Output, "Player file listing\r\n");
+  strcat(pConn->Output, "&N");
+  strcat(pConn->Output, "-------------------\r\n");
+  strcat(pConn->Output, "Name       Admin Color Level Experience\r\n");
   EndFile = false;
   PlayerNbr = 1;
   ReadPlayerFromFile();
   while (EndFile == false)
   {
     sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", PlayerRcd.Name, " ", PlayerRcd.Admin, " ", PlayerRcd.Color, " ", PlayerRcd.Level, " ", PlayerRcd.Experience);
-    strcat(pPlayer->Output, Buffer);
-    strcat(pPlayer->Output, "\r\n");
+    strcat(pConn->Output, Buffer);
+    strcat(pConn->Output, "\r\n");
     PlayerNbr++;
     ReadPlayerFromFile();
   }
-  strcat(pPlayer->Output, "\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
 }
 
 // Handle the process of disconnecting a player by saving their data to the
@@ -1087,9 +1087,9 @@ void DoQuit()
   DEBUGIT(1)
   CopyConnListToPlayer();
   WritePlayerToFile();
-  strcat(pPlayer->Output, "Bye Bye");
-  strcat(pPlayer->Output, "\r\n");
-  pPlayer->State = Disconnect;
+  strcat(pConn->Output, "Bye Bye");
+  strcat(pConn->Output, "\r\n");
+  pConn->State = Disconnect;
 }
 
 // Initiate the shutdown process of the game by setting a shutdown flag,
@@ -1106,49 +1106,49 @@ void DoShutdown()
 void DoStatus()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "\r\n");
+  strcat(pConn->Output, "\r\n");
   // Name
-  sprintf(Buffer, "Name: %s\r\n", pPlayer->Name);
-  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "Name: %s\r\n", pConn->Name);
+  strcat(pConn->Output, Buffer);
   // Afk
-  sprintf(Buffer, "AFK: %c\r\n", pPlayer->Afk);
-  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "AFK: %c\r\n", pConn->Afk);
+  strcat(pConn->Output, Buffer);
   // Born
-  strcpy(TmpStr, ctime(&pPlayer->Born));
+  strcpy(TmpStr, ctime(&pConn->Born));
   TmpStr[strlen(TmpStr) - 1] = '\0';
   sprintf(Buffer, "Born: %s\r\n", TmpStr);
-  strcat(pPlayer->Output, Buffer);
+  strcat(pConn->Output, Buffer);
   // Color
-  sprintf(Buffer, "Color: %c\r\n", pPlayer->Color);
-  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "Color: %c\r\n", pConn->Color);
+  strcat(pConn->Output, Buffer);
   // Experience
-  sprintf(Buffer, "Experience: %i\r\n", pPlayer->Experience);
-  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "Experience: %i\r\n", pConn->Experience);
+  strcat(pConn->Output, Buffer);
   // Level
-  sprintf(Buffer, "Level: %i\r\n", pPlayer->Level);
-  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "Level: %i\r\n", pConn->Level);
+  strcat(pConn->Output, Buffer);
   //  Sex
-  sprintf(Buffer, "Sex: %c\r\n", pPlayer->Sex);
-  strcat(pPlayer->Output, Buffer);
+  sprintf(Buffer, "Sex: %c\r\n", pConn->Sex);
+  strcat(pConn->Output, Buffer);
   // Admin
-  if (pPlayer->Admin == 'Y')
+  if (pConn->Admin == 'Y')
   {
-    strcat(pPlayer->Output, "Your are an Admin!\r\n");
+    strcat(pConn->Output, "Your are an Admin!\r\n");
   }
-  strcat(pPlayer->Output, "\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
 }
 
 // Display a formatted list of online players, with level, etc.
 void DoWho()
 {
   DEBUGIT(1)
-  strcat(pPlayer->Output, "\r\n");
-  strcat(pPlayer->Output, "&C");
-  strcat(pPlayer->Output, "Players online\r\n");
-  strcat(pPlayer->Output, "&N");
-  strcat(pPlayer->Output, "-------------------\r\n");
-  strcat(pPlayer->Output, "Name       Level \r\n");
+  strcat(pConn->Output, "\r\n");
+  strcat(pConn->Output, "&C");
+  strcat(pConn->Output, "Players online\r\n");
+  strcat(pConn->Output, "&N");
+  strcat(pConn->Output, "-------------------\r\n");
+  strcat(pConn->Output, "Name       Level \r\n");
   pConnCurrSave = pConnCurr;
   pConnCurr     = pConnHead;
   while (pConnCurr != NULL)
@@ -1156,13 +1156,13 @@ void DoWho()
     if (pConnCurr->State == Online)
     {
       sprintf(Buffer, "%-10s %2s %2i", pConnCurr->Name, " ", pConnCurr->Level);
-      strcat(pPlayer->Output, Buffer);
-      strcat(pPlayer->Output, "\r\n");
+      strcat(pConn->Output, Buffer);
+      strcat(pConn->Output, "\r\n");
     }
     pConnCurr = pConnCurr->pConnNext;
   }
-  strcat(pPlayer->Output, "\r\n");
-  Prompt(pPlayer);
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
   pConnCurr = pConnCurrSave;
 }
 
@@ -1181,7 +1181,7 @@ void Prompt(ConnList *pPlayer)
 void SendToAll()
 {
   DEBUGIT(1)
-  pConnSave     = pPlayer;
+  pConnSave     = pConn;
   pConnCurrSave = pConnCurr;
   pConnCurr     = pConnHead;
   while (pConnCurr != NULL)
@@ -1191,16 +1191,16 @@ void SendToAll()
       pConnCurr = pConnCurr->pConnNext;
       continue;
     }
-    pPlayer = pConnCurr;
-    if (pPlayer != pConnSave)
+    pConn = pConnCurr;
+    if (pConn != pConnSave)
     {
-      strcat(pPlayer->Output,"\r\n");
+      strcat(pConn->Output,"\r\n");
     }
-    strcat(pPlayer->Output, MsgTxt);
-    Prompt(pPlayer);
+    strcat(pConn->Output, MsgTxt);
+    Prompt(pConn);
     pConnCurr = pConnCurr->pConnNext;
   }
-  pPlayer   = pConnSave;
+  pConn   = pConnSave;
   pConnCurr = pConnCurrSave;
 }
 
@@ -1217,166 +1217,166 @@ void GetPlayerOnline()
   //***********************************
   // Send Greeting
   //***********************************
-  if (pPlayer->State == Send_Greeting)
+  if (pConn->State == Send_Greeting)
   {
     SendGreeting();
-    pPlayer->State = Wait_New_Player_YN;
-    Prompt(pPlayer);
+    pConn->State = Wait_New_Player_YN;
+    Prompt(pConn);
     return;
   }
   //***********************************
   // New player Y-N
   //***********************************
-  if (pPlayer->State == Wait_New_Player_YN)
+  if (pConn->State == Wait_New_Player_YN)
   {
     if (Equal(Command, "n"))
     { // Returning Player
-      strcat(pPlayer->Output,"\r\nName?\r\n");
-      pPlayer->State = Wait_Player_Name;
-      Prompt(pPlayer);
+      strcat(pConn->Output,"\r\nName?\r\n");
+      pConn->State = Wait_Player_Name;
+      Prompt(pConn);
       return;
     }
     if (Equal(Command, "y"))
     { // New Player
-      strcat(pPlayer->Output,"\r\nSex M-F?\r\n");
-      pPlayer->State = Wait_Sex;
-      Prompt(pPlayer);
+      strcat(pConn->Output,"\r\nSex M-F?\r\n");
+      pConn->State = Wait_Sex;
+      Prompt(pConn);
       return;
     }
     // Player didn't respond with a Y or N
-    strcat(pPlayer->Output, "\r\nNew Player? Y or N\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "\r\nNew Player? Y or N\r\n");
+    Prompt(pConn);
     return;
   }
   //***********************************
   // Returning player - Name
   //***********************************
-  if (pPlayer->State == Wait_Player_Name)
+  if (pConn->State == Wait_Player_Name)
   {
     NormalizePlayerName(Command);
     if (PlayerNameValid())
     { // Name is valid, ask for password
       CopyPlayerToConnList();
-      strcat(pPlayer->Output, "\r\nPassword?\r\n");
-      pPlayer->State = Wait_Password;
-      Prompt(pPlayer);
+      strcat(pConn->Output, "\r\nPassword?\r\n");
+      pConn->State = Wait_Password;
+      Prompt(pConn);
       return;
     }
     // Didn't find player name, try again
-    strcat(pPlayer->Output, "\r\n");
-    strcat(pPlayer->Output, Command);
-    strcat(pPlayer->Output, " not found, try again\r\n");
-    strcat(pPlayer->Output, "\r\nName?\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "\r\n");
+    strcat(pConn->Output, Command);
+    strcat(pConn->Output, " not found, try again\r\n");
+    strcat(pConn->Output, "\r\nName?\r\n");
+    Prompt(pConn);
     return;
   }
   //***********************************
   // Returning player - Password
   //***********************************
-  if (pPlayer->State == Wait_Password)
+  if (pConn->State == Wait_Password)
   {
-    if (Equal(Command, pPlayer->Password))
+    if (Equal(Command, pConn->Password))
     { // Password is valid
       SendMotd();
-      pPlayer->State = Online;
+      pConn->State = Online;
       DoLook();
       return;
     }
     // Wrong password
-    strcat(pPlayer->Output, "\r\nWrong password, try again\r\n");
-    strcat(pPlayer->Output, "\r\nPassword?\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "\r\nWrong password, try again\r\n");
+    strcat(pConn->Output, "\r\nPassword?\r\n");
+    Prompt(pConn);
     return;
   }
   //***********************************
   // New player - Sex
   //***********************************
-  if (pPlayer->State == Wait_Sex)
+  if (pConn->State == Wait_Sex)
   {
     if (Equal(Command, "m"))
     {
-      pPlayer->Sex = 'M';
-      strcat(pPlayer->Output, "\r\nName?\r\n");
-      pPlayer->State = Wait_New_Player_Name;
-      Prompt(pPlayer);
+      pConn->Sex = 'M';
+      strcat(pConn->Output, "\r\nName?\r\n");
+      pConn->State = Wait_New_Player_Name;
+      Prompt(pConn);
       return;
     }
     if (Equal(Command, "f"))
     {
-      pPlayer->Sex = 'F';
-      strcat(pPlayer->Output, "\r\nName?\r\n");
-      pPlayer->State = Wait_New_Player_Name;
-      Prompt(pPlayer);
+      pConn->Sex = 'F';
+      strcat(pConn->Output, "\r\nName?\r\n");
+      pConn->State = Wait_New_Player_Name;
+      Prompt(pConn);
       return;
     }
-    strcat(pPlayer->Output, "\r\nSex not M or F, try again\r\n");
-    strcat(pPlayer->Output, "\r\nSex M-F?\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "\r\nSex not M or F, try again\r\n");
+    strcat(pConn->Output, "\r\nSex M-F?\r\n");
+    Prompt(pConn);
     return;
   }
   //***********************************
   // New player - Name
   //***********************************
-  if (pPlayer->State == Wait_New_Player_Name)
+  if (pConn->State == Wait_New_Player_Name)
   {
     NormalizePlayerName(Command);
     if (PlayerNameValid())
     { // Name is valid, ask for password
-      strcpy(pPlayer->Name, Command);
-      strcat(pPlayer->Output, "\r\nPassword?\r\n");
-      pPlayer->BadPswdCount = 0;
-      pPlayer->State = Wait_Password1;
-      Prompt(pPlayer);
+      strcpy(pConn->Name, Command);
+      strcat(pConn->Output, "\r\nPassword?\r\n");
+      pConn->BadPswdCount = 0;
+      pConn->State = Wait_Password1;
+      Prompt(pConn);
       return;
     }
     // Didn't find player name, try again
-    strcat(pPlayer->Output, "\r\n");
-    strcat(pPlayer->Output, Command);
-    strcat(pPlayer->Output, " not found, try again\r\n");
-    strcat(pPlayer->Output, "\r\nName?\r\n");
-    Prompt(pPlayer);
+    strcat(pConn->Output, "\r\n");
+    strcat(pConn->Output, Command);
+    strcat(pConn->Output, " not found, try again\r\n");
+    strcat(pConn->Output, "\r\nName?\r\n");
+    Prompt(pConn);
     return;
   }
   //***********************************
   // New player - Password1
   //***********************************
-  if (pPlayer->State == Wait_Password1)
+  if (pConn->State == Wait_Password1)
   {
-    strcpy(pPlayer->Password, Command);
-    strcat(pPlayer->Output, "\r\nRe-enter Password\r\n");
-    pPlayer->State = Wait_Password2;
-    Prompt(pPlayer);
+    strcpy(pConn->Password, Command);
+    strcat(pConn->Output, "\r\nRe-enter Password\r\n");
+    pConn->State = Wait_Password2;
+    Prompt(pConn);
     return;
   }
   //***********************************
   // New player - Password2
   //***********************************
-  if (pPlayer->State == Wait_Password2)
+  if (pConn->State == Wait_Password2)
   {
-    if (Equal(pPlayer->Password, Command))
+    if (Equal(pConn->Password, Command))
     {
       GetNextPlayerNbr();
       InitalizeNewPlayer();
       AddPlayerToFile();
       CopyPlayerToConnList();
       SendMotd();
-      pPlayer->State = Online;
+      pConn->State = Online;
       DoLook();
       return;
     }
     // Check bad password count
-    pPlayer->BadPswdCount++;
-    if (pPlayer->BadPswdCount > 3)
+    pConn->BadPswdCount++;
+    if (pConn->BadPswdCount > 3)
     {
-      strcat(pPlayer->Output, "\r\nThree tries, you're out!\r\n");
-      pPlayer->State = Disconnect;
+      strcat(pConn->Output, "\r\nThree tries, you're out!\r\n");
+      pConn->State = Disconnect;
       return;
     }
     // Password don't match, try again
-    strcat(pPlayer->Output, "\r\nPasswords don't match, try again\r\n");
-    strcat(pPlayer->Output, "\r\nPassword?\r\n");
-    pPlayer->State = Wait_Password1;
-    Prompt(pPlayer);
+    strcat(pConn->Output, "\r\nPasswords don't match, try again\r\n");
+    strcat(pConn->Output, "\r\nPassword?\r\n");
+    pConn->State = Wait_Password1;
+    Prompt(pConn);
     return;
   }
   strcpy(LogMsg,"ERROR: Logic - should never get here!");
@@ -1408,7 +1408,7 @@ void SendGreeting()
     {
       break;
     }
-    strcat(pPlayer->Output, Buffer);
+    strcat(pConn->Output, Buffer);
   }
   fclose(GreetingFile);
 }
@@ -1437,10 +1437,10 @@ void SendMotd()
     {
       break;
     }
-    strcat(pPlayer->Output, Buffer);
+    strcat(pConn->Output, Buffer);
   }
   fclose(MotdFile);
-  strcat(pPlayer->Output, "\r\n");
+  strcat(pConn->Output, "\r\n");
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1609,22 +1609,22 @@ void SocketGetPlayerInput()
   pConnCurr = pConnHead;
   while (pConnCurr != NULL)
   {
-    pPlayer = pConnCurr;
-    Socket = pPlayer->Socket;
-    pPlayer->Input[0] = '\0';
+    pConn = pConnCurr;
+    Socket = pConn->Socket;
+    pConn->Input[0] = '\0';
     if (FD_ISSET(Socket, &InpSet))
     {
       BytesRead = read(Socket, Buffer, 1024);
       Buffer[BytesRead] = '\0';
-      strcpy(pPlayer->Input, Buffer);
-      if (strlen(pPlayer->Input) > 0)
+      strcpy(pConn->Input, Buffer);
+      if (strlen(pConn->Input) > 0)
       {
-        pPlayer->NoInputTick = 0;
-        pPlayer->NoInputCount = 0;
+        pConn->NoInputTick = 0;
+        pConn->NoInputCount = 0;
       }
       else
       {
-        pPlayer->NoInputTick++;
+        pConn->NoInputTick++;
       }
     }
     pConnCurr = pConnCurr->pConnNext;
@@ -1639,33 +1639,33 @@ void SocketSendPlayerOutput()
   pConnCurr = pConnHead;
   while (pConnCurr != NULL)
   {
-    pPlayer = pConnCurr;
-    if (pPlayer->NoInputTick > NO_INPUT_TICK)
+    pConn = pConnCurr;
+    if (pConn->NoInputTick > NO_INPUT_TICK)
     {
-      pPlayer->NoInputTick = 0;
-      pPlayer->NoInputCount++;
-      if (pPlayer->NoInputCount > NO_INPUT_COUNT_LIMIT)
+      pConn->NoInputTick = 0;
+      pConn->NoInputCount++;
+      if (pConn->NoInputCount > NO_INPUT_COUNT_LIMIT)
       {
-        pPlayer->State = Disconnect;
-        strcat(pPlayer->Output, "You are being disconnected. Bye Bye.\r\n\r\n");
-        Prompt(pPlayer);
+        pConn->State = Disconnect;
+        strcat(pConn->Output, "You are being disconnected. Bye Bye.\r\n\r\n");
+        Prompt(pConn);
       }
       else
       {
-        strcat(pPlayer->Output, "Are you still there?\r\n\r\n");
-        Prompt(pPlayer);
+        strcat(pConn->Output, "Are you still there?\r\n\r\n");
+        Prompt(pConn);
       }
     }
-    if (pPlayer->Output[0] == '\0')
+    if (pConn->Output[0] == '\0')
     {
       pConnCurr = pConnCurr->pConnNext;
       continue;
     }
     Color();
-    strcpy(Buffer, pPlayer->Output);
-    pPlayer->Output[0] = '\0';
+    strcpy(Buffer, pConn->Output);
+    pConn->Output[0] = '\0';
     BufferLen = strlen(Buffer);
-    Socket = pPlayer->Socket;
+    Socket = pConn->Socket;
     SendResult = send(Socket, Buffer, BufferLen, 0);
     if (SendResult != BufferLen)
     {
@@ -1689,10 +1689,10 @@ void SocketDisconnectPlayers()
   pConnCurr = pConnHead;
   while (pConnCurr != NULL)
   {
-    pPlayer = pConnCurr;
-    if (pPlayer->State == Disconnect)
+    pConn = pConnCurr;
+    if (pConn->State == Disconnect)
     {
-      close(pPlayer->Socket);
+      close(pConn->Socket);
       DelFromConnList();
       continue;
     }
@@ -1747,8 +1747,8 @@ void ShutItDown()
 void AddToConnList()
 {
   DEBUGIT(1)
-  pPlayer   = (ConnList *)malloc(sizeof(ConnList));
-  pConnCurr = pPlayer;
+  pConn   = (ConnList *)malloc(sizeof(ConnList));
+  pConnCurr = pConn;
   if (pConnHead != NULL)
   { // Not 1st Node
     pConnTail->pConnNext = pConnCurr;
@@ -1760,12 +1760,12 @@ void AddToConnList()
     pConnHead = pConnCurr;
     pConnTail = pConnCurr;
   }
-  pPlayer->Socket       = Socket;
-  pPlayer->State        = Send_Greeting;
-  pPlayer->Output[0]    = '\0';
-  pPlayer->NoInputTick  = 0;
-  pPlayer->NoInputCount = 0;
-  pPlayer->pConnNext    = NULL;
+  pConn->Socket       = Socket;
+  pConn->State        = Send_Greeting;
+  pConn->Output[0]    = '\0';
+  pConn->NoInputTick  = 0;
+  pConn->NoInputCount = 0;
+  pConn->pConnNext    = NULL;
 }
 
 // Remove the current connection node from the doubly linked connection list, handling
@@ -1805,8 +1805,8 @@ void DelFromConnList()
     pConnCurr->pConnNext->pConnPrev = pConnCurr->pConnPrev;
   }
   // Free node
-  pConnCurr = pPlayer->pConnNext;
-  free(pPlayer);
+  pConnCurr = pConn->pConnNext;
+  free(pConn);
 }
 
 // Copy saved Player data to the current connection entry and initialize its
@@ -1814,36 +1814,36 @@ void DelFromConnList()
 void CopyPlayerToConnList()
 {
   DEBUGIT(1)
-  strcpy(pPlayer->Name,     PlayerRcd.Name);
-  strcpy(pPlayer->Password, PlayerRcd.Password);
-  pPlayer->Admin          = PlayerRcd.Admin;
-  pPlayer->Afk            = PlayerRcd.Afk;
-  pPlayer->Born           = PlayerRcd.Born;
-  pPlayer->Color          = PlayerRcd.Color;
-  pPlayer->Experience     = PlayerRcd.Experience;
-  pPlayer->Level          = PlayerRcd.Level;
-  pPlayer->Sex            = PlayerRcd.Sex;
-  pPlayer->RoomNbr        = PlayerRcd.RoomNbr;
-  pPlayer->PlayerNbr      = PlayerNbr;
-  pPlayer->BadPswdCount   = 0;
-  pPlayer->NoInputTick    = 0;
-  pPlayer->NoInputCount   = 0;
+  strcpy(pConn->Name,     PlayerRcd.Name);
+  strcpy(pConn->Password, PlayerRcd.Password);
+  pConn->Admin          = PlayerRcd.Admin;
+  pConn->Afk            = PlayerRcd.Afk;
+  pConn->Born           = PlayerRcd.Born;
+  pConn->Color          = PlayerRcd.Color;
+  pConn->Experience     = PlayerRcd.Experience;
+  pConn->Level          = PlayerRcd.Level;
+  pConn->Sex            = PlayerRcd.Sex;
+  pConn->RoomNbr        = PlayerRcd.RoomNbr;
+  pConn->PlayerNbr      = PlayerNbr;
+  pConn->BadPswdCount   = 0;
+  pConn->NoInputTick    = 0;
+  pConn->NoInputCount   = 0;
 }
 
 // Copy player data from the current connection entry to the saved Player data.
 void CopyConnListToPlayer()
 {
   DEBUGIT(1)
-  strcpy(PlayerRcd.Name,     pPlayer->Name);
-  strcpy(PlayerRcd.Password, pPlayer->Password);
-  PlayerRcd.Admin          = pPlayer->Admin;
-  PlayerRcd.Afk            = pPlayer->Afk;
-  PlayerRcd.Born           = pPlayer->Born;
-  PlayerRcd.Color          = pPlayer->Color;
-  PlayerRcd.Experience     = pPlayer->Experience;
-  PlayerRcd.Level          = pPlayer->Level;
-  PlayerRcd.Sex            = pPlayer->Sex;
-  PlayerRcd.RoomNbr        = pPlayer->RoomNbr;
+  strcpy(PlayerRcd.Name,     pConn->Name);
+  strcpy(PlayerRcd.Password, pConn->Password);
+  PlayerRcd.Admin          = pConn->Admin;
+  PlayerRcd.Afk            = pConn->Afk;
+  PlayerRcd.Born           = pConn->Born;
+  PlayerRcd.Color          = pConn->Color;
+  PlayerRcd.Experience     = pConn->Experience;
+  PlayerRcd.Level          = pConn->Level;
+  PlayerRcd.Sex            = pConn->Sex;
+  PlayerRcd.RoomNbr        = pConn->RoomNbr;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1886,11 +1886,11 @@ long GetPlayerFileOffset()
 bool PlayerNameValid()
 {
   DEBUGIT(1)
-  if (pPlayer->State == Wait_Player_Name)
+  if (pConn->State == Wait_Player_Name)
   {
     return PlayerNameValidOld();
   }
-  if (pPlayer->State == Wait_New_Player_Name)
+  if (pConn->State == Wait_New_Player_Name)
   {
     return PlayerNameValidNew();
   }
@@ -1978,7 +1978,7 @@ void ReadPlayerFromFile()
 void WritePlayerToFile()
 {
   DEBUGIT(1)
-  PlayerNbr = pPlayer->PlayerNbr;
+  PlayerNbr = pConn->PlayerNbr;
   ReturnValue1 = fseek(PlayerFile, GetPlayerFileOffset(), SEEK_SET);
   if (ReturnValue1 != 0)
   {
@@ -2006,7 +2006,7 @@ void AddPlayerToFile()
   DEBUGIT(1)
   if (ftell(PlayerFile) == 0)
   { // Player file has no records, so this MUST be an Admin!
-    pPlayer->Admin = 'Y';
+    pConn->Admin = 'Y';
     PlayerRcd.Admin   = 'Y';
   };
   ReturnValue1 = fseek(PlayerFile, 0, SEEK_END);
@@ -2033,15 +2033,15 @@ void AddPlayerToFile()
 void InitalizeNewPlayer()
 {
   DEBUGIT(1)
-  strcpy(PlayerRcd.Name,     pPlayer->Name);
-  strcpy(PlayerRcd.Password, pPlayer->Password);
+  strcpy(PlayerRcd.Name,     pConn->Name);
+  strcpy(PlayerRcd.Password, pConn->Password);
   PlayerRcd.Admin          = 'N';
   PlayerRcd.Afk            = 'N';
   PlayerRcd.Born           = time(NULL);
   PlayerRcd.Color          = 'N';
   PlayerRcd.Experience     = 0;
   PlayerRcd.Level          = 1;
-  PlayerRcd.Sex            = pPlayer->Sex;
+  PlayerRcd.Sex            = pConn->Sex;
   PlayerRcd.RoomNbr        = PLAYER_START_ROOM;
 }
 
@@ -2219,8 +2219,8 @@ void AbortIt()
 void Color()
 {
   DEBUGIT(2)
-  if (strchr(pPlayer->Output, '&') == NULL) return;
-  pOutput = &pPlayer->Output[0];
+  if (strchr(pConn->Output, '&') == NULL) return;
+  pOutput = &pConn->Output[0];
   pTmpStr = &TmpStr[0];
   while (*pOutput)
   { // Loop here until we hit an '&'
@@ -2230,7 +2230,7 @@ void Color()
       if (*pOutput == '\0')
       { // We are done
         *pTmpStr = '\0';
-        strcpy(pPlayer->Output, TmpStr);
+        strcpy(pConn->Output, TmpStr);
         return;
       }
       pOutput++;
@@ -2269,7 +2269,7 @@ void Color()
       pColor = BrightWhite;
       break;
     }
-    if (pPlayer->Color == 'N')
+    if (pConn->Color == 'N')
     {
       pColor = None;
     }
