@@ -2,190 +2,192 @@
 //* Yet another Game server *
 //***************************
 
-#define VERSION "Version 1.0.5"                       // Version number
-#define _DEFAULT_SOURCE                               // Required for a bunch of BSD socket stuff
-#pragma GCC diagnostic push                           // Ignore warnings about sections
-#pragma GCC diagnostic ignored "-Wunreachable-code"   //   of unreachable code.
+#define VERSION "Version 1.0.5"                          // Version number
+#define _DEFAULT_SOURCE                                  // Required for a bunch of BSD socket stuff
+#pragma GCC diagnostic push                              // Ignore warnings about sections
+#pragma GCC diagnostic ignored "-Wunreachable-code"      //   of unreachable code.
 
-#ifdef __INTELLISENSE__                              // Visual Studio does not recognize this GCC built-in
-static inline void __builtin_free(void *Ptr)         //   while parsing newer glibc headers.
-{                                                    //   __builtin_free is in stdlib.h and Intellisense
-  (void)Ptr;                                         //   doesn't understand and throws warning:
-}                                                    //   Warning VCR001  Function definition for '__builtin_free' not found.
-#endif                                               // This block is here to shut Intellisense up
+#ifdef __INTELLISENSE__                                  // Visual Studio does not recognize this GCC built-in
+static inline void __builtin_free(void *Ptr)             //   while parsing newer glibc headers.
+{                                                        //   __builtin_free is in stdlib.h and Intellisense
+  (void)Ptr;                                             //   doesn't understand and throws warning:
+}                                                        //   Warning VCR001  Function definition for '__builtin_free' not found.
+#endif                                                   // This block is here to shut Intellisense up
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Includes
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-#include <arpa/inet.h>                                // This and sys/socket.h - a whole plethora of socket related stuff
-#include <ctype.h>                                    // isspace(), tolower(), toupper()
-#include <errno.h>                                    // errno, EINTR
-#include <fcntl.h>                                    // fcntl(), F_SETFL, FNDELAY
-#include <math.h>                                     // fmod()
-#include <stdbool.h>                                  // bool, true, false
-#include <stdio.h>                                    // a whole bunch of i/o functions
-#include <stdlib.h>                                   // atoi(), exit(), free(), malloc(), realloc()
-#include <string.h>                                   // a whole bunch of string functions
-#include <sys/socket.h>                               // This and arpa/inet - a whole plethora of socket related stuff
-#include <time.h>                                     // ctime(), difftime(), time(), time_t
-#include <unistd.h>                                   // close(), fsync(), read(), usleep()
+#include <arpa/inet.h>                                   // This and sys/socket.h - a whole plethora of socket related stuff
+#include <ctype.h>                                       // isspace(), tolower(), toupper()
+#include <errno.h>                                       // errno, EINTR
+#include <fcntl.h>                                       // fcntl(), F_SETFL, FNDELAY
+#include <math.h>                                        // fmod()
+#include <stdbool.h>                                     // bool, true, false
+#include <stdio.h>                                       // a whole bunch of i/o functions
+#include <stdlib.h>                                      // atoi(), exit(), free(), malloc(), realloc()
+#include <string.h>                                      // a whole bunch of string functions
+#include <sys/socket.h>                                  // This and arpa/inet - a whole plethora of socket related stuff
+#include <time.h>                                        // ctime(), difftime(), time(), time_t
+#include <unistd.h>                                      // close(), fsync(), read(), usleep()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Macros
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Configuration
-#define DEBUGIT(dl)           if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
-#define DEBUGIT_LVL           1                       // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
-#define PORT                  3737                    // Port number
-#define SLEEP_TIME            0400000                 // Sleep for a short period of time
-#define USE_USLEEP            'N'                     // Use usleep() Y or N
+#define DEBUGIT(dl)             if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
+#define DEBUGIT_LVL             1                        // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
+#define PORT                    3737                     // Port number
+#define SLEEP_TIME              0400000                  // Sleep for a short period of time
+#define USE_USLEEP              'N'                      // Use usleep() Y or N
 // Directories
-#define YAGS_DIR              "/mnt/c/Projects/YaGs"  // YaGs top level directory path
-#define LIB_DIR               "Library"               // Library directory
-#define WORLD_DIR             "World"                 // World directory
-#define LOG_DIR               "Logs"                  // Log directory
+#define YAGS_DIR                "/mnt/c/Projects/YaGs"   // YaGs top level directory path
+#define LIB_DIR                 "Library"                // Library directory
+#define WORLD_DIR               "World"                  // World directory
+#define LOG_DIR                 "Logs"                   // Log directory
 // Library directory contents
-#define GREETING_FILE         "Greeting.txt"          // Greeting file
-#define HELP_FILE             "Help.txt"              // Help file
-#define MOTD_FILE             "Motd.txt"              // Message of the day file
-#define VALID_NAMES_FILE      "ValidNames.txt"        // Valid names file
+#define GREETING_FILE           "Greeting.txt"           // Greeting file
+#define HELP_FILE               "Help.txt"               // Help file
+#define MOTD_FILE               "Motd.txt"               // Message of the day file
+#define VALID_NAMES_FILE        "ValidNames.txt"         // Valid names file
 // Log directory contents
-#define LOG_FILE              "Log.txt"               // Log file
+#define LOG_FILE                "Log.txt"                // Log file
 // World directory contents
-#define MOBILES_FILE          "Mobiles.txt"           // Mobiles file
-#define OBJECTS_FILE          "Objects.txt"           // Objects file
-#define ROOMS_FILE            "Rooms.txt"             // Rooms file
-#define PLAYER_FILE           "Player.yags"           // Player file
-#define PLAYER_START_ROOM     120                     // Player start room
+#define MOBILES_FILE            "Mobiles.txt"            // Mobiles file
+#define OBJECTS_FILE            "Objects.txt"            // Objects file
+#define ROOMS_FILE              "Rooms.txt"              // Rooms file
+#define PLAYER_FILE             "Player.yags"            // Player file
+#define PLAYER_START_ROOM       120                      // Player start room
 // Timer events
-#define NO_INPUT_TICK         500                     // Ticks before checking if player is still there
-#define NO_INPUT_COUNT_LIMIT  3                       // Triggers player disconnect after this limit is hit
+#define NO_INPUT_TICK           500                      // Ticks before checking if player is still there
+#define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
+#define PLAYER_AUTOSAVE_SECONDS 60                       // Seconds between dirty player saves
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Globals
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Booleans
-bool                  EndFile;                         // File access - End of file
-bool                  Found;                           // File access - Record found
-bool                  GameShutDown;                    // Set this to true to stop the game
-bool                  NoPlayers;                       // True when we have no players
+bool                  EndFile;                           // File access - End of file
+bool                  Found;                             // File access - Record found
+bool                  GameShutDown;                      // Set this to true to stop the game
+bool                  NoPlayers;                         // True when we have no players
 
 // Numbers
-size_t                BufferLen;                      // Length of the string stored in Buffer
-long int              BytesRead;                      // Number of bytes read
-size_t                CmdDoCount;                     // Count of function pointers in the DoCommand array
-size_t                CmdTableCount;                  // Count of entries in the CommandTable array
-int                   CommandNbr;                     // Command number zero based
-time_t                CurrentTime;                    // Current time for played calculation
-time_t                CurrentTimeSec;                 // Current time in seconds
-int                   Days;                           // Played time in days
-size_t                DescLen;                        // Length of a room description
-int                   DestRoomNbr;                    // Room number player is moving into
-int                   DirectionNbr;                   // The DirectionTable index of the direction
-double                ElapsedTime;                    // Elapsed player time
-int                   Hours;                          // Played time in hours
-socklen_t             LingerSize;                     // Size of Linger stucture
-int                   LineNbr;                        // Line number
-size_t                LineLen;                        // Length of a line read from a file
-int                   Listen;                         // Listening socket
-int                   MaxSocket;                      // Maximum socket value
-int                   Minutes;                        // Played time in minutes
-long                  Offset;                         // Offset for fseek()
-int                   OptVal;                         // Set socket option value
-socklen_t             OptValSize;                     // Size of socket option value
-int                   PlayerNbr;                      // Plyayer number
-int                   ReturnValue1;                   // Return value
-size_t                ReturnValue2;                   // Return value
-long int              SendResult;                     // Number of bytes sent to player
-int                   Seconds;                        // Played time in seconds
-int                   Socket;                         // Socket value
-socklen_t             SocketAddrSize;                 // Size of Socket structure
-size_t                StrLen;                         // String length
-int                   WordState;                      // Tracks WordState: NotWord | InWord
-extern int            errno;                          // Error number set by fopen(), for example
-size_t                i;                              // A non-negative integer
-size_t                j;                              // A non-negative integer
-size_t                k;                              // A non-negative integer
-size_t                x;                              // A non-negative integer
-size_t                y;                              // A non-negative integer
-size_t                z;                              // A non-negative integer
+size_t                BufferLen;                         // Length of the string stored in Buffer
+long int              BytesRead;                         // Number of bytes read
+size_t                CmdDoCount;                        // Count of function pointers in the DoCommand array
+size_t                CmdTableCount;                     // Count of entries in the CommandTable array
+int                   CommandNbr;                        // Command number zero based
+time_t                CurrentTime;                       // Current time for played calculation
+time_t                CurrentTimeSec;                    // Current time in seconds
+time_t                NextPlayerAutosave;                // Time of the next dirty player save
+int                   Days;                              // Played time in days
+size_t                DescLen;                           // Length of a room description
+int                   DestRoomNbr;                       // Room number player is moving into
+int                   DirectionNbr;                      // The DirectionTable index of the direction
+double                ElapsedTime;                       // Elapsed player time
+int                   Hours;                             // Played time in hours
+socklen_t             LingerSize;                        // Size of Linger stucture
+int                   LineNbr;                           // Line number
+size_t                LineLen;                           // Length of a line read from a file
+int                   Listen;                            // Listening socket
+int                   MaxSocket;                         // Maximum socket value
+int                   Minutes;                           // Played time in minutes
+long                  Offset;                            // Offset for fseek()
+int                   OptVal;                            // Set socket option value
+socklen_t             OptValSize;                        // Size of socket option value
+int                   PlayerNbr;                         // Plyayer number
+int                   ReturnValue1;                      // Return value
+size_t                ReturnValue2;                      // Return value
+long int              SendResult;                        // Number of bytes sent to player
+int                   Seconds;                           // Played time in seconds
+int                   Socket;                            // Socket value
+socklen_t             SocketAddrSize;                    // Size of Socket structure
+size_t                StrLen;                            // String length
+int                   WordState;                         // Tracks WordState: NotWord | InWord
+extern int            errno;                             // Error number set by fopen(), for example
+size_t                i;                                 // A non-negative integer
+size_t                j;                                 // A non-negative integer
+size_t                k;                                 // A non-negative integer
+size_t                x;                                 // A non-negative integer
+size_t                y;                                 // A non-negative integer
+size_t                z;                                 // A non-negative integer
 
 //Pointers
-char                 *pColor;                         // Selected color code string
-char                 *CurrentTimeTxt;                 // Current timestamp text
-char                 *pDescBuffer;                    // Room description being assembled
-char                 *pExitsCopy;                     // Working copy of Room Exits
-char                 *pNewBuffer;                     // Newly allocated room description buffer
-char                 *pOutput;                        // Pointer into Player->Output
-char                 *pOutPlus1;                      // Pointer to pOutput + 1
-char                 *pTmpStr;                        // Pointer into TmpStr
-char                 *pToken;                         // It's a token
-struct ConnList      *pActor;                         // Pointer to acting player in the connection list
-struct ConnList      *pConn;                          // Pointer to a connection in the connection list - generic usage
-struct ConnList      *pConnSave;                      // Pointer to a connection in the connection list - save
-struct ConnList      *pConnCurr;                      // Pointer to current connection in the connection list
-struct ConnList      *pConnCurrSave;                  // Pointer to current connection in the connection list - save
-struct ConnList      *pConnHead;                      // Pointer to the head of connection list
-struct ConnList      *pConnTail;                      // Pointer to the tail of connection list
-struct ConnList      *pTarget;                        // Pointer to target player in the connection list
+char                 *pColor;                            // Selected color code string
+char                 *CurrentTimeTxt;                    // Current timestamp text
+char                 *pDescBuffer;                       // Room description being assembled
+char                 *pExitsCopy;                        // Working copy of Room Exits
+char                 *pNewBuffer;                        // Newly allocated room description buffer
+char                 *pOutput;                           // Pointer into Player->Output
+char                 *pOutPlus1;                         // Pointer to pOutput + 1
+char                 *pTmpStr;                           // Pointer into TmpStr
+char                 *pToken;                            // It's a token
+struct ConnList      *pActor;                            // Pointer to acting player in the connection list
+struct ConnList      *pConn;                             // Pointer to a connection in the connection list - generic usage
+struct ConnList      *pConnSave;                         // Pointer to a connection in the connection list - save
+struct ConnList      *pConnCurr;                         // Pointer to current connection in the connection list
+struct ConnList      *pConnCurrSave;                     // Pointer to current connection in the connection list - save
+struct ConnList      *pConnHead;                         // Pointer to the head of connection list
+struct ConnList      *pConnTail;                         // Pointer to the tail of connection list
+struct ConnList      *pTarget;                           // Pointer to target player in the connection list
 
 // Strings
-char                  aTmpStr[1024];                  // Temp string
-char                 *TmpStr   = aTmpStr;             // Temp string too
-char                  aTmpStr1[1024];                 // Temp string 1
-char                 *TmpStr1  = aTmpStr1;            // Temp string 1 too
-char                 *CmdParm1 = aTmpStr1;            // Command Parameter 1
-char                  aTmpStr2[1024];                 // Temp string 2
-char                 *TmpStr2  = aTmpStr2;            // Temp string 2 too
-char                 *CmdParm2 = aTmpStr2;            // Command Parameter 2
-char                  aTmpStr3[1024];                 // Temp string 3
-char                 *TmpStr3  = aTmpStr3;            // Temp string 3 too
-char                 *CmdParm3 = aTmpStr3;            // Command Parameter 3
-char                  Buffer[2048];                   // Just a buffer
-char                  Command[1024];                  // The command from the player
-char                  LogMsg[100];                    // Log message
-char                  MsgTxt[100];                    // Message text
-char                  MudCmd[10];                     // Mud command
-char                 *Parameters;                     // Command parameters
-char                  TheRest[50];                    // The rest of the command
-char                 *RoomExits;                      // Formatted room exits
+char                  aTmpStr[1024];                     // Temp string
+char                 *TmpStr   = aTmpStr;                // Temp string too
+char                  aTmpStr1[1024];                    // Temp string 1
+char                 *TmpStr1  = aTmpStr1;               // Temp string 1 too
+char                 *CmdParm1 = aTmpStr1;               // Command Parameter 1
+char                  aTmpStr2[1024];                    // Temp string 2
+char                 *TmpStr2  = aTmpStr2;               // Temp string 2 too
+char                 *CmdParm2 = aTmpStr2;               // Command Parameter 2
+char                  aTmpStr3[1024];                    // Temp string 3
+char                 *TmpStr3  = aTmpStr3;               // Temp string 3 too
+char                 *CmdParm3 = aTmpStr3;               // Command Parameter 3
+char                  Buffer[2048];                      // Just a buffer
+char                  Command[1024];                     // The command from the player
+char                  LogMsg[100];                       // Log message
+char                  MsgTxt[100];                       // Message text
+char                  MudCmd[10];                        // Mud command
+char                 *Parameters;                        // Command parameters
+char                  TheRest[50];                       // The rest of the command
+char                 *RoomExits;                         // Formatted room exits
 
 // Files
-char                 *GreetingFileName   = aTmpStr;   // Greeting file name
-char                 *HelpFileName       = aTmpStr;   // Help file name
-char                 *LogFileName        = aTmpStr;   // Log file name
-char                 *MotdFileName       = aTmpStr;   // Message of the day file name
-char                 *PlayerFileName     = aTmpStr;   // Player file name
-char                 *RoomFileName       = aTmpStr;   // Room file name
-char                 *ValidNamesFileName = aTmpStr;   // Valid names file name
-FILE                 *GreetingFile;                   // Greeting file
-FILE                 *HelpFile;                       // Help file
-FILE                 *LogFile;                        // Log file
-FILE                 *MotdFile;                       // Message of the day file
-FILE                 *PlayerFile;                     // Player file
-FILE                 *RoomFile;                       // Room file
-FILE                 *ValidNamesFile;                 // Valid names file
+char                 *GreetingFileName   = aTmpStr;      // Greeting file name
+char                 *HelpFileName       = aTmpStr;      // Help file name
+char                 *LogFileName        = aTmpStr;      // Log file name
+char                 *MotdFileName       = aTmpStr;      // Message of the day file name
+char                 *PlayerFileName     = aTmpStr;      // Player file name
+char                 *RoomFileName       = aTmpStr;      // Room file name
+char                 *ValidNamesFileName = aTmpStr;      // Valid names file name
+FILE                 *GreetingFile;                      // Greeting file
+FILE                 *HelpFile;                          // Help file
+FILE                 *LogFile;                           // Log file
+FILE                 *MotdFile;                          // Message of the day file
+FILE                 *PlayerFile;                        // Player file
+FILE                 *RoomFile;                          // Room file
+FILE                 *ValidNamesFile;                    // Valid names file
 
 // Structures
-fd_set                InpSet;                         // File Descriptor Set structure
-struct linger         Linger;                         // Linger structure
-struct sockaddr_in    SocketAddr;                     // Socket Address structure
-struct timeval        TimeOut;                        // Time value structure
+fd_set                InpSet;                            // File Descriptor Set structure
+struct linger         Linger;                            // Linger structure
+struct sockaddr_in    SocketAddr;                        // Socket Address structure
+struct timeval        TimeOut;                           // Time value structure
 
 // Color codes
-char                 *Normal        = "\x1B[0;m";     // NORMAL     &N
-char                 *BrightBlack   = "\x1B[1;30m";   // BBLACK     &K
-char                 *BrightRed     = "\x1B[1;31m";   // BRED       &R
-char                 *BrightGreen   = "\x1B[1;32m";   // BGREEN     &G
-char                 *BrightYellow  = "\x1B[1;33m";   // BYELLOW    &Y
-char                 *BrightBlue    = "\x1B[1;34m";   // BBLUE      &B
-char                 *BrightMagenta = "\x1B[1;35m";   // BMAGENTA   &M
-char                 *BrightCyan    = "\x1B[1;36m";   // BCYAN      &C
-char                 *BrightWhite   = "\x1B[1;37m";   // BWHITE     &W
-char                 *None          = "";             // No Color
+char                 *Normal        = "\x1B[0;m";        // NORMAL     &N
+char                 *BrightBlack   = "\x1B[1;30m";      // BBLACK     &K
+char                 *BrightRed     = "\x1B[1;31m";      // BRED       &R
+char                 *BrightGreen   = "\x1B[1;32m";      // BGREEN     &G
+char                 *BrightYellow  = "\x1B[1;33m";      // BYELLOW    &Y
+char                 *BrightBlue    = "\x1B[1;34m";      // BBLUE      &B
+char                 *BrightMagenta = "\x1B[1;35m";      // BMAGENTA   &M
+char                 *BrightCyan    = "\x1B[1;36m";      // BCYAN      &C
+char                 *BrightWhite   = "\x1B[1;37m";      // BWHITE     &W
+char                 *None          = "";                // No Color
 
 // Messages
 char                 *GameSleepMsg = "No Connections: Going to sleep";      // Game sleeping message
@@ -238,6 +240,7 @@ struct ConnList
   int                 PlayerNbr;                      // Player number
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
+  bool                PlayerDirty;                    // Player record has unsaved changes
   Player             *pPlayer;                        // Pointer to the connected player data
   PlayerEquList      *pPlayerEquHead;                 // Pointer to the head of the player equipment list
   PlayerEquList      *pPlayerEquTail;                 // Pointer to the tail of the player equipment list
@@ -391,6 +394,7 @@ void    OpenPlayerFile();
 bool    PlayerNameValid();
 bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
+void    PlayerAutoSave();
 void    ProcessCommandAlias();
 void    ProcessCommand();
 void    ProcessPlayerInput();
@@ -572,6 +576,32 @@ int main(int argc, char **argv)
 void HeartBeat()
 {
   DEBUGIT(2)
+  CurrentTimeSec = time(NULL);
+  if (CurrentTimeSec >= NextPlayerAutosave)
+  {
+    PlayerAutoSave();
+    NextPlayerAutosave = CurrentTimeSec + PLAYER_AUTOSAVE_SECONDS;
+  }
+}
+
+// Save online player records that have deferred changes.
+void PlayerAutoSave()
+{
+  DEBUGIT(1)
+  pConnSave     = pConn;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    pConn = pConnCurr;
+    if (pConn->State == Online && pConn->PlayerDirty)
+    {
+      WritePlayerToFile();
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn = pConnSave;
+  pConnCurr = pConnCurrSave;
 }
 
 // The ProcessPlayerInput function processes input from all players in a linked list, executing
@@ -905,6 +935,7 @@ void DoGo()
     return;
   }
   pConn->pPlayer->RoomNbr = DestRoomNbr;
+  pConn->PlayerDirty = true;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
   strcat(pConn->Output, Buffer);
   DoLook();
@@ -1677,6 +1708,10 @@ void SocketDisconnectPlayers()
     pConn = pConnCurr;
     if (pConn->State == Disconnect)
     {
+      if (pConn->PlayerNbr > 0 && pConn->PlayerDirty)
+      {
+        WritePlayerToFile();
+      }
       close(pConn->Socket);
       DelFromConnList();
       continue;
@@ -1705,17 +1740,19 @@ void StartItUp()
 // variables and setting the game state.
 void Initialization()
 { // Do not add DEBUGIT
-  GameShutDown = false;
-  NoPlayers    = true;
-  pConnHead    = NULL;
-  pConnTail    = NULL;
-  pConnCurr    = NULL;
+  GameShutDown       = false;
+  NoPlayers          = true;
+  NextPlayerAutosave = time(NULL) + PLAYER_AUTOSAVE_SECONDS;
+  pConnHead          = NULL;
+  pConnTail          = NULL;
+  pConnCurr          = NULL;
 }
 
 // Gracefully shut down the game by closing files and logs.
 void ShutItDown()
 {
   DEBUGIT(1)
+  PlayerAutoSave();
   RoomFreeList();
   ClosePlayerFile();
   CloseLog();
@@ -1949,6 +1986,7 @@ void WritePlayerToFile()
     sprintf(LogMsg, "ERROR: fsync %s", PLAYER_FILE);
     AbortIt();
   }
+  pConn->PlayerDirty = false;
 }
 
 // Add a player record to a file, initializing the player as an admin if the
