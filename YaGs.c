@@ -765,6 +765,7 @@ void DoAdvance()
   pConnCurrSave = pConnCurr;
   pConnCurr     = pConnHead;
   Word(2, Command, CmdParm1);
+  NormalizePlayerName(CmdParm1);
   while (pConnCurr != NULL)
   {
     if (Equal(pConnCurr->Name, CmdParm1))
