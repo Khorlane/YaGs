@@ -116,21 +116,21 @@ size_t                z;                              // A non-negative integer
 //Pointers
 char                 *pColor;                         // Selected color code string
 char                 *CurrentTimeTxt;                 // Current timestamp text
-char                 *pDescBuffer;             // Room description being assembled
+char                 *pDescBuffer;                    // Room description being assembled
 char                 *pExitsCopy;                     // Working copy of Room Exits
 char                 *pNewBuffer;                     // Newly allocated room description buffer
 char                 *pOutput;                        // Pointer into Player->Output
 char                 *pOutPlus1;                      // Pointer to pOutput + 1
 char                 *pTmpStr;                        // Pointer into TmpStr
 char                 *pToken;                         // It's a token
-struct PlayerList    *pActor;                         // Pointer to acting player in the player list
-struct PlayerList    *pPlayer;                        // Pointer to a player in the player list - generic usage
-struct PlayerList    *pPlayerSave;                    // Pointer to a player in the player list - save
-struct PlayerList    *pPlayerCurr;                    // Pointer to current player in the player list
-struct PlayerList    *pPlayerCurrSave;                // Pointer to current player in the player list - save
-struct PlayerList    *pPlayerHead;                    // Pointer to the head of player list
-struct PlayerList    *pPlayerTail;                    // Pointer to the tail of player list
-struct PlayerList    *pTarget;                        // Pointer to target player in the player list
+struct ConnList      *pActor;                         // Pointer to acting player in the connection list
+struct ConnList      *pPlayer;                        // Pointer to a connection in the connection list - generic usage
+struct ConnList      *pConnSave;                      // Pointer to a connection in the connection list - save
+struct ConnList      *pConnCurr;                      // Pointer to current connection in the connection list
+struct ConnList      *pConnCurrSave;                  // Pointer to current connection in the connection list - save
+struct ConnList      *pConnHead;                      // Pointer to the head of connection list
+struct ConnList      *pConnTail;                      // Pointer to the tail of connection list
+struct ConnList      *pTarget;                        // Pointer to target player in the connection list
 
 // Strings
 char                  aTmpStr[1024];                  // Temp string
@@ -222,14 +222,14 @@ typedef struct ObjectList    ObjectList;
 typedef struct Player        PlayerData;
 typedef struct PlayerEquList PlayerEquList;
 typedef struct PlayerInvList PlayerInvList;
-typedef struct PlayerList    PlayerList;
+typedef struct ConnList      ConnList;
 typedef struct Room          Room;
 typedef struct RoomList      RoomList;
 
-// The PlayerList struct represents a data structure for managing a list of connected players,
+// The ConnList struct represents a data structure for managing a list of connected players,
 // containing various attributes such as socket information, player state, name, password,
-// experience, and pointers to the next and previous players in the list.
-struct PlayerList
+// experience, and pointers to the next and previous connections in the list.
+struct ConnList
 {
   int                 Socket;                         // Socket number returned from accept()
   PlayerState         State;                          // Player state
@@ -253,11 +253,11 @@ struct PlayerList
   PlayerEquList      *pPlayerEquTail;                 // Pointer to the tail of the player equipment list
   PlayerInvList      *pPlayerInvHead;                 // Pointer to the head of the player inventory list
   PlayerInvList      *pPlayerInvTail;                 // Pointer to the tail of the player inventory list
-  PlayerList         *pPlayerNext;                    // Pointer to next player in the player list
-  PlayerList         *pPlayerPrev;                    // Pointer to previous player in the player list
+  ConnList           *pConnNext;                      // Pointer to next connection in the connection list
+  ConnList           *pConnPrev;                      // Pointer to previous connection in the connection list
 };
 
-// The Player structure represents a player in a game, encapsulating attributes such as
+// The Player structure represents a player, encapsulating attributes such as
 // name, password, status flags, creation time, color preference, experience points, level, and sex.
 struct Player
 {
@@ -363,14 +363,14 @@ RoomList             *pRoomListTail = NULL;
 
 void    AbortIt();
 void    AddPlayerToFile();
-void    AddToPlayerList();
+void    AddToConnList();
 void    SocketCheckForNewPlayers();
 void    CloseLog();
 void    ClosePlayerFile();
 void    Color();
-void    CopyPlayerListToPlayer();
-void    CopyPlayerToPlayerList();
-void    DelFromPlayerList();
+void    CopyConnListToPlayer();
+void    CopyPlayerToConnList();
+void    DelFromConnList();
 int     DirectionLookUp(char *Direction);
 void    DoAdvance();
 void    DoColor();
@@ -406,7 +406,7 @@ bool    PlayerNameValidOld();
 void    ProcessCommandAlias();
 void    ProcessCommand();
 void    ProcessPlayerInput();
-void    Prompt(struct PlayerList *pPlayer);
+void    Prompt(ConnList *pPlayer);
 void    ReadPlayerFromFile();
 void    RoomAddToRoomList();
 Room   *RoomAllocateAndCopy(const Room *SourceRoom);
@@ -592,17 +592,17 @@ void ProcessPlayerInput()
 {
   DEBUGIT(2)
   SocketGetPlayerInput();
-  pPlayerCurr = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
   {
-    pPlayer = pPlayerCurr;
+    pPlayer = pConnCurr;
     if (pPlayer->Input[0] != '\0')
     {
       strcpy(Command, pPlayer->Input);
       pPlayer->Input[0] = '\0';
       ProcessCommand();
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
 }
 
@@ -761,20 +761,20 @@ bool MudCmdOk()
 void DoAdvance()
 {
   DEBUGIT(1)
-  pTarget         = NULL;
-  pPlayerCurrSave = pPlayerCurr;
-  pPlayerCurr     = pPlayerHead;
+  pTarget       = NULL;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
   Word(2, Command, CmdParm1);
-  while (pPlayerCurr != NULL)
+  while (pConnCurr != NULL)
   {
-    if (Equal(pPlayerCurr->Name, CmdParm1))
+    if (Equal(pConnCurr->Name, CmdParm1))
     {
-      pTarget = pPlayerCurr;
+      pTarget = pConnCurr;
       break;
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
-  pPlayerCurr = pPlayerCurrSave;
+  pConnCurr = pConnCurrSave;
   if (pTarget == NULL)
   {
     sprintf(Buffer, "%s %s", CmdParm1, "is not online\r\n");
@@ -827,7 +827,7 @@ void DoAdvance()
   Prompt(pActor);
   // Save target player
   pPlayer = pTarget;
-  CopyPlayerListToPlayer();
+  CopyConnListToPlayer();
   WritePlayerToFile();
   pPlayer = pActor;
 }
@@ -866,7 +866,7 @@ void DoColor()
     strcat(pPlayer->Output, "Color is off.\r\n\r\n");
     Prompt(pPlayer);
   }
-  CopyPlayerListToPlayer();
+  CopyConnListToPlayer();
   WritePlayerToFile();
 }
 
@@ -1085,7 +1085,7 @@ void DoPlayerfile()
 void DoQuit()
 {
   DEBUGIT(1)
-  CopyPlayerListToPlayer();
+  CopyConnListToPlayer();
   WritePlayerToFile();
   strcat(pPlayer->Output, "Bye Bye");
   strcat(pPlayer->Output, "\r\n");
@@ -1149,21 +1149,21 @@ void DoWho()
   strcat(pPlayer->Output, "&N");
   strcat(pPlayer->Output, "-------------------\r\n");
   strcat(pPlayer->Output, "Name       Level \r\n");
-  pPlayerCurrSave = pPlayerCurr;
-  pPlayerCurr     = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
   {
-    if (pPlayerCurr->State == Online)
+    if (pConnCurr->State == Online)
     {
-      sprintf(Buffer, "%-10s %2s %2i", pPlayerCurr->Name, " ", pPlayerCurr->Level);
+      sprintf(Buffer, "%-10s %2s %2i", pConnCurr->Name, " ", pConnCurr->Level);
       strcat(pPlayer->Output, Buffer);
       strcat(pPlayer->Output, "\r\n");
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
   strcat(pPlayer->Output, "\r\n");
   Prompt(pPlayer);
-  pPlayerCurr = pPlayerCurrSave;
+  pConnCurr = pConnCurrSave;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1171,7 +1171,7 @@ void DoWho()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Append a prompt string ("> ") to the player output.
-void Prompt(struct PlayerList *pPlayer)
+void Prompt(ConnList *pPlayer)
 {
   DEBUGIT(1)
   strcat(pPlayer->Output,"> ");
@@ -1181,27 +1181,27 @@ void Prompt(struct PlayerList *pPlayer)
 void SendToAll()
 {
   DEBUGIT(1)
-  pPlayerSave     = pPlayer;
-  pPlayerCurrSave = pPlayerCurr;
-  pPlayerCurr     = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnSave     = pPlayer;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
   {
-    if (pPlayerCurr->State != Online)
+    if (pConnCurr->State != Online)
     {
-      pPlayerCurr = pPlayerCurr->pPlayerNext;
+      pConnCurr = pConnCurr->pConnNext;
       continue;
     }
-    pPlayer = pPlayerCurr;
-    if (pPlayer != pPlayerSave)
+    pPlayer = pConnCurr;
+    if (pPlayer != pConnSave)
     {
       strcat(pPlayer->Output,"\r\n");
     }
     strcat(pPlayer->Output, MsgTxt);
     Prompt(pPlayer);
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
-  pPlayer     = pPlayerSave;
-  pPlayerCurr = pPlayerCurrSave;
+  pPlayer   = pConnSave;
+  pConnCurr = pConnCurrSave;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1256,7 +1256,7 @@ void GetPlayerOnline()
     NormalizePlayerName(Command);
     if (PlayerNameValid())
     { // Name is valid, ask for password
-      CopyPlayerToPlayerList();
+      CopyPlayerToConnList();
       strcat(pPlayer->Output, "\r\nPassword?\r\n");
       pPlayer->State = Wait_Password;
       Prompt(pPlayer);
@@ -1358,7 +1358,7 @@ void GetPlayerOnline()
       GetNextPlayerNbr();
       InitalizeNewPlayer();
       AddPlayerToFile();
-      CopyPlayerToPlayerList();
+      CopyPlayerToConnList();
       SendMotd();
       pPlayer->State = Online;
       DoLook();
@@ -1558,16 +1558,16 @@ void SocketCheckForNewPlayers()
   FD_ZERO(&InpSet);
   FD_SET(Listen, &InpSet);
   MaxSocket = Listen;
-  pPlayerCurr = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
   {
-    Socket = pPlayerCurr->Socket;
+    Socket = pConnCurr->Socket;
     FD_SET(Socket, &InpSet);
     if (Socket > MaxSocket)
     {
       MaxSocket = Socket;
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
   TimeOut.tv_sec  = 0;
   TimeOut.tv_usec = 1;
@@ -1584,7 +1584,7 @@ void SocketCheckForNewPlayers()
 }
 
 // Handle the acceptance of a new player connection by logging the connection
-// details, updating the player list, and managing the player's online status.
+// details, updating the connection list, and managing the player's online status.
 void SocketAcceptNewPlayer()
 {
   DEBUGIT(1)
@@ -1597,7 +1597,7 @@ void SocketAcceptNewPlayer()
   }
   sprintf(LogMsg,"New connection, socket fd is %d , ip is : %s , port : %d", Socket, inet_ntoa(SocketAddr.sin_addr), ntohs(SocketAddr.sin_port));
   LogIt(LogMsg);
-  AddToPlayerList();
+  AddToConnList();
   GetPlayerOnline();
 }
 
@@ -1606,10 +1606,10 @@ void SocketAcceptNewPlayer()
 void SocketGetPlayerInput()
 {
   DEBUGIT(2)
-  pPlayerCurr = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
   {
-    pPlayer = pPlayerCurr;
+    pPlayer = pConnCurr;
     Socket = pPlayer->Socket;
     pPlayer->Input[0] = '\0';
     if (FD_ISSET(Socket, &InpSet))
@@ -1627,7 +1627,7 @@ void SocketGetPlayerInput()
         pPlayer->NoInputTick++;
       }
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
 }
 
@@ -1636,10 +1636,10 @@ void SocketGetPlayerInput()
 void SocketSendPlayerOutput()
 {
   DEBUGIT(2)
-  pPlayerCurr = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
   {
-    pPlayer = pPlayerCurr;
+    pPlayer = pConnCurr;
     if (pPlayer->NoInputTick > NO_INPUT_TICK)
     {
       pPlayer->NoInputTick = 0;
@@ -1658,7 +1658,7 @@ void SocketSendPlayerOutput()
     }
     if (pPlayer->Output[0] == '\0')
     {
-      pPlayerCurr = pPlayerCurr->pPlayerNext;
+      pConnCurr = pConnCurr->pConnNext;
       continue;
     }
     Color();
@@ -1676,27 +1676,27 @@ void SocketSendPlayerOutput()
     {
       Buffer[0] = '\0';
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
   SocketDisconnectPlayers();
 }
 
-// Iterate through the player list, disconnecting players set to the "Disconnect"
-// state by closing their sockets and removing them from the player list.
+// Iterate through the connection list, disconnecting players set to the "Disconnect"
+// state by closing their sockets and removing them from the connection list.
 void SocketDisconnectPlayers()
 {
   DEBUGIT(2)
-  pPlayerCurr = pPlayerHead;
-  while (pPlayerCurr != NULL)
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
   {
-    pPlayer = pPlayerCurr;
+    pPlayer = pConnCurr;
     if (pPlayer->State == Disconnect)
     {
       close(pPlayer->Socket);
-      DelFromPlayerList();
+      DelFromConnList();
       continue;
     }
-    pPlayerCurr = pPlayerCurr->pPlayerNext;
+    pConnCurr = pConnCurr->pConnNext;
   }
 }
 
@@ -1722,9 +1722,9 @@ void Initialization()
 { // Do not add DEBUGIT
   GameShutDown = false;
   NoPlayers    = true;
-  pPlayerHead  = NULL;
-  pPlayerTail  = NULL;
-  pPlayerCurr  = NULL;
+  pConnHead    = NULL;
+  pConnTail    = NULL;
+  pConnCurr    = NULL;
 }
 
 // Gracefully shut down the game by closing files and logs.
@@ -1738,81 +1738,80 @@ void ShutItDown()
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-// Player list
+// Connection list
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// Allocate memory for a new player node, initialize its properties, and add it
-// to a linked list of players, handling both the first node and subsequent
+// Allocate memory for a new connection node, initialize its properties, and add it
+// to a linked list of connections, handling both the first node and subsequent
 // nodes appropriately.
-void AddToPlayerList()
+void AddToConnList()
 {
   DEBUGIT(1)
-  pPlayer = (struct PlayerList *)malloc(sizeof(struct PlayerList));
-  pPlayerCurr = pPlayer;
-  if (pPlayerHead != NULL)
+  pPlayer   = (ConnList *)malloc(sizeof(ConnList));
+  pConnCurr = pPlayer;
+  if (pConnHead != NULL)
   { // Not 1st Node
-    pPlayerTail->pPlayerNext = pPlayerCurr;
-    pPlayerCurr->pPlayerPrev = pPlayerTail;
-    pPlayerTail = pPlayerCurr;
+    pConnTail->pConnNext = pConnCurr;
+    pConnCurr->pConnPrev = pConnTail;
+    pConnTail            = pConnCurr;
   }
   else
   { // 1st Node
-    pPlayerHead = pPlayerCurr;
-    pPlayerTail = pPlayerCurr;
+    pConnHead = pConnCurr;
+    pConnTail = pConnCurr;
   }
   pPlayer->Socket       = Socket;
   pPlayer->State        = Send_Greeting;
   pPlayer->Output[0]    = '\0';
   pPlayer->NoInputTick  = 0;
   pPlayer->NoInputCount = 0;
-  pPlayer->pPlayerNext = NULL;
+  pPlayer->pConnNext    = NULL;
 }
 
-// Remove the current player node from a doubly linked list of players, handling
+// Remove the current connection node from the doubly linked connection list, handling
 // cases for deleting the head, tail, or a middle node, and update the list
 // pointers accordingly.
-void DelFromPlayerList()
+void DelFromConnList()
 {
   DEBUGIT(1)
   // Delete when only one node in list
-  if (pPlayerCurr == pPlayerHead)
+  if (pConnCurr == pConnHead)
   {
-    if (pPlayerCurr == pPlayerTail)
+    if (pConnCurr == pConnTail)
     { // We have no players
-      pPlayerHead = NULL;
-      pPlayerTail = NULL;
+      pConnHead = NULL;
+      pConnTail = NULL;
       NoPlayers   = true;
     }
   }
   else
   // Delete head node
-  if (pPlayerCurr == pPlayerHead)
+  if (pConnCurr == pConnHead)
   {
-    pPlayerHead = pPlayerCurr->pPlayerNext;
-    pPlayerCurr->pPlayerNext->pPlayerPrev = NULL;
+    pConnHead = pConnCurr->pConnNext;
+    pConnCurr->pConnNext->pConnPrev = NULL;
   }
   else
   // Delete tail node
-  if (pPlayerCurr == pPlayerTail)
+  if (pConnCurr == pConnTail)
   {
-    pPlayerTail = pPlayerCurr->pPlayerPrev;
-    pPlayerCurr->pPlayerPrev->pPlayerNext = NULL;
+    pConnTail = pConnCurr->pConnPrev;
+    pConnCurr->pConnPrev->pConnNext = NULL;
   }
   else
   {
     // Delete middle node
-    pPlayerCurr->pPlayerPrev->pPlayerNext = pPlayerCurr->pPlayerNext;
-    pPlayerCurr->pPlayerNext->pPlayerPrev = pPlayerCurr->pPlayerPrev;
+    pConnCurr->pConnPrev->pConnNext = pConnCurr->pConnNext;
+    pConnCurr->pConnNext->pConnPrev = pConnCurr->pConnPrev;
   }
   // Free node
-  pPlayerCurr = pPlayer->pPlayerNext;
+  pConnCurr = pPlayer->pConnNext;
   free(pPlayer);
 }
 
-// Copy attributes of a player from a source player object to a destination
-// player object, initializing various fields such as name, password, admin
-// status, and experience level.
-void CopyPlayerToPlayerList()
+// Copy saved Player data to the current connection entry and initialize its
+// connection-specific fields.
+void CopyPlayerToConnList()
 {
   DEBUGIT(1)
   strcpy(pPlayer->Name,     Player.Name);
@@ -1831,9 +1830,8 @@ void CopyPlayerToPlayerList()
   pPlayer->NoInputCount   = 0;
 }
 
-// Copy the attributes of a player from a source player structure (pPlayer) to a
-// target player structure (Player).
-void CopyPlayerListToPlayer()
+// Copy player data from the current connection entry to the saved Player data.
+void CopyConnListToPlayer()
 {
   DEBUGIT(1)
   strcpy(Player.Name,     pPlayer->Name);
