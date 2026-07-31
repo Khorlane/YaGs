@@ -24,7 +24,7 @@ Type:    Weapon
 Subtype: Sword
 Value:   118
 
-Id: RatFoot
+Id:      RatFoot
 Desc1:   a rat foot
 Desc2:   a rat foot is here.
 Desc3:   

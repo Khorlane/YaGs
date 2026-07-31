@@ -214,10 +214,21 @@ typedef enum PlayerStates
   Disconnect
 } PlayerState;
 
+// Player and World structure typedefs
+typedef struct Mobile        Mobile;
+typedef struct MobileList    MobileList;
+typedef struct Object        Object;
+typedef struct ObjectList    ObjectList;
+typedef struct Player        PlayerData;
+typedef struct PlayerEquList PlayerEquList;
+typedef struct PlayerInvList PlayerInvList;
+typedef struct PlayerList    PlayerList;
+typedef struct Room          Room;
+typedef struct RoomList      RoomList;
+
 // The PlayerList struct represents a data structure for managing a list of connected players,
 // containing various attributes such as socket information, player state, name, password,
 // experience, and pointers to the next and previous players in the list.
-typedef struct PlayerList PlayerList;
 struct PlayerList
 {
   int                 Socket;                         // Socket number returned from accept()
@@ -238,13 +249,17 @@ struct PlayerList
   int                 PlayerNbr;                      // Player number
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
+  PlayerEquList      *pPlayerEquHead;                 // Pointer to the head of the player equipment list
+  PlayerEquList      *pPlayerEquTail;                 // Pointer to the tail of the player equipment list
+  PlayerInvList      *pPlayerInvHead;                 // Pointer to the head of the player inventory list
+  PlayerInvList      *pPlayerInvTail;                 // Pointer to the tail of the player inventory list
   PlayerList         *pPlayerNext;                    // Pointer to next player in the player list
   PlayerList         *pPlayerPrev;                    // Pointer to previous player in the player list
 };
 
 // The Player structure represents a player in a game, encapsulating attributes such as
 // name, password, status flags, creation time, color preference, experience points, level, and sex.
-struct sPlayer
+struct Player
 {
   char                Name[50];                       // Player name
   char                Password[50];                   // Player password
@@ -256,13 +271,66 @@ struct sPlayer
   char                Level;                          // Player level
   char                Sex;                            // Player sex (M/F)
   int                 RoomNbr;                        // Room number
-} Player;
+};
+PlayerData            Player;
+
+struct PlayerEquList
+{
+  Object             *pObject;                        // Pointer to an equipped Object struct
+  char               *Slot;                           // Equipment slot occupied by the object
+  PlayerEquList      *pNextPlayerEqu;                 // Pointer to the next equipment list node
+};
+
+struct PlayerInvList
+{
+  Object             *pObject;                        // Pointer to an inventory Object struct
+  int                 Quantity;                       // Number of identical objects carried
+  PlayerInvList      *pNextPlayerInv;                 // Pointer to the next inventory list node
+};
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // World
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-typedef struct Room
+struct Mobile
+{
+  char               *Id;                             // Unique mobile identifier
+  char               *Desc1;                          // Short mobile description
+  char               *Desc2;                          // Description shown in a room
+  char               *Desc3;                          // Detailed mobile description
+  char               *Attack;                         // Mobile attack description
+  int                 Level;                          // Mobile level
+  int                 Hit;                            // Mobile hit value
+  int                 Exp;                            // Experience award
+  char               *Loot;                           // Space-separated object identifiers
+};
+
+struct MobileList
+{
+  Mobile             *pMobile;                        // Pointer to a Mobile struct
+  MobileList         *pNextMobile;                    // Pointer to the next node in the list
+};
+
+struct Object
+{
+  char               *Id;                             // Unique object identifier
+  char               *Desc1;                          // Short object description
+  char               *Desc2;                          // Description shown in a room
+  char               *Desc3;                          // Detailed object description
+  int                 Weight;                         // Object weight
+  int                 Cost;                           // Object purchase cost
+  char               *Type;                           // General object type
+  char               *Subtype;                        // Specific object type
+  int                 Value;                          // Type-specific object value
+};
+
+struct ObjectList
+{
+  Object             *pObject;                        // Pointer to an Object struct
+  ObjectList         *pNextObject;                    // Pointer to the next list node
+};
+
+struct Room
 {
   int                 RoomNbr;                        // Room number (e.g., 101)
   char               *Name;                           // Room name (e.g., "Back Porch")
@@ -270,14 +338,13 @@ typedef struct Room
   char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
   char               *Flags;                          // Flags (e.g., "None", "NoFight")
   char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
-} Room;
+};
 
-typedef struct RoomList RoomList;
-typedef struct RoomList
+struct RoomList
 {
   Room               *pRoom;                          // Pointer to a Room struct
   RoomList           *pNextRoom;                      // Pointer to the next node in the list
-} RoomList;
+};
 
 Room                  SingleRoom;
 Room                 *pCurrentRoom;

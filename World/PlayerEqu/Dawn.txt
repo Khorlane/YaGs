@@ -1,0 +1,3 @@
+RoughRope   Waist
+SmallDagger Wielded
+Torch       Held
