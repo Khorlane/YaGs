@@ -98,7 +98,7 @@ int                   Minutes;                           // Played time in minut
 long                  Offset;                            // Offset for fseek()
 int                   OptVal;                            // Set socket option value
 socklen_t             OptValSize;                        // Size of socket option value
-int                   PlayerNbr;                         // Plyayer number
+int                   PlayerRcdNbr;                      // Player record number within Player.yags
 int                   ReturnValue1;                      // Return value
 size_t                ReturnValue2;                      // Return value
 long int              SendResult;                        // Number of bytes sent to player
@@ -237,7 +237,7 @@ struct ConnList
   char                Input[1024];                    // Player input buffer
   char                Output[2048];                   // Player output buffer
   int                 BadPswdCount;                   // Number of bad passwords entered
-  int                 PlayerNbr;                      // Player number
+  int                 PlayerRcdNbr;                   // Player record number within Player.yags
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
   bool                PlayerDirty;                    // Player record has unsaved changes
@@ -378,7 +378,7 @@ void    DoShutdown();
 void    DoWho();
 void    DoStatus();
 bool    Equal(char *Str1, char *Str2);
-void    GetNextPlayerNbr();
+void    GetNextPlayerRcdNbr();
 long    GetPlayerFileOffset();
 void    GetPlayerOnline();
 void    GetTime();
@@ -1084,14 +1084,14 @@ void DoPlayerfile()
   strcat(pConn->Output, "-------------------\r\n");
   strcat(pConn->Output, "Name       Admin Color Level Experience\r\n");
   EndFile = false;
-  PlayerNbr = 1;
+  PlayerRcdNbr = 1;
   ReadPlayerFromFile();
   while (EndFile == false)
   {
     sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", PlayerRcd.Name, " ", PlayerRcd.Admin, " ", PlayerRcd.Color, " ", PlayerRcd.Level, " ", PlayerRcd.Experience);
     strcat(pConn->Output, Buffer);
     strcat(pConn->Output, "\r\n");
-    PlayerNbr++;
+    PlayerRcdNbr++;
     ReadPlayerFromFile();
   }
   strcat(pConn->Output, "\r\n");
@@ -1371,8 +1371,8 @@ void GetPlayerOnline()
   {
     if (Equal(pConn->pPlayer->Password, Command))
     {
-      GetNextPlayerNbr();
-      pConn->PlayerNbr = PlayerNbr;
+      GetNextPlayerRcdNbr();
+      pConn->PlayerRcdNbr = PlayerRcdNbr;
       InitalizeNewPlayer();
       AddPlayerToFile();
       SendMotd();
@@ -1708,7 +1708,7 @@ void SocketDisconnectPlayers()
     pConn = pConnCurr;
     if (pConn->State == Disconnect)
     {
-      if (pConn->PlayerNbr > 0 && pConn->PlayerDirty)
+      if (pConn->PlayerRcdNbr > 0 && pConn->PlayerDirty)
       {
         WritePlayerToFile();
       }
@@ -1858,13 +1858,13 @@ void ClosePlayerFile()
 }
 
 // Calculate and return the file offset for a player based on the size of the
-// Player structure and current value of PlayerNbr, effectively determining
+// Player structure and current value of PlayerRcdNbr, effectively determining
 // the byte position in a file where a specific player's data would be stored.
 long GetPlayerFileOffset()
 {
   DEBUGIT(1)
   x = (size_t)sizeof(Player);
-  y = (size_t)PlayerNbr - 1;
+  y = (size_t)PlayerRcdNbr - 1;
   Offset = (long)(x * y);
   return Offset;
 }
@@ -1890,20 +1890,20 @@ bool PlayerNameValid()
 bool PlayerNameValidOld()
 {
   DEBUGIT(1)
-  Found     = false;
-  EndFile   = false;
-  PlayerNbr = 1;
+  Found        = false;
+  EndFile      = false;
+  PlayerRcdNbr = 1;
   ReadPlayerFromFile();
   while (!EndFile)
   {
     if (Equal(PlayerRcd.Name, Command))
     { // Match!
       Found = true;
-      pConn->PlayerNbr = PlayerNbr;
+      pConn->PlayerRcdNbr = PlayerRcdNbr;
       *pConn->pPlayer = PlayerRcd;
       break;
     }
-    PlayerNbr++;
+    PlayerRcdNbr++;
     ReadPlayerFromFile();
   }
   return Found;
@@ -1967,7 +1967,7 @@ void ReadPlayerFromFile()
 void WritePlayerToFile()
 {
   DEBUGIT(1)
-  PlayerNbr = pConn->PlayerNbr;
+  PlayerRcdNbr = pConn->PlayerRcdNbr;
   ReturnValue1 = fseek(PlayerFile, GetPlayerFileOffset(), SEEK_SET);
   if (ReturnValue1 != 0)
   {
@@ -2031,16 +2031,16 @@ void InitalizeNewPlayer()
   pConn->pPlayer->RoomNbr    = PLAYER_START_ROOM;
 }
 
-// Determines the next PlayerNbr by reading the player file until EOF.
-void GetNextPlayerNbr()
+// Determines the next PlayerRcdNbr by reading the player file until EOF.
+void GetNextPlayerRcdNbr()
 {
   DEBUGIT(1)
-  EndFile = false;
-  PlayerNbr = 1;
+  EndFile      = false;
+  PlayerRcdNbr = 1;
   ReadPlayerFromFile();
   while (EndFile == false)
   {
-    PlayerNbr++;
+    PlayerRcdNbr++;
     ReadPlayerFromFile();
   }
 }
