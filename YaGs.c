@@ -219,10 +219,10 @@ typedef struct Mobile        Mobile;
 typedef struct MobileList    MobileList;
 typedef struct Object        Object;
 typedef struct ObjectList    ObjectList;
-typedef struct Player        PlayerData;
 typedef struct PlayerEquList PlayerEquList;
 typedef struct PlayerInvList PlayerInvList;
 typedef struct ConnList      ConnList;
+typedef struct Player        Player;
 typedef struct Room          Room;
 typedef struct RoomList      RoomList;
 
@@ -272,7 +272,6 @@ struct Player
   char                Sex;                            // Player sex (M/F)
   int                 RoomNbr;                        // Room number
 };
-PlayerData            Player;
 
 struct PlayerEquList
 {
@@ -346,6 +345,7 @@ struct RoomList
   RoomList           *pNextRoom;                      // Pointer to the next node in the list
 };
 
+Player                PlayerRcd;
 Room                  SingleRoom;
 Room                 *pCurrentRoom;
 Room                 *pDestinationRoom;
@@ -1070,7 +1070,7 @@ void DoPlayerfile()
   ReadPlayerFromFile();
   while (EndFile == false)
   {
-    sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", Player.Name, " ", Player.Admin, " ", Player.Color, " ", Player.Level, " ", Player.Experience);
+    sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", PlayerRcd.Name, " ", PlayerRcd.Admin, " ", PlayerRcd.Color, " ", PlayerRcd.Level, " ", PlayerRcd.Experience);
     strcat(pPlayer->Output, Buffer);
     strcat(pPlayer->Output, "\r\n");
     PlayerNbr++;
@@ -1814,16 +1814,16 @@ void DelFromConnList()
 void CopyPlayerToConnList()
 {
   DEBUGIT(1)
-  strcpy(pPlayer->Name,     Player.Name);
-  strcpy(pPlayer->Password, Player.Password);
-  pPlayer->Admin          = Player.Admin;
-  pPlayer->Afk            = Player.Afk;
-  pPlayer->Born           = Player.Born;
-  pPlayer->Color          = Player.Color;
-  pPlayer->Experience     = Player.Experience;
-  pPlayer->Level          = Player.Level;
-  pPlayer->Sex            = Player.Sex;
-  pPlayer->RoomNbr        = Player.RoomNbr;
+  strcpy(pPlayer->Name,     PlayerRcd.Name);
+  strcpy(pPlayer->Password, PlayerRcd.Password);
+  pPlayer->Admin          = PlayerRcd.Admin;
+  pPlayer->Afk            = PlayerRcd.Afk;
+  pPlayer->Born           = PlayerRcd.Born;
+  pPlayer->Color          = PlayerRcd.Color;
+  pPlayer->Experience     = PlayerRcd.Experience;
+  pPlayer->Level          = PlayerRcd.Level;
+  pPlayer->Sex            = PlayerRcd.Sex;
+  pPlayer->RoomNbr        = PlayerRcd.RoomNbr;
   pPlayer->PlayerNbr      = PlayerNbr;
   pPlayer->BadPswdCount   = 0;
   pPlayer->NoInputTick    = 0;
@@ -1834,16 +1834,16 @@ void CopyPlayerToConnList()
 void CopyConnListToPlayer()
 {
   DEBUGIT(1)
-  strcpy(Player.Name,     pPlayer->Name);
-  strcpy(Player.Password, pPlayer->Password);
-  Player.Admin          = pPlayer->Admin;
-  Player.Afk            = pPlayer->Afk;
-  Player.Born           = pPlayer->Born;
-  Player.Color          = pPlayer->Color;
-  Player.Experience     = pPlayer->Experience;
-  Player.Level          = pPlayer->Level;
-  Player.Sex            = pPlayer->Sex;
-  Player.RoomNbr        = pPlayer->RoomNbr;
+  strcpy(PlayerRcd.Name,     pPlayer->Name);
+  strcpy(PlayerRcd.Password, pPlayer->Password);
+  PlayerRcd.Admin          = pPlayer->Admin;
+  PlayerRcd.Afk            = pPlayer->Afk;
+  PlayerRcd.Born           = pPlayer->Born;
+  PlayerRcd.Color          = pPlayer->Color;
+  PlayerRcd.Experience     = pPlayer->Experience;
+  PlayerRcd.Level          = pPlayer->Level;
+  PlayerRcd.Sex            = pPlayer->Sex;
+  PlayerRcd.RoomNbr        = pPlayer->RoomNbr;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1876,7 +1876,7 @@ void ClosePlayerFile()
 long GetPlayerFileOffset()
 {
   DEBUGIT(1)
-  x = (size_t)sizeof(Player);
+  x = (size_t)sizeof(PlayerRcd);
   y = (size_t)PlayerNbr - 1;
   Offset = (long)(x * y);
   return Offset;
@@ -1909,7 +1909,7 @@ bool PlayerNameValidOld()
   ReadPlayerFromFile();
   while (!EndFile)
   {
-    if (Equal(Player.Name, Command))
+    if (Equal(PlayerRcd.Name, Command))
     { // Match!
       Found = true;
       break;
@@ -1961,7 +1961,7 @@ void ReadPlayerFromFile()
 {
   DEBUGIT(1)
   fseek(PlayerFile, GetPlayerFileOffset(), SEEK_SET);
-  fread(&Player, sizeof(Player), 1, PlayerFile);
+  fread(&PlayerRcd, sizeof(PlayerRcd), 1, PlayerFile);
   if (feof(PlayerFile))
   {
     EndFile = true;
@@ -1985,7 +1985,7 @@ void WritePlayerToFile()
     sprintf(LogMsg,"ERROR: fseek %s", PLAYER_FILE);
     AbortIt();
   }
-  ReturnValue2 = fwrite(&Player, sizeof(Player), 1, PlayerFile);
+  ReturnValue2 = fwrite(&PlayerRcd, sizeof(PlayerRcd), 1, PlayerFile);
   if (ReturnValue2 != 1)
   {
     sprintf(LogMsg,"ERROR: fwrite %s", PLAYER_FILE);
@@ -2007,7 +2007,7 @@ void AddPlayerToFile()
   if (ftell(PlayerFile) == 0)
   { // Player file has no records, so this MUST be an Admin!
     pPlayer->Admin = 'Y';
-    Player.Admin   = 'Y';
+    PlayerRcd.Admin   = 'Y';
   };
   ReturnValue1 = fseek(PlayerFile, 0, SEEK_END);
   if (ReturnValue1 != 0)
@@ -2015,7 +2015,7 @@ void AddPlayerToFile()
     sprintf(LogMsg,"ERROR: fseek %s", PLAYER_FILE);
     AbortIt();
   }
-  ReturnValue2 = fwrite(&Player, sizeof(Player), 1, PlayerFile);
+  ReturnValue2 = fwrite(&PlayerRcd, sizeof(PlayerRcd), 1, PlayerFile);
   if (ReturnValue2 != 1)
   {
     sprintf(LogMsg,"ERROR: fwrite %s", PLAYER_FILE);
@@ -2033,16 +2033,16 @@ void AddPlayerToFile()
 void InitalizeNewPlayer()
 {
   DEBUGIT(1)
-  strcpy(Player.Name,     pPlayer->Name);
-  strcpy(Player.Password, pPlayer->Password);
-  Player.Admin          = 'N';
-  Player.Afk            = 'N';
-  Player.Born           = time(NULL);
-  Player.Color          = 'N';
-  Player.Experience     = 0;
-  Player.Level          = 1;
-  Player.Sex            = pPlayer->Sex;
-  Player.RoomNbr        = PLAYER_START_ROOM;
+  strcpy(PlayerRcd.Name,     pPlayer->Name);
+  strcpy(PlayerRcd.Password, pPlayer->Password);
+  PlayerRcd.Admin          = 'N';
+  PlayerRcd.Afk            = 'N';
+  PlayerRcd.Born           = time(NULL);
+  PlayerRcd.Color          = 'N';
+  PlayerRcd.Experience     = 0;
+  PlayerRcd.Level          = 1;
+  PlayerRcd.Sex            = pPlayer->Sex;
+  PlayerRcd.RoomNbr        = PLAYER_START_ROOM;
 }
 
 // Determines the next PlayerNbr by reading the player file until EOF.
