@@ -167,6 +167,7 @@ FILE                 *GreetingFile;                      // Greeting file
 FILE                 *HelpFile;                          // Help file
 FILE                 *LogFile;                           // Log file
 FILE                 *MotdFile;                          // Message of the day file
+FILE                 *ObjectFile;                        // Object file
 FILE                 *PlayerFile;                        // Player file
 FILE                 *RoomFile;                          // Room file
 FILE                 *ValidNamesFile;                    // Valid names file
@@ -2328,14 +2329,15 @@ void ObjectReadFile()
 {
   DEBUGIT(1)
   sprintf(TmpStr, "%s/%s/%s", YAGS_DIR, WORLD_DIR, OBJECTS_FILE);
-  RoomFile = fopen(TmpStr, "r");
-  if (RoomFile == NULL)
+  ObjectFile = fopen(TmpStr, "r");
+  if (ObjectFile == NULL)
   {
     sprintf(LogMsg, "ERROR: Open %s failed: %s", OBJECTS_FILE, strerror(errno));
     AbortIt();
   }
-  while (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
+  while (fgets(Buffer, sizeof(Buffer), ObjectFile) != NULL)
   {
+    // Add Object node
     StripTrailingNlCr(Buffer);
     if (Buffer[0] == '\0')
     {
@@ -2362,20 +2364,24 @@ void ObjectReadFile()
       sprintf(LogMsg, "ERROR: Memory allocation failed for Object");
       AbortIt();
     }
+    // Object Id
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Id = strdup(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Desc1
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Desc1 = strdup(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Desc2
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Desc2 = strdup(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Desc3
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
@@ -2389,7 +2395,7 @@ void ObjectReadFile()
       DescLen += LineLen;
       pDescBuffer[DescLen++] = '\n';
     }
-    while (fgets(Buffer, sizeof(Buffer), RoomFile) != NULL)
+    while (fgets(Buffer, sizeof(Buffer), ObjectFile) != NULL)
     {
       StripTrailingNlCr(Buffer);
       if (strncmp(Buffer, "Weight:", 7) == 0)
@@ -2417,31 +2423,36 @@ void ObjectReadFile()
       pDescBuffer[DescLen] = '\0';
       pObjectListTail->pObject->Desc3 = pDescBuffer;
     }
+    // Weight
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Weight = atoi(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Cost
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Cost = atoi(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Type
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Type = strdup(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Subtype
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Subtype = strdup(TmpStr);
-    fgets(Buffer, sizeof(Buffer), RoomFile);
+    // Value
+    fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Value = atoi(TmpStr);
   }
-  fclose(RoomFile);
+  fclose(ObjectFile);
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
