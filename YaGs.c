@@ -166,6 +166,7 @@ char                 *ValidNamesFileName = aTmpStr;      // Valid names file nam
 FILE                 *GreetingFile;                      // Greeting file
 FILE                 *HelpFile;                          // Help file
 FILE                 *LogFile;                           // Log file
+FILE                 *MobileFile;                        // Mobile file
 FILE                 *MotdFile;                          // Message of the day file
 FILE                 *ObjectFile;                        // Object file
 FILE                 *PlayerFile;                        // Player file
@@ -304,6 +305,9 @@ struct MobileList
   MobileList         *pNextMobile;                    // Pointer to the next node in the list
 };
 
+MobileList            *pMobileListHead = NULL;        // Pointer to the head of the mobile list
+MobileList            *pMobileListTail = NULL;        // Pointer to the tail of the mobile list
+
 struct Object
 {
   char               *Id;                             // Unique object identifier
@@ -391,6 +395,7 @@ void    InitalizeNewPlayer();
 void    Initialization();
 void    LogIt(char *LogMsg);
 void    LowerCase(char *Str);
+void    MobileReadFile();
 void    NormalizePlayerName(char *Name);
 bool    MudCmdOk();
 void    ObjectReadFile();
@@ -1738,6 +1743,7 @@ void StartItUp()
   ValidateCommandTable();
   SocketListen();
   OpenPlayerFile();
+  MobileReadFile();
   ObjectReadFile();
   RoomReadFile();
 }
@@ -2318,6 +2324,141 @@ void ValidateCommandTable()
     LogIt(Buffer);
     AbortIt();
   }
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Mobiles
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Read mobile definitions from Mobiles.txt and build the permanent mobile list.
+void MobileReadFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s", YAGS_DIR, WORLD_DIR, MOBILES_FILE);
+  MobileFile = fopen(TmpStr, "r");
+  if (MobileFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open %s failed: %s", MOBILES_FILE, strerror(errno));
+    AbortIt();
+  }
+  while (fgets(Buffer, sizeof(Buffer), MobileFile) != NULL)
+  {
+    // Add Mobile node
+    StripTrailingNlCr(Buffer);
+    if (Buffer[0] == '\0')
+    {
+      continue;
+    }
+    if (pMobileListHead == NULL)
+    {
+      pMobileListHead = (MobileList *)calloc(1, sizeof(MobileList));
+      pMobileListTail = pMobileListHead;
+    }
+    else
+    {
+      pMobileListTail->pNextMobile = (MobileList *)calloc(1, sizeof(MobileList));
+      pMobileListTail = pMobileListTail->pNextMobile;
+    }
+    if (pMobileListTail == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for MobileList node");
+      AbortIt();
+    }
+    pMobileListTail->pMobile = (Mobile *)calloc(1, sizeof(Mobile));
+    if (pMobileListTail->pMobile == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Mobile");
+      AbortIt();
+    }
+    // Mobile Id
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Id = strdup(TmpStr);
+    // Desc1
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Desc1 = strdup(TmpStr);
+    // Desc2
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Desc2 = strdup(TmpStr);
+    // Desc3
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pDescBuffer = NULL;
+    DescLen = 0;
+    if (TmpStr[0] != '\0')
+    {
+      LineLen = strlen(TmpStr);
+      pDescBuffer = (char *)realloc(pDescBuffer, DescLen + LineLen + 2);
+      strcpy(pDescBuffer + DescLen, TmpStr);
+      DescLen += LineLen;
+      pDescBuffer[DescLen++] = '\n';
+    }
+    while (fgets(Buffer, sizeof(Buffer), MobileFile) != NULL)
+    {
+      StripTrailingNlCr(Buffer);
+      if (strncmp(Buffer, "Attack:", 7) == 0)
+      {
+        break;
+      }
+      LineLen = strlen(Buffer);
+      pNewBuffer = (char *)realloc(pDescBuffer, DescLen + LineLen + 2);
+      if (pNewBuffer == NULL)
+      {
+        sprintf(LogMsg, "ERROR: Memory allocation failed for Mobile Desc3");
+        AbortIt();
+      }
+      pDescBuffer = pNewBuffer;
+      strcpy(pDescBuffer + DescLen, Buffer);
+      DescLen += LineLen;
+      pDescBuffer[DescLen++] = '\n';
+    }
+    if (pDescBuffer == NULL)
+    {
+      pMobileListTail->pMobile->Desc3 = strdup("");
+    }
+    else
+    {
+      pDescBuffer[DescLen] = '\0';
+      pMobileListTail->pMobile->Desc3 = pDescBuffer;
+    }
+    // Attack
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Attack = strdup(TmpStr);
+    // Level
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Level = atoi(TmpStr);
+    // Hit
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Hit = atoi(TmpStr);
+    // Exp
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Exp = atoi(TmpStr);
+    // Loot
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    StripTrailingNlCr(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Loot = strdup(TmpStr);
+  }
+  fclose(MobileFile);
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
