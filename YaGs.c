@@ -25,7 +25,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #include <math.h>                                        // fmod()
 #include <stdbool.h>                                     // bool, true, false
 #include <stdio.h>                                       // a whole bunch of i/o functions
-#include <stdlib.h>                                      // atoi(), exit(), free(), malloc(), realloc()
+#include <stdlib.h>                                      // atoi(), exit(), free(), malloc()
 #include <string.h>                                      // a whole bunch of string functions
 #include <sys/socket.h>                                  // This and arpa/inet - a whole plethora of socket related stuff
 #include <time.h>                                        // ctime(), difftime(), time(), time_t
@@ -87,14 +87,12 @@ time_t                CurrentTime;                       // Current time for pla
 time_t                CurrentTimeSec;                    // Current time in seconds
 time_t                NextPlayerAutosave;                // Time of the next dirty player save
 int                   Days;                              // Played time in days
-size_t                DescLen;                           // Length of a room description
 int                   DestRoomNbr;                       // Room number player is moving into
 int                   DirectionNbr;                      // The DirectionTable index of the direction
 double                ElapsedTime;                       // Elapsed player time
 int                   Hours;                             // Played time in hours
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
-size_t                LineLen;                           // Length of a line read from a file
 int                   Listen;                            // Listening socket
 int                   MaxSocket;                         // Maximum socket value
 int                   Minutes;                           // Played time in minutes
@@ -121,9 +119,7 @@ size_t                z;                                 // A non-negative integ
 //Pointers
 char                 *pColor;                            // Selected color code string
 char                 *CurrentTimeTxt;                    // Current timestamp text
-char                 *pDescBuffer;                       // Description being assembled
 char                 *pExitsCopy;                        // Working copy of Room Exits
-char                 *pNewBuffer;                        // Newly allocated room description buffer
 char                 *pOutput;                           // Pointer into Player->Output
 char                 *pOutPlus1;                         // Pointer to pOutput + 1
 char                 *pTmpStr;                           // Pointer into TmpStr
@@ -2408,18 +2404,7 @@ void MobileReadFile()
     // Desc3
     fgets(Buffer, sizeof(Buffer), MobileFile);
     StripTrailingNlCr(Buffer);
-    strcpy(TmpStr, strchr(Buffer, ':') + 1);
-    Trim(TmpStr);
-    pDescBuffer = NULL;
-    DescLen = 0;
-    if (TmpStr[0] != '\0')
-    {
-      LineLen = strlen(TmpStr);
-      pDescBuffer = (char *)realloc(pDescBuffer, DescLen + LineLen + 2);
-      strcpy(pDescBuffer + DescLen, TmpStr);
-      DescLen += LineLen;
-      pDescBuffer[DescLen++] = '\n';
-    }
+    TmpStr[0] = '\0';
     while (fgets(Buffer, sizeof(Buffer), MobileFile) != NULL)
     {
       StripTrailingNlCr(Buffer);
@@ -2427,27 +2412,10 @@ void MobileReadFile()
       {
         break;
       }
-      LineLen = strlen(Buffer);
-      pNewBuffer = (char *)realloc(pDescBuffer, DescLen + LineLen + 2);
-      if (pNewBuffer == NULL)
-      {
-        sprintf(LogMsg, "ERROR: Memory allocation failed for Mobile Desc3");
-        AbortIt();
-      }
-      pDescBuffer = pNewBuffer;
-      strcpy(pDescBuffer + DescLen, Buffer);
-      DescLen += LineLen;
-      pDescBuffer[DescLen++] = '\n';
+      StrAppend(TmpStr, Buffer);
+      StrAppend(TmpStr, "\n");
     }
-    if (pDescBuffer == NULL)
-    {
-      pMobileListTail->pMobile->Desc3 = strdup("");
-    }
-    else
-    {
-      pDescBuffer[DescLen] = '\0';
-      pMobileListTail->pMobile->Desc3 = pDescBuffer;
-    }
+    pMobileListTail->pMobile->Desc3 = strdup(TmpStr);
     // Attack
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
@@ -2543,18 +2511,7 @@ void ObjectReadFile()
     // Desc3
     fgets(Buffer, sizeof(Buffer), ObjectFile);
     StripTrailingNlCr(Buffer);
-    strcpy(TmpStr, strchr(Buffer, ':') + 1);
-    Trim(TmpStr);
-    pDescBuffer = NULL;
-    DescLen = 0;
-    if (TmpStr[0] != '\0')
-    {
-      LineLen = strlen(TmpStr);
-      pDescBuffer = (char *)realloc(pDescBuffer, DescLen + LineLen + 2);
-      strcpy(pDescBuffer + DescLen, TmpStr);
-      DescLen += LineLen;
-      pDescBuffer[DescLen++] = '\n';
-    }
+    TmpStr[0] = '\0';
     while (fgets(Buffer, sizeof(Buffer), ObjectFile) != NULL)
     {
       StripTrailingNlCr(Buffer);
@@ -2562,27 +2519,10 @@ void ObjectReadFile()
       {
         break;
       }
-      LineLen = strlen(Buffer);
-      pNewBuffer = (char *)realloc(pDescBuffer, DescLen + LineLen + 2);
-      if (pNewBuffer == NULL)
-      {
-        sprintf(LogMsg, "ERROR: Memory allocation failed for Object Desc3");
-        AbortIt();
-      }
-      pDescBuffer = pNewBuffer;
-      strcpy(pDescBuffer + DescLen, Buffer);
-      DescLen += LineLen;
-      pDescBuffer[DescLen++] = '\n';
+      StrAppend(TmpStr, Buffer);
+      StrAppend(TmpStr, "\n");
     }
-    if (pDescBuffer == NULL)
-    {
-      pObjectListTail->pObject->Desc3 = strdup("");
-    }
-    else
-    {
-      pDescBuffer[DescLen] = '\0';
-      pObjectListTail->pObject->Desc3 = pDescBuffer;
-    }
+    pObjectListTail->pObject->Desc3 = strdup(TmpStr);
     // Weight
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
@@ -2850,8 +2790,7 @@ void RoomReadFile()
     }
     SingleRoom.Name = strdup(pToken);
     // Read Description (multi-line until "Terrain" label is found)
-    pDescBuffer = NULL;
-    DescLen = 0;
+    TmpStr[0] = '\0';
     while (true)
     {
       if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
@@ -2866,23 +2805,12 @@ void RoomReadFile()
       {
         break;
       }
-      LineLen = strlen(Buffer);
-      pNewBuffer = realloc(pDescBuffer, DescLen + LineLen + 2); // +2 for newline and null terminator
-      if (pNewBuffer == NULL)
-      {
-        sprintf(LogMsg, "ERROR: Memory allocation failed while reading Description from %s at line %d", ROOMS_FILE, LineNbr);
-        AbortIt();
-      }
-      pDescBuffer = pNewBuffer;
-      strcpy(pDescBuffer + DescLen, Buffer);
-      DescLen += LineLen;
-      pDescBuffer[DescLen] = '\n';
-      DescLen++;
+      StrAppend(TmpStr, Buffer);
+      StrAppend(TmpStr, "\n");
     }
-    if (pDescBuffer != NULL)
+    if (TmpStr[0] != '\0')
     {
-      pDescBuffer[DescLen] = '\0';
-      SingleRoom.Desc = pDescBuffer;
+      SingleRoom.Desc = TmpStr;
     }
     else
     {
