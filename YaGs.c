@@ -35,11 +35,14 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 // Macros
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// Configuration
+// Debugging
 #define DEBUGIT(dl)             if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
 #define DEBUGIT_LVL             1                        // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
+// Configuration
+#define BUFFER_LIMIT            2048                     // Max size of Buffer including '\0'
 #define PORT                    3737                     // Port number
 #define SLEEP_TIME              0400000                  // Sleep for a short period of time
+#define STRING_LIMIT            1024                     // Max size of string including '\0'
 #define USE_USLEEP              'N'                      // Use usleep() Y or N
 // Directories
 #define YAGS_DIR                "/mnt/c/Projects/YaGs"   // YaGs top level directory path
@@ -118,7 +121,7 @@ size_t                z;                                 // A non-negative integ
 //Pointers
 char                 *pColor;                            // Selected color code string
 char                 *CurrentTimeTxt;                    // Current timestamp text
-char                 *pDescBuffer;                       // Room description being assembled
+char                 *pDescBuffer;                       // Description being assembled
 char                 *pExitsCopy;                        // Working copy of Room Exits
 char                 *pNewBuffer;                        // Newly allocated room description buffer
 char                 *pOutput;                           // Pointer into Player->Output
@@ -135,19 +138,19 @@ struct ConnList      *pConnTail;                         // Pointer to the tail 
 struct ConnList      *pTarget;                           // Pointer to target player in the connection list
 
 // Strings
-char                  aTmpStr[1024];                     // Temp string
+char                  aTmpStr[STRING_LIMIT];             // Temp string
 char                 *TmpStr   = aTmpStr;                // Temp string too
-char                  aTmpStr1[1024];                    // Temp string 1
+char                  aTmpStr1[STRING_LIMIT];            // Temp string 1
 char                 *TmpStr1  = aTmpStr1;               // Temp string 1 too
 char                 *CmdParm1 = aTmpStr1;               // Command Parameter 1
-char                  aTmpStr2[1024];                    // Temp string 2
+char                  aTmpStr2[STRING_LIMIT];            // Temp string 2
 char                 *TmpStr2  = aTmpStr2;               // Temp string 2 too
 char                 *CmdParm2 = aTmpStr2;               // Command Parameter 2
-char                  aTmpStr3[1024];                    // Temp string 3
+char                  aTmpStr3[STRING_LIMIT];            // Temp string 3
 char                 *TmpStr3  = aTmpStr3;               // Temp string 3 too
 char                 *CmdParm3 = aTmpStr3;               // Command Parameter 3
-char                  Buffer[2048];                      // Just a buffer
-char                  Command[1024];                     // The command from the player
+char                  Buffer[BUFFER_LIMIT];              // Just a buffer
+char                  Command[STRING_LIMIT];             // The command from the player
 char                  LogMsg[100];                       // Log message
 char                  MsgTxt[100];                       // Message text
 char                  MudCmd[10];                        // Mud command
@@ -427,6 +430,7 @@ void    SocketDisconnectPlayers();
 void    SocketListen();
 void    SocketSendPlayerOutput();
 void    StartItUp();
+void    StrAppend(char *Str1, char *Str2);
 void    StripTrailingNlCr(char* Buffer);
 void    Trim(char *Str);
 void    Up1stChar(char *Str);
@@ -2085,6 +2089,21 @@ void NormalizePlayerName(char *Name)
   DEBUGIT(2)
   LowerCase(Name);
   Up1stChar(Name);
+}
+
+// Append Str2 to Str1
+void StrAppend(char *Str1, char *Str2)
+{
+  DEBUGIT(2)
+  x = strlen(Str1);
+  y = strlen(Str2);
+  if (x + y >= STRING_LIMIT)
+  {
+    sprintf(LogMsg, "ERROR: STRING_LIMIT exceeded in StrAppend");
+    AbortIt();
+  }
+  memcpy(Str1 + x, Str2, y);
+  Str1[x + y] = '\0';
 }
 
 // Remove the trailing new line or carriage return character from a C-style string,
