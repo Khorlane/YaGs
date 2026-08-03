@@ -366,7 +366,6 @@ void    AddPlayerToFile();
 void    AddToConnList();
 void    SocketCheckForNewPlayers();
 void    CloseLog();
-void    ClosePlayerFile();
 void    Color();
 void    DelFromConnList();
 int     DirectionLookUp(char *Direction);
@@ -399,16 +398,18 @@ void    NormalizePlayerName(char *Name);
 bool    MudCmdOk();
 void    ObjectReadFile();
 void    OpenLog();
-void    OpenPlayerFile();
+void    PlayerAutoSave();
+void    PlayerCloseFile();
 bool    PlayerNameValid();
 bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
-void    PlayerAutoSave();
+void    PlayerOpenFile();
+void    PlayerReadFile();
+void    PlayerWriteFile();
 void    ProcessCommandAlias();
 void    ProcessCommand();
 void    ProcessPlayerInput();
 void    Prompt(ConnList *pConn);
-void    ReadPlayerFromFile();
 void    RoomAddToRoomList();
 Room   *RoomAllocateAndCopy(const Room *SourceRoom);
 void    RoomFreeList();
@@ -435,7 +436,6 @@ void    Up1stChar(char *Str);
 void    ValidateCommandTable();
 void    Word(size_t Nbr, char *Str1, char *Str2);
 size_t  Words(char *Str);
-void    WritePlayerToFile();
 //void    zTestStuff();
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -608,7 +608,7 @@ void PlayerAutoSave()
     pConn = pConnCurr;
     if (pConn->State == Online && pConn->PlayerDirty)
     {
-      WritePlayerToFile();
+      PlayerWriteFile();
     }
     pConnCurr = pConnCurr->pConnNext;
   }
@@ -858,7 +858,7 @@ void DoAdvance()
   Prompt(pActor);
   // Save target player
   pConn = pTarget;
-  WritePlayerToFile();
+  PlayerWriteFile();
   pConn = pActor;
 }
 
@@ -896,7 +896,7 @@ void DoColor()
     strcat(pConn->Output, "Color is off.\r\n\r\n");
     Prompt(pConn);
   }
-  WritePlayerToFile();
+  PlayerWriteFile();
 }
 
 // Display the player's equipment.
@@ -1097,14 +1097,14 @@ void DoPlayerfile()
   strcat(pConn->Output, "Name       Admin Color Level Experience\r\n");
   EndFile = false;
   PlayerRcdNbr = 1;
-  ReadPlayerFromFile();
+  PlayerReadFile();
   while (EndFile == false)
   {
     sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", PlayerRcd.Name, " ", PlayerRcd.Admin, " ", PlayerRcd.Color, " ", PlayerRcd.Level, " ", PlayerRcd.Experience);
     strcat(pConn->Output, Buffer);
     strcat(pConn->Output, "\r\n");
     PlayerRcdNbr++;
-    ReadPlayerFromFile();
+    PlayerReadFile();
   }
   strcat(pConn->Output, "\r\n");
   Prompt(pConn);
@@ -1115,7 +1115,7 @@ void DoPlayerfile()
 void DoQuit()
 {
   DEBUGIT(1)
-  WritePlayerToFile();
+  PlayerWriteFile();
   strcat(pConn->Output, "Bye Bye");
   strcat(pConn->Output, "\r\n");
   pConn->State = Disconnect;
@@ -1722,7 +1722,7 @@ void SocketDisconnectPlayers()
     {
       if (pConn->PlayerRcdNbr > 0 && pConn->PlayerDirty)
       {
-        WritePlayerToFile();
+        PlayerWriteFile();
       }
       close(pConn->Socket);
       DelFromConnList();
@@ -1744,7 +1744,7 @@ void StartItUp()
   OpenLog();
   ValidateCommandTable();
   SocketListen();
-  OpenPlayerFile();
+  PlayerOpenFile();
   MobileReadFile();
   ObjectReadFile();
   RoomReadFile();
@@ -1768,7 +1768,7 @@ void ShutItDown()
   DEBUGIT(1)
   PlayerAutoSave();
   RoomFreeList();
-  ClosePlayerFile();
+  PlayerCloseFile();
   CloseLog();
   close(Listen);
 }
@@ -1852,7 +1852,7 @@ void DelFromConnList()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Open the player file for reading and writing.
-void OpenPlayerFile()
+void PlayerOpenFile()
 {
   DEBUGIT(1)
   sprintf(PlayerFileName, "%s%s%s%s%s", YAGS_DIR, "/", WORLD_DIR, "/", PLAYER_FILE);
@@ -1865,7 +1865,7 @@ void OpenPlayerFile()
 }
 
 // Close the player file.
-void ClosePlayerFile()
+void PlayerCloseFile()
 {
   DEBUGIT(1)
   fclose(PlayerFile);
@@ -1907,7 +1907,7 @@ bool PlayerNameValidOld()
   Found        = false;
   EndFile      = false;
   PlayerRcdNbr = 1;
-  ReadPlayerFromFile();
+  PlayerReadFile();
   while (!EndFile)
   {
     if (Equal(PlayerRcd.Name, Command))
@@ -1918,7 +1918,7 @@ bool PlayerNameValidOld()
       break;
     }
     PlayerRcdNbr++;
-    ReadPlayerFromFile();
+    PlayerReadFile();
   }
   return Found;
 }
@@ -1960,7 +1960,7 @@ bool PlayerNameValidNew()
 }
 
 // Read player data from the player file.
-void ReadPlayerFromFile()
+void PlayerReadFile()
 {
   DEBUGIT(1)
   fseek(PlayerFile, GetPlayerFileOffset(), SEEK_SET);
@@ -1978,7 +1978,7 @@ void ReadPlayerFromFile()
 }
 
 // Write player data to the player file.
-void WritePlayerToFile()
+void PlayerWriteFile()
 {
   DEBUGIT(1)
   PlayerRcdNbr = pConn->PlayerRcdNbr;
@@ -2051,11 +2051,11 @@ void GetNextPlayerRcdNbr()
   DEBUGIT(1)
   EndFile      = false;
   PlayerRcdNbr = 1;
-  ReadPlayerFromFile();
+  PlayerReadFile();
   while (EndFile == false)
   {
     PlayerRcdNbr++;
-    ReadPlayerFromFile();
+    PlayerReadFile();
   }
 }
 
