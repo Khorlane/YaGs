@@ -429,6 +429,8 @@ void    StartItUp();
 void    StrAppend(char *Str1, char *Str2);
 void    StripTrailingNlCr(char* Buffer);
 void    Trim(char *Str);
+void    TrimLeft(char *Str);
+void    TrimRight(char *Str);
 void    Up1stChar(char *Str);
 void    ValidateCommandTable();
 void    Word(size_t Nbr, char *Str1, char *Str2);
@@ -2131,27 +2133,35 @@ void StripTrailingNlCr(char *Buffer)
 void Trim(char *Str)
 {
   DEBUGIT(2)
-  i = strlen(Str);
-  i--;
-  while (isspace(Str[i]))
+  TrimLeft(Str);
+  TrimRight(Str);
+}
+
+// Remove leading whitespace characters from a C-style string.
+void TrimLeft(char *Str)
+{
+  DEBUGIT(2)
+  x = 0;
+  while (Str[x] != '\0' && isspace((unsigned char)Str[x]))
   {
-    Str[i] = '\0';
-    if (i == 0)
-    {
-      break;
-    }
-    i--;
+    x++;
   }
-  j = i;
-  i = 0;
-  while (Str[0] == ' ')
+  if (x > 0)
   {
-    for (i = 0; i < j; i++)
-    {
-      Str[i] = Str[i + 1];
-    }
-    Str[i] = '\0';
+    memmove(Str, Str + x, strlen(Str + x) + 1);
   }
+}
+
+// Remove trailing whitespace characters from a C-style string.
+void TrimRight(char *Str)
+{
+  DEBUGIT(2)
+  x = strlen(Str);
+  while (x > 0 && isspace((unsigned char)Str[x - 1]))
+  {
+    x--;
+  }
+  Str[x] = '\0';
 }
 
 // Convert the first character of a string to uppercase.
