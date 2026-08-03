@@ -428,7 +428,6 @@ void    SocketListen();
 void    SocketSendPlayerOutput();
 void    StartItUp();
 void    StrAppend(char *Str1, char *Str2);
-void    StripTrailingNlCr(char* Buffer);
 void    Trim(char *Str);
 void    TrimLeft(char *Str);
 void    TrimRight(char *Str);
@@ -2104,31 +2103,6 @@ void StrAppend(char *Str1, char *Str2)
   Str1[x + y] = '\0';
 }
 
-// Remove the trailing new line or carriage return character from a C-style string,
-void StripTrailingNlCr(char *Buffer)
-{
-  StrLen = strlen(Buffer);
-  if (StrLen > 1 && Buffer[StrLen - 2] == '\r' && Buffer[StrLen - 1] == '\n')
-  { // Remove "\r\n"
-    Buffer[StrLen - 2] = '\0';
-  }
-  else
-  if (StrLen > 1 && Buffer[StrLen - 2] == '\n' && Buffer[StrLen - 1] == '\r')
-  { // Remove "\n\r"
-    Buffer[StrLen - 2] = '\0';
-  }
-  else
-  if (StrLen > 0 && Buffer[StrLen - 1] == '\n')
-  { // Remove "\n"
-    Buffer[StrLen - 1] = '\0';
-  }
-  else
-  if (StrLen > 0 && Buffer[StrLen - 1] == '\r')
-  { // Remove "\r"
-    Buffer[StrLen - 1] = '\0';
-  }
-}
-
 // Remove leading and trailing whitespace characters from a given C-style string.
 void Trim(char *Str)
 {
@@ -2369,7 +2343,7 @@ void MobileReadFile()
   while (fgets(Buffer, sizeof(Buffer), MobileFile) != NULL)
   {
     // Add Mobile node
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     if (Buffer[0] == '\0')
     {
       continue;
@@ -2401,23 +2375,23 @@ void MobileReadFile()
     pMobileListTail->pMobile->Id = strdup(TmpStr);
     // Desc1
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Desc1 = strdup(TmpStr);
     // Desc2
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Desc2 = strdup(TmpStr);
     // Desc3
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     TmpStr[0] = '\0';
     while (fgets(Buffer, sizeof(Buffer), MobileFile) != NULL)
     {
-      StripTrailingNlCr(Buffer);
+      TrimRight(Buffer);
       if (strncmp(Buffer, "Attack:", 7) == 0)
       {
         break;
@@ -2432,25 +2406,25 @@ void MobileReadFile()
     pMobileListTail->pMobile->Attack = strdup(TmpStr);
     // Level
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Level = atoi(TmpStr);
     // Hit
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Hit = atoi(TmpStr);
     // Exp
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Exp = atoi(TmpStr);
     // Loot
     fgets(Buffer, sizeof(Buffer), MobileFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Loot = strdup(TmpStr);
@@ -2476,7 +2450,7 @@ void ObjectReadFile()
   while (fgets(Buffer, sizeof(Buffer), ObjectFile) != NULL)
   {
     // Add Object node
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     if (Buffer[0] == '\0')
     {
       continue;
@@ -2508,23 +2482,23 @@ void ObjectReadFile()
     pObjectListTail->pObject->Id = strdup(TmpStr);
     // Desc1
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Desc1 = strdup(TmpStr);
     // Desc2
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Desc2 = strdup(TmpStr);
     // Desc3
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     TmpStr[0] = '\0';
     while (fgets(Buffer, sizeof(Buffer), ObjectFile) != NULL)
     {
-      StripTrailingNlCr(Buffer);
+      TrimRight(Buffer);
       if (strncmp(Buffer, "Weight:", 7) == 0)
       {
         break;
@@ -2539,25 +2513,25 @@ void ObjectReadFile()
     pObjectListTail->pObject->Weight = atoi(TmpStr);
     // Cost
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Cost = atoi(TmpStr);
     // Type
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Type = strdup(TmpStr);
     // Subtype
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Subtype = strdup(TmpStr);
     // Value
     fgets(Buffer, sizeof(Buffer), ObjectFile);
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pObjectListTail->pObject->Value = atoi(TmpStr);
@@ -2773,9 +2747,8 @@ void RoomReadFile()
       sprintf(LogMsg, "ERROR: Failed to read Room Number and Name from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     LineNbr++;
-    Buffer[strcspn(Buffer, "\n")] = '\0';
     // Stop processing if $End is found
     if (strcmp(Buffer, "$End") == 0)
     {
@@ -2808,9 +2781,8 @@ void RoomReadFile()
         sprintf(LogMsg, "ERROR: Failed while reading Description from %s at line %d", ROOMS_FILE, LineNbr);
         AbortIt();
       }
-      StripTrailingNlCr(Buffer);
+      TrimRight(Buffer);
       LineNbr++;
-      Buffer[strcspn(Buffer, "\n")] = '\0';
       if (strncmp(Buffer, "Terrain: ", 9) == 0)
       {
         break;
@@ -2840,9 +2812,8 @@ void RoomReadFile()
       sprintf(LogMsg, "ERROR: Failed to read Flags from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     LineNbr++;
-    Buffer[strcspn(Buffer, "\n")] = '\0';
     if (!strncmp(Buffer, "Flags: ", 7) == 0)
     {
       sprintf(LogMsg, "ERROR: Invalid Flags format in %s at line %d", ROOMS_FILE, LineNbr);
@@ -2861,9 +2832,8 @@ void RoomReadFile()
       sprintf(LogMsg, "ERROR: Failed to read Exits from %s at line %d", ROOMS_FILE, LineNbr);
       AbortIt();
     }
-    StripTrailingNlCr(Buffer);
+    TrimRight(Buffer);
     LineNbr++;
-    Buffer[strcspn(Buffer, "\n")] = '\0';
     SingleRoom.Exits = strdup(Buffer);
     if (fgets(Buffer, sizeof(Buffer), RoomFile) == NULL)
     {
