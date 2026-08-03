@@ -131,12 +131,46 @@ as attacking, fleeing, or interacting with players.
 
 4.2 Adding Objects
 
-Objects can be added to rooms or mobiles by defining their unique identifier, description,
-properties, and any actions they can perform. The identifier is a numeric code that
-uniquely identifies the object in the game world. The description should provide
-players with information about the object's appearance and purpose. Properties can
-include weight, value, and usage instructions, while actions can define how players
-can interact with the object.
+Objects are defined by providing a unique Id such as RatFoot. Objects can be in a
+player's inventory, or in their equipment as armor and weapons. There are several types
+of objects and each type may have subtypes. For a given type/subtype there is a value
+whose meaning is defined by the type/subtype combination. For example, a ShortSword is
+Type: Weapon and Subtype: Sword. For Weapons the Value is amount of damage assigned
+to the weapon.
+
+Id:      <ObjectId>
+Desc1:   <Desc1>
+Desc2:   <Desc2>
+Desc3:
+  <Desc3>
+Weight:  <Weight>
+Cost:    <Cost>
+Type:    <Type>
+Subtype: <Subtype>
+Value:   <value>
+
+Type: Armor
+Valid Subtypes:
+Head
+Ear
+Neck
+Shoulders
+Chest
+Back
+Arms 
+Wrist
+Hands 
+Finger
+Shield
+Waist
+Legs
+Ankle
+Feet
+Note: The player may also specify 'left' or 'right' when 'wearing' one of these objects.
+Ear
+Wrist
+Finger
+Ankle
 
 5 World File Format
 
