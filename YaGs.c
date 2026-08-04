@@ -292,6 +292,8 @@ struct PlayerInvList
   PlayerInvList      *pNextPlayerInv;                 // Pointer to the next inventory list node
 };
 
+PlayerEquList        *pPlayerEquList     = NULL;      // Pointer to found player equipment list node
+PlayerInvList        *pPlayerInvList     = NULL;      // Pointer to found player inventory list node
 PlayerEquList        *pPlayerEquListCurr = NULL;      // Pointer to the current player equipment list node
 PlayerEquList        *pPlayerEquListNew  = NULL;      // Pointer to a new player equipment list node
 PlayerEquList        *pPlayerEquListPrev = NULL;      // Pointer to the previous player equipment list node
@@ -451,15 +453,15 @@ void           OpenLog();
 void           PlayerAutoSave();
 void           PlayerCloseFile();
 void           PlayerEquAdd(Object *pObject, char *Slot);
-PlayerEquList *PlayerEquLookUp(char *Id);
+void           PlayerEquLookUp(char *Id);
 void           PlayerEquReadFile();
-void           PlayerEquRemove(PlayerEquList *pPlayerEquList);
-PlayerEquList *PlayerEquSlotLookUp(char *Slot);
+void           PlayerEquRemove();
+void           PlayerEquSlotLookUp(char *Slot);
 void           PlayerEquWriteFile();
 void           PlayerInvAdd(Object *pObject);
-PlayerInvList *PlayerInvLookUp(char *Id);
+void           PlayerInvLookUp(char *Id);
 void           PlayerInvReadFile();
-void           PlayerInvRemoveOne(PlayerInvList *pPlayerInvList);
+void           PlayerInvRemoveOne();
 void           PlayerInvWriteFile();
 bool           PlayerNameValid();
 bool           PlayerNameValidNew();
@@ -1060,7 +1062,8 @@ void DoEquipment()
     i = 0;
     while (EquipmentSlotTable[i].Slot != NULL)
     {
-      pPlayerEquListCurr = PlayerEquSlotLookUp(EquipmentSlotTable[i].Slot);
+      PlayerEquSlotLookUp(EquipmentSlotTable[i].Slot);
+      pPlayerEquListCurr = pPlayerEquList;
       if (pPlayerEquListCurr != NULL)
       {
         sprintf(Buffer, "%-25s%s\r\n", EquipmentSlotTable[i].Label, pPlayerEquListCurr->pObject->Desc1);
@@ -1358,17 +1361,17 @@ void DoRemove()
 {
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
-  pPlayerEquListCurr = PlayerEquLookUp(CmdParm1);
-  if (pPlayerEquListCurr == NULL)
+  PlayerEquLookUp(CmdParm1);
+  if (pPlayerEquList == NULL)
   {
     sprintf(Buffer, "You don't have a(n) %s.\r\n\r\n", CmdParm1);
     strcat(pConn->Output, Buffer);
     Prompt(pConn);
     return;
   }
-  sprintf(Buffer, "You remove %s.\r\n\r\n", pPlayerEquListCurr->pObject->Desc1);
-  PlayerInvAdd(pPlayerEquListCurr->pObject);
-  PlayerEquRemove(pPlayerEquListCurr);
+  sprintf(Buffer, "You remove %s.\r\n\r\n", pPlayerEquList->pObject->Desc1);
+  PlayerInvAdd(pPlayerEquList->pObject);
+  PlayerEquRemove();
   PlayerEquWriteFile();
   PlayerInvWriteFile();
   strcat(pConn->Output, Buffer);
@@ -1427,20 +1430,20 @@ void DoWear()
 {
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
-  pPlayerInvListCurr = PlayerInvLookUp(CmdParm1);
-  if (pPlayerInvListCurr == NULL)
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
   {
     strcat(pConn->Output, "You don't have that.\r\n\r\n");
     Prompt(pConn);
     return;
   }
-  if (!Equal(pPlayerInvListCurr->pObject->Type, "Armor"))
+  if (!Equal(pPlayerInvList->pObject->Type, "Armor"))
   {
     strcat(pConn->Output, "You can't wear that.\r\n\r\n");
     Prompt(pConn);
     return;
   }
-  WearPositionNbr = WearPositionLookUp(pPlayerInvListCurr->pObject->Subtype);
+  WearPositionNbr = WearPositionLookUp(pPlayerInvList->pObject->Subtype);
   if (WearPositionNbr < 0)
   {
     strcat(pConn->Output, "You can't wear that.\r\n\r\n");
@@ -1448,7 +1451,8 @@ void DoWear()
     return;
   }
   strcpy(TmpStr, WearPositionTable[WearPositionNbr].Slot1);
-  if (PlayerEquSlotLookUp(TmpStr) != NULL)
+  PlayerEquSlotLookUp(TmpStr);
+  if (pPlayerEquList != NULL)
   {
     if (WearPositionTable[WearPositionNbr].Slot2 == NULL)
     {
@@ -1457,16 +1461,17 @@ void DoWear()
       return;
     }
     strcpy(TmpStr, WearPositionTable[WearPositionNbr].Slot2);
-    if (PlayerEquSlotLookUp(TmpStr) != NULL)
+    PlayerEquSlotLookUp(TmpStr);
+    if (pPlayerEquList != NULL)
     {
       strcat(pConn->Output, "You are already wearing something there.\r\n\r\n");
       Prompt(pConn);
       return;
     }
   }
-  sprintf(Buffer, "You wear %s.\r\n\r\n", pPlayerInvListCurr->pObject->Desc1);
-  PlayerEquAdd(pPlayerInvListCurr->pObject, TmpStr);
-  PlayerInvRemoveOne(pPlayerInvListCurr);
+  sprintf(Buffer, "You wear %s.\r\n\r\n", pPlayerInvList->pObject->Desc1);
+  PlayerEquAdd(pPlayerInvList->pObject, TmpStr);
+  PlayerInvRemoveOne();
   PlayerEquWriteFile();
   PlayerInvWriteFile();
   strcat(pConn->Output, Buffer);
@@ -2206,7 +2211,7 @@ void PlayerEquAdd(Object *pObject, char *Slot)
 }
 
 // Find an equipped object on the connection's equipment list by object Id.
-PlayerEquList *PlayerEquLookUp(char *Id)
+void PlayerEquLookUp(char *Id)
 {
   DEBUGIT(1)
   pPlayerEquListCurr = pConn->pPlayerEquHead;
@@ -2214,11 +2219,12 @@ PlayerEquList *PlayerEquLookUp(char *Id)
   {
     if (strcasecmp(Id, pPlayerEquListCurr->pObject->Id) == 0)
     {
-      return pPlayerEquListCurr;
+      pPlayerEquList = pPlayerEquListCurr;
+      return;
     }
     pPlayerEquListCurr = pPlayerEquListCurr->pNextPlayerEqu;
   }
-  return NULL;
+  pPlayerEquList = NULL;
 }
 
 // Read a player's equipment file and build the connection's equipment list.
@@ -2262,7 +2268,7 @@ void PlayerEquReadFile()
 }
 
 // Remove an object from the connection's equipment list.
-void PlayerEquRemove(PlayerEquList *pPlayerEquList)
+void PlayerEquRemove()
 {
   DEBUGIT(1)
   pPlayerEquListCurr = pConn->pPlayerEquHead;
@@ -2286,10 +2292,12 @@ void PlayerEquRemove(PlayerEquList *pPlayerEquList)
   }
   free(pPlayerEquListCurr->Slot);
   free(pPlayerEquListCurr);
+  pPlayerEquList     = NULL;
+  pPlayerEquListCurr = NULL;
 }
 
 // Find an occupied equipment slot on the connection's equipment list.
-PlayerEquList *PlayerEquSlotLookUp(char *Slot)
+void PlayerEquSlotLookUp(char *Slot)
 {
   DEBUGIT(1)
   pPlayerEquListCurr = pConn->pPlayerEquHead;
@@ -2297,11 +2305,12 @@ PlayerEquList *PlayerEquSlotLookUp(char *Slot)
   {
     if (strcasecmp(Slot, pPlayerEquListCurr->Slot) == 0)
     {
-      return pPlayerEquListCurr;
+      pPlayerEquList = pPlayerEquListCurr;
+      return;
     }
     pPlayerEquListCurr = pPlayerEquListCurr->pNextPlayerEqu;
   }
-  return NULL;
+  pPlayerEquList = NULL;
 }
 
 // Rewrite the player's equipment file from the connection's equipment list.
@@ -2344,7 +2353,8 @@ void PlayerEquWriteFile()
 void PlayerInvAdd(Object *pObject)
 {
   DEBUGIT(1)
-  pPlayerInvListCurr = PlayerInvLookUp(pObject->Id);
+  PlayerInvLookUp(pObject->Id);
+  pPlayerInvListCurr = pPlayerInvList;
   if (pPlayerInvListCurr != NULL)
   {
     pPlayerInvListCurr->Quantity++;
@@ -2371,7 +2381,7 @@ void PlayerInvAdd(Object *pObject)
 }
 
 // Find an object on the connection's inventory list by object Id.
-PlayerInvList *PlayerInvLookUp(char *Id)
+void PlayerInvLookUp(char *Id)
 {
   DEBUGIT(1)
   pPlayerInvListCurr = pConn->pPlayerInvHead;
@@ -2379,11 +2389,12 @@ PlayerInvList *PlayerInvLookUp(char *Id)
   {
     if (strcasecmp(Id, pPlayerInvListCurr->pObject->Id) == 0)
     {
-      return pPlayerInvListCurr;
+      pPlayerInvList = pPlayerInvListCurr;
+      return;
     }
     pPlayerInvListCurr = pPlayerInvListCurr->pNextPlayerInv;
   }
-  return NULL;
+  pPlayerInvList = NULL;
 }
 
 // Read a player's inventory file and build the connection's inventory list.
@@ -2427,7 +2438,7 @@ void PlayerInvReadFile()
 }
 
 // Remove one object from an inventory list node and delete the node when empty.
-void PlayerInvRemoveOne(PlayerInvList *pPlayerInvList)
+void PlayerInvRemoveOne()
 {
   DEBUGIT(1)
   if (pPlayerInvList->Quantity > 1)
@@ -2455,6 +2466,8 @@ void PlayerInvRemoveOne(PlayerInvList *pPlayerInvList)
     pConn->pPlayerInvTail = pPlayerInvListPrev;
   }
   free(pPlayerInvListCurr);
+  pPlayerInvList     = NULL;
+  pPlayerInvListCurr = NULL;
 }
 
 // Rewrite the player's inventory file from the connection's inventory list.
