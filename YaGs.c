@@ -289,7 +289,9 @@ struct PlayerInvList
 
 PlayerEquList        *pPlayerEquListCurr = NULL;      // Pointer to the current player equipment list node
 PlayerEquList        *pPlayerEquListNew  = NULL;      // Pointer to a new player equipment list node
+PlayerEquList        *pPlayerEquListPrev = NULL;      // Pointer to the previous player equipment list node
 PlayerInvList        *pPlayerInvListCurr = NULL;      // Pointer to the current player inventory list node
+PlayerInvList        *pPlayerInvListNew  = NULL;      // Pointer to a new player inventory list node
 PlayerInvList        *pPlayerInvListPrev = NULL;      // Pointer to the previous player inventory list node
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -392,6 +394,7 @@ void           DoLook();
 void           DoPlayed();
 void           DoPlayerfile();
 void           DoQuit();
+void           DoRemove();
 void           DoShutdown();
 void           DoStatus();
 void           DoWear();
@@ -415,9 +418,12 @@ void           OpenLog();
 void           PlayerAutoSave();
 void           PlayerCloseFile();
 void           PlayerEquAdd(Object *pObject, char *Slot);
+PlayerEquList *PlayerEquLookUp(char *Id);
 void           PlayerEquReadFile();
+void           PlayerEquRemove(PlayerEquList *pPlayerEquList);
 PlayerEquList *PlayerEquSlotLookUp(char *Slot);
 void           PlayerEquWriteFile();
+void           PlayerInvAdd(Object *pObject);
 PlayerInvList *PlayerInvLookUp(char *Id);
 void           PlayerInvReadFile();
 void           PlayerInvRemoveOne(PlayerInvList *pPlayerInvList);
@@ -608,6 +614,7 @@ char *CommandTable[][9] =
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"remove",     "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Remove what?"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
@@ -630,6 +637,7 @@ void (*DoCommand[])(void) =
   DoPlayed,
   DoPlayerfile,
   DoQuit,
+  DoRemove,
   DoShutdown,
   DoStatus,
   DoWear,
@@ -1253,6 +1261,28 @@ void DoQuit()
   strcat(pConn->Output, "Bye Bye");
   strcat(pConn->Output, "\r\n");
   pConn->State = Disconnect;
+}
+
+// Remove an equipped object and return it to the player's inventory.
+void DoRemove()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  pPlayerEquListCurr = PlayerEquLookUp(CmdParm1);
+  if (pPlayerEquListCurr == NULL)
+  {
+    sprintf(Buffer, "You don't have a(n) %s.\r\n\r\n", CmdParm1);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You remove %s.\r\n\r\n", pPlayerEquListCurr->pObject->Desc1);
+  PlayerInvAdd(pPlayerEquListCurr->pObject);
+  PlayerEquRemove(pPlayerEquListCurr);
+  PlayerEquWriteFile();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
 }
 
 // Initiate the shutdown process of the game by setting a shutdown flag,
@@ -2084,6 +2114,22 @@ void PlayerEquAdd(Object *pObject, char *Slot)
   }
 }
 
+// Find an equipped object on the connection's equipment list by object Id.
+PlayerEquList *PlayerEquLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pPlayerEquListCurr = pConn->pPlayerEquHead;
+  while (pPlayerEquListCurr != NULL)
+  {
+    if (strcasecmp(Id, pPlayerEquListCurr->pObject->Id) == 0)
+    {
+      return pPlayerEquListCurr;
+    }
+    pPlayerEquListCurr = pPlayerEquListCurr->pNextPlayerEqu;
+  }
+  return NULL;
+}
+
 // Read a player's equipment file and build the connection's equipment list.
 void PlayerEquReadFile()
 {
@@ -2122,6 +2168,33 @@ void PlayerEquReadFile()
     pConn->pPlayerEquTail->Slot = strdup(TmpStr2);
   }
   fclose(PlayerEquFile);
+}
+
+// Remove an object from the connection's equipment list.
+void PlayerEquRemove(PlayerEquList *pPlayerEquList)
+{
+  DEBUGIT(1)
+  pPlayerEquListCurr = pConn->pPlayerEquHead;
+  pPlayerEquListPrev = NULL;
+  while (pPlayerEquListCurr != pPlayerEquList)
+  {
+    pPlayerEquListPrev = pPlayerEquListCurr;
+    pPlayerEquListCurr = pPlayerEquListCurr->pNextPlayerEqu;
+  }
+  if (pPlayerEquListPrev == NULL)
+  {
+    pConn->pPlayerEquHead = pPlayerEquListCurr->pNextPlayerEqu;
+  }
+  else
+  {
+    pPlayerEquListPrev->pNextPlayerEqu = pPlayerEquListCurr->pNextPlayerEqu;
+  }
+  if (pConn->pPlayerEquTail == pPlayerEquListCurr)
+  {
+    pConn->pPlayerEquTail = pPlayerEquListPrev;
+  }
+  free(pPlayerEquListCurr->Slot);
+  free(pPlayerEquListCurr);
 }
 
 // Find an occupied equipment slot on the connection's equipment list.
@@ -2174,6 +2247,36 @@ void PlayerEquWriteFile()
     AbortIt();
   }
   fclose(PlayerEquFile);
+}
+
+// Add one object to the connection's inventory list.
+void PlayerInvAdd(Object *pObject)
+{
+  DEBUGIT(1)
+  pPlayerInvListCurr = PlayerInvLookUp(pObject->Id);
+  if (pPlayerInvListCurr != NULL)
+  {
+    pPlayerInvListCurr->Quantity++;
+    return;
+  }
+  pPlayerInvListNew = (PlayerInvList *)calloc(1, sizeof(PlayerInvList));
+  if (pPlayerInvListNew == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for PlayerInvList node");
+    AbortIt();
+  }
+  pPlayerInvListNew->pObject = pObject;
+  pPlayerInvListNew->Quantity = 1;
+  if (pConn->pPlayerInvHead == NULL)
+  {
+    pConn->pPlayerInvHead = pPlayerInvListNew;
+    pConn->pPlayerInvTail = pPlayerInvListNew;
+  }
+  else
+  {
+    pConn->pPlayerInvTail->pNextPlayerInv = pPlayerInvListNew;
+    pConn->pPlayerInvTail = pPlayerInvListNew;
+  }
 }
 
 // Find an object on the connection's inventory list by object Id.
