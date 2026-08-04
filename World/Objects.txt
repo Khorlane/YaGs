@@ -80,3 +80,147 @@ Cost:    5
 Type:    Armor
 Subtype: Hands
 Value:   1
+
+Id:      SimpleEarring
+Desc1:   a simple earring
+Desc2:   a simple earring is here.
+Desc3:
+  This small earring is made from cheap metal. It is
+plain, but still wearable.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Ear
+Value:   1
+
+Id:      FrayedScarf
+Desc1:   a frayed scarf
+Desc2:   a frayed scarf is here.
+Desc3:
+  This faded scarf is frayed around the edges, but it
+still provides a little protection for the neck.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Neck
+Value:   1
+
+Id:      TatteredShoulderPads
+Desc1:   some tattered shoulder pads
+Desc2:   some tattered shoulder pads are here.
+Desc3:
+  These shoulder pads have seen better days. Their thin
+padding offers only modest protection.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Shoulders
+Value:   1
+
+Id:      PatchedVest
+Desc1:   a patched vest
+Desc2:   a patched vest is here.
+Desc3:
+  This cloth vest has been patched many times. It is worn,
+but still sturdy enough to protect the chest.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Chest
+Value:   1
+
+Id:      TornCloak
+Desc1:   a torn cloak
+Desc2:   a torn cloak is here.
+Desc3:
+  This old cloak is torn and faded. Its heavy cloth still
+offers a small amount of protection for the back.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Back
+Value:   1
+
+Id:      TatteredSleeves
+Desc1:   a pair of tattered sleeves
+Desc2:   a pair of tattered sleeves is here.
+Desc3:
+  These loose cloth sleeves are badly tattered, but they
+provide a thin covering for the arms.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Arms
+Value:   1
+
+Id:      WornWristband
+Desc1:   a worn wristband
+Desc2:   a worn wristband is here.
+Desc3:
+  This narrow leather wristband is cracked with age. It
+still provides a little protection for the wrist.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Wrist
+Value:   1
+
+Id:      SimpleRing
+Desc1:   a simple ring
+Desc2:   a simple ring is here.
+Desc3:
+  This plain metal ring has no decoration or markings. It
+fits comfortably on a finger.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Finger
+Value:   1
+
+Id:      WoodenShield
+Desc1:   a small wooden shield
+Desc2:   a small wooden shield is here.
+Desc3:
+  This small shield is made from rough wooden planks bound
+together with strips of leather.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Shield
+Value:   1
+
+Id:      PatchedLeggings
+Desc1:   a pair of patched leggings
+Desc2:   a pair of patched leggings is here.
+Desc3:
+  These cloth leggings are covered with mismatched patches.
+They provide a little protection for the legs.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Legs
+Value:   1
+
+Id:      WornAnklet
+Desc1:   a worn anklet
+Desc2:   a worn anklet is here.
+Desc3:
+  This simple leather anklet is worn smooth from years of
+use, but it remains intact.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Ankle
+Value:   1
+
+Id:      WornSandals
+Desc1:   a pair of worn sandals
+Desc2:   a pair of worn sandals is here.
+Desc3:
+  These old leather sandals are scuffed and worn. Their
+thick soles still offer some protection for the feet.
+Weight:  1
+Cost:    5
+Type:    Armor
+Subtype: Feet
+Value:   1
