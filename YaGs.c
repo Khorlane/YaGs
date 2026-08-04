@@ -27,6 +27,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #include <stdio.h>                                       // a whole bunch of i/o functions
 #include <stdlib.h>                                      // atoi(), exit(), free(), malloc()
 #include <string.h>                                      // a whole bunch of string functions
+#include <strings.h>                                     // strcasecmp()
 #include <sys/socket.h>                                  // This and arpa/inet - a whole plethora of socket related stuff
 #include <time.h>                                        // ctime(), difftime(), time(), time_t
 #include <unistd.h>                                      // close(), fsync(), read(), usleep()
@@ -48,6 +49,8 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define YAGS_DIR                "/mnt/c/Projects/YaGs"   // YaGs top level directory path
 #define LIB_DIR                 "Library"                // Library directory
 #define WORLD_DIR               "World"                  // World directory
+#define PLAYER_EQU_DIR          "PlayerEqu"              // Player equipment directory
+#define PLAYER_INV_DIR          "PlayerInv"              // Player inventory directory
 #define LOG_DIR                 "Logs"                   // Log directory
 // Library directory contents
 #define GREETING_FILE           "Greeting.txt"           // Greeting file
@@ -107,6 +110,7 @@ int                   Seconds;                           // Played time in secon
 int                   Socket;                            // Socket value
 socklen_t             SocketAddrSize;                    // Size of Socket structure
 size_t                StrLen;                            // String length
+int                   WearPositionNbr;                   // WearPositionTable index
 int                   WordState;                         // Tracks WordState: NotWord | InWord
 extern int            errno;                             // Error number set by fopen(), for example
 size_t                i;                                 // A non-negative integer
@@ -168,7 +172,9 @@ FILE                 *LogFile;                           // Log file
 FILE                 *MobileFile;                        // Mobile file
 FILE                 *MotdFile;                          // Message of the day file
 FILE                 *ObjectFile;                        // Object file
+FILE                 *PlayerEquFile;                     // Player equipment file
 FILE                 *PlayerFile;                        // Player file
+FILE                 *PlayerInvFile;                     // Player inventory file
 FILE                 *RoomFile;                          // Room file
 FILE                 *ValidNamesFile;                    // Valid names file
 
@@ -281,6 +287,11 @@ struct PlayerInvList
   PlayerInvList      *pNextPlayerInv;                 // Pointer to the next inventory list node
 };
 
+PlayerEquList        *pPlayerEquListCurr = NULL;      // Pointer to the current player equipment list node
+PlayerEquList        *pPlayerEquListNew  = NULL;      // Pointer to a new player equipment list node
+PlayerInvList        *pPlayerInvListCurr = NULL;      // Pointer to the current player inventory list node
+PlayerInvList        *pPlayerInvListPrev = NULL;      // Pointer to the previous player inventory list node
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // World
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -326,6 +337,7 @@ struct ObjectList
   ObjectList         *pNextObject;                    // Pointer to the next list node
 };
 
+ObjectList            *pObjectListCurr = NULL;        // Pointer to the current object list node
 ObjectList            *pObjectListHead = NULL;        // Pointer to the head of the object list
 ObjectList            *pObjectListTail = NULL;        // Pointer to the tail of the object list
 
@@ -381,8 +393,9 @@ void    DoPlayed();
 void    DoPlayerfile();
 void    DoQuit();
 void    DoShutdown();
-void    DoWho();
 void    DoStatus();
+void    DoWear();
+void    DoWho();
 bool    Equal(char *Str1, char *Str2);
 void    GetNextPlayerRcdNbr();
 long    GetPlayerFileOffset();
@@ -396,10 +409,19 @@ void    LowerCase(char *Str);
 void    MobileReadFile();
 void    NormalizePlayerName(char *Name);
 bool    MudCmdOk();
+Object *ObjectLookUp(char *Id);
 void    ObjectReadFile();
 void    OpenLog();
 void    PlayerAutoSave();
 void    PlayerCloseFile();
+void    PlayerEquAdd(Object *pObject, char *Slot);
+void    PlayerEquReadFile();
+PlayerEquList *PlayerEquSlotLookUp(char *Slot);
+void    PlayerEquWriteFile();
+PlayerInvList *PlayerInvLookUp(char *Id);
+void    PlayerInvReadFile();
+void    PlayerInvRemoveOne(PlayerInvList *pPlayerInvList);
+void    PlayerInvWriteFile();
 bool    PlayerNameValid();
 bool    PlayerNameValidNew();
 bool    PlayerNameValidOld();
@@ -433,6 +455,7 @@ void    TrimLeft(char *Str);
 void    TrimRight(char *Str);
 void    Up1stChar(char *Str);
 void    ValidateCommandTable();
+int     WearPositionLookUp(char *Subtype);
 void    Word(size_t Nbr, char *Str1, char *Str2);
 size_t  Words(char *Str);
 //void    zTestStuff();
@@ -496,6 +519,34 @@ struct sDirection DirectionTable[] =
   {NULL, NULL,        NULL}
 };
 
+// Armor subtypes map to one or two actual equipment slots.
+struct sWearPosition
+{
+  char               *Subtype;                        // Armor subtype from Objects.txt
+  char               *Slot1;                          // First equipment slot
+  char               *Slot2;                          // Optional second equipment slot
+};
+
+struct sWearPosition WearPositionTable[] =
+{
+  {"Head",      "Head",        NULL},
+  {"Ear",       "LeftEar",     "RightEar"},
+  {"Neck",      "Neck",        NULL},
+  {"Shoulders", "Shoulders",   NULL},
+  {"Chest",     "Chest",       NULL},
+  {"Back",      "Back",        NULL},
+  {"Arms",      "Arms",        NULL},
+  {"Wrist",     "LeftWrist",   "RightWrist"},
+  {"Hands",     "Hands",       NULL},
+  {"Finger",    "LeftFinger",  "RightFinger"},
+  {"Shield",    "Shield",      NULL},
+  {"Waist",     "Waist",       NULL},
+  {"Legs",      "Legs",        NULL},
+  {"Ankle",     "LeftAnkle",   "RightAnkle"},
+  {"Feet",      "Feet",        NULL},
+  {NULL,        NULL,          NULL}
+};
+
 // CommandTable column indexes
 #define CMD_NAME       0
 #define CMD_ADMIN      1
@@ -527,6 +578,7 @@ char *CommandTable[][9] =
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
     {"who",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
 };
@@ -548,6 +600,7 @@ void (*DoCommand[])(void) =
   DoQuit,
   DoShutdown,
   DoStatus,
+  DoWear,
   DoWho
 };
 
@@ -713,6 +766,22 @@ int DirectionLookUp(char *Direction)
   {
     if (Equal(Direction, DirectionTable[i].ShortName) ||
         Equal(Direction, DirectionTable[i].LongName))
+    {
+      return (int)i;
+    }
+    i++;
+  }
+  return -1;
+}
+
+// Return the index of an armor subtype in WearPositionTable.
+int WearPositionLookUp(char *Subtype)
+{
+  DEBUGIT(1)
+  i = 0;
+  while (WearPositionTable[i].Subtype != NULL)
+  {
+    if (Equal(Subtype, WearPositionTable[i].Subtype))
     {
       return (int)i;
     }
@@ -1167,6 +1236,57 @@ void DoStatus()
   Prompt(pConn);
 }
 
+// Wear an armor object from the player's inventory.
+void DoWear()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  pPlayerInvListCurr = PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvListCurr == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (!Equal(pPlayerInvListCurr->pObject->Type, "Armor"))
+  {
+    strcat(pConn->Output, "You can't wear that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  WearPositionNbr = WearPositionLookUp(pPlayerInvListCurr->pObject->Subtype);
+  if (WearPositionNbr < 0)
+  {
+    strcat(pConn->Output, "You can't wear that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  strcpy(TmpStr, WearPositionTable[WearPositionNbr].Slot1);
+  if (PlayerEquSlotLookUp(TmpStr) != NULL)
+  {
+    if (WearPositionTable[WearPositionNbr].Slot2 == NULL)
+    {
+      strcat(pConn->Output, "You are already wearing something there.\r\n\r\n");
+      Prompt(pConn);
+      return;
+    }
+    strcpy(TmpStr, WearPositionTable[WearPositionNbr].Slot2);
+    if (PlayerEquSlotLookUp(TmpStr) != NULL)
+    {
+      strcat(pConn->Output, "You are already wearing something there.\r\n\r\n");
+      Prompt(pConn);
+      return;
+    }
+  }
+  sprintf(Buffer, "You wear %s.\r\n\r\n", pPlayerInvListCurr->pObject->Desc1);
+  PlayerEquAdd(pPlayerInvListCurr->pObject, TmpStr);
+  PlayerInvRemoveOne(pPlayerInvListCurr);
+  PlayerEquWriteFile();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
 // Display a formatted list of online players, with level, etc.
 void DoWho()
 {
@@ -1304,6 +1424,8 @@ void GetPlayerOnline()
   {
     if (Equal(Command, pConn->pPlayer->Password))
     { // Password is valid
+      PlayerEquReadFile();
+      PlayerInvReadFile();
       SendMotd();
       pConn->State = Online;
       DoLook();
@@ -1386,6 +1508,8 @@ void GetPlayerOnline()
       pConn->PlayerRcdNbr = PlayerRcdNbr;
       InitalizeNewPlayer();
       AddPlayerToFile();
+      PlayerEquReadFile();
+      PlayerInvReadFile();
       SendMotd();
       pConn->State = Online;
       DoLook();
@@ -1868,6 +1992,245 @@ void PlayerCloseFile()
 {
   DEBUGIT(1)
   fclose(PlayerFile);
+}
+
+// Add an object to the end of the connection's equipment list.
+void PlayerEquAdd(Object *pObject, char *Slot)
+{
+  DEBUGIT(1)
+  pPlayerEquListNew = (PlayerEquList *)calloc(1, sizeof(PlayerEquList));
+  if (pPlayerEquListNew == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for PlayerEquList node");
+    AbortIt();
+  }
+  pPlayerEquListNew->pObject = pObject;
+  pPlayerEquListNew->Slot = strdup(Slot);
+  if (pConn->pPlayerEquHead == NULL)
+  {
+    pConn->pPlayerEquHead = pPlayerEquListNew;
+    pConn->pPlayerEquTail = pPlayerEquListNew;
+  }
+  else
+  {
+    pConn->pPlayerEquTail->pNextPlayerEqu = pPlayerEquListNew;
+    pConn->pPlayerEquTail = pPlayerEquListNew;
+  }
+}
+
+// Read a player's equipment file and build the connection's equipment list.
+void PlayerEquReadFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s/%s.txt", YAGS_DIR, WORLD_DIR, PLAYER_EQU_DIR, pConn->pPlayer->Name);
+  PlayerEquFile = fopen(TmpStr, "r");
+  if (PlayerEquFile == NULL)
+  {
+    return;
+  }
+  while (fgets(Buffer, sizeof(Buffer), PlayerEquFile) != NULL)
+  {
+    TrimRight(Buffer);
+    if (Buffer[0] == '\0')
+    {
+      continue;
+    }
+    Word(1, Buffer, TmpStr1);
+    Word(2, Buffer, TmpStr2);
+    if (pConn->pPlayerEquHead == NULL)
+    {
+      pConn->pPlayerEquHead = (PlayerEquList *)calloc(1, sizeof(PlayerEquList));
+      pConn->pPlayerEquTail = pConn->pPlayerEquHead;
+    }
+    else
+    {
+      pConn->pPlayerEquTail->pNextPlayerEqu = (PlayerEquList *)calloc(1, sizeof(PlayerEquList));
+      pConn->pPlayerEquTail = pConn->pPlayerEquTail->pNextPlayerEqu;
+    }
+    if (pConn->pPlayerEquTail == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for PlayerEquList node");
+      AbortIt();
+    }
+    pConn->pPlayerEquTail->pObject = ObjectLookUp(TmpStr1);
+    pConn->pPlayerEquTail->Slot = strdup(TmpStr2);
+  }
+  fclose(PlayerEquFile);
+}
+
+// Find an occupied equipment slot on the connection's equipment list.
+PlayerEquList *PlayerEquSlotLookUp(char *Slot)
+{
+  DEBUGIT(1)
+  pPlayerEquListCurr = pConn->pPlayerEquHead;
+  while (pPlayerEquListCurr != NULL)
+  {
+    if (strcasecmp(Slot, pPlayerEquListCurr->Slot) == 0)
+    {
+      return pPlayerEquListCurr;
+    }
+    pPlayerEquListCurr = pPlayerEquListCurr->pNextPlayerEqu;
+  }
+  return NULL;
+}
+
+// Rewrite the player's equipment file from the connection's equipment list.
+void PlayerEquWriteFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s/%s.txt", YAGS_DIR, WORLD_DIR, PLAYER_EQU_DIR, pConn->pPlayer->Name);
+  PlayerEquFile = fopen(TmpStr, "w");
+  if (PlayerEquFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open player equipment file failed: %s", strerror(errno));
+    AbortIt();
+  }
+  pPlayerEquListCurr = pConn->pPlayerEquHead;
+  while (pPlayerEquListCurr != NULL)
+  {
+    fprintf(PlayerEquFile, "%s %s", pPlayerEquListCurr->pObject->Id, pPlayerEquListCurr->Slot);
+    if (pPlayerEquListCurr->pNextPlayerEqu != NULL)
+    {
+      fputs("\r\n", PlayerEquFile);
+    }
+    pPlayerEquListCurr = pPlayerEquListCurr->pNextPlayerEqu;
+  }
+  ReturnValue1 = fflush(PlayerEquFile);
+  if (ReturnValue1 != 0)
+  {
+    sprintf(LogMsg, "ERROR: fflush player equipment file");
+    AbortIt();
+  }
+  ReturnValue1 = fsync(fileno(PlayerEquFile));
+  if (ReturnValue1 != 0)
+  {
+    sprintf(LogMsg, "ERROR: fsync player equipment file");
+    AbortIt();
+  }
+  fclose(PlayerEquFile);
+}
+
+// Find an object on the connection's inventory list by object Id.
+PlayerInvList *PlayerInvLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pPlayerInvListCurr = pConn->pPlayerInvHead;
+  while (pPlayerInvListCurr != NULL)
+  {
+    if (strcasecmp(Id, pPlayerInvListCurr->pObject->Id) == 0)
+    {
+      return pPlayerInvListCurr;
+    }
+    pPlayerInvListCurr = pPlayerInvListCurr->pNextPlayerInv;
+  }
+  return NULL;
+}
+
+// Read a player's inventory file and build the connection's inventory list.
+void PlayerInvReadFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s/%s.txt", YAGS_DIR, WORLD_DIR, PLAYER_INV_DIR, pConn->pPlayer->Name);
+  PlayerInvFile = fopen(TmpStr, "r");
+  if (PlayerInvFile == NULL)
+  {
+    return;
+  }
+  while (fgets(Buffer, sizeof(Buffer), PlayerInvFile) != NULL)
+  {
+    TrimRight(Buffer);
+    if (Buffer[0] == '\0')
+    {
+      continue;
+    }
+    Word(1, Buffer, TmpStr1);
+    Word(2, Buffer, TmpStr2);
+    if (pConn->pPlayerInvHead == NULL)
+    {
+      pConn->pPlayerInvHead = (PlayerInvList *)calloc(1, sizeof(PlayerInvList));
+      pConn->pPlayerInvTail = pConn->pPlayerInvHead;
+    }
+    else
+    {
+      pConn->pPlayerInvTail->pNextPlayerInv = (PlayerInvList *)calloc(1, sizeof(PlayerInvList));
+      pConn->pPlayerInvTail = pConn->pPlayerInvTail->pNextPlayerInv;
+    }
+    if (pConn->pPlayerInvTail == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for PlayerInvList node");
+      AbortIt();
+    }
+    pConn->pPlayerInvTail->pObject = ObjectLookUp(TmpStr1);
+    pConn->pPlayerInvTail->Quantity = atoi(TmpStr2);
+  }
+  fclose(PlayerInvFile);
+}
+
+// Remove one object from an inventory list node and delete the node when empty.
+void PlayerInvRemoveOne(PlayerInvList *pPlayerInvList)
+{
+  DEBUGIT(1)
+  if (pPlayerInvList->Quantity > 1)
+  {
+    pPlayerInvList->Quantity--;
+    return;
+  }
+  pPlayerInvListCurr = pConn->pPlayerInvHead;
+  pPlayerInvListPrev = NULL;
+  while (pPlayerInvListCurr != pPlayerInvList)
+  {
+    pPlayerInvListPrev = pPlayerInvListCurr;
+    pPlayerInvListCurr = pPlayerInvListCurr->pNextPlayerInv;
+  }
+  if (pPlayerInvListPrev == NULL)
+  {
+    pConn->pPlayerInvHead = pPlayerInvListCurr->pNextPlayerInv;
+  }
+  else
+  {
+    pPlayerInvListPrev->pNextPlayerInv = pPlayerInvListCurr->pNextPlayerInv;
+  }
+  if (pConn->pPlayerInvTail == pPlayerInvListCurr)
+  {
+    pConn->pPlayerInvTail = pPlayerInvListPrev;
+  }
+  free(pPlayerInvListCurr);
+}
+
+// Rewrite the player's inventory file from the connection's inventory list.
+void PlayerInvWriteFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s/%s.txt", YAGS_DIR, WORLD_DIR, PLAYER_INV_DIR, pConn->pPlayer->Name);
+  PlayerInvFile = fopen(TmpStr, "w");
+  if (PlayerInvFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open player inventory file failed: %s", strerror(errno));
+    AbortIt();
+  }
+  pPlayerInvListCurr = pConn->pPlayerInvHead;
+  while (pPlayerInvListCurr != NULL)
+  {
+    fprintf(PlayerInvFile, "%s %d", pPlayerInvListCurr->pObject->Id, pPlayerInvListCurr->Quantity);
+    if (pPlayerInvListCurr->pNextPlayerInv != NULL)
+    {
+      fputs("\r\n", PlayerInvFile);
+    }
+    pPlayerInvListCurr = pPlayerInvListCurr->pNextPlayerInv;
+  }
+  ReturnValue1 = fflush(PlayerInvFile);
+  if (ReturnValue1 != 0)
+  {
+    sprintf(LogMsg, "ERROR: fflush player inventory file");
+    AbortIt();
+  }
+  ReturnValue1 = fsync(fileno(PlayerInvFile));
+  if (ReturnValue1 != 0)
+  {
+    sprintf(LogMsg, "ERROR: fsync player inventory file");
+    AbortIt();
+  }
+  fclose(PlayerInvFile);
 }
 
 // Calculate and return the file offset for a player based on the size of the
@@ -2435,6 +2798,22 @@ void MobileReadFile()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Objects
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Search the permanent object list for a case-insensitive Id match.
+Object *ObjectLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pObjectListCurr = pObjectListHead;
+  while (pObjectListCurr != NULL)
+  {
+    if (strcasecmp(Id, pObjectListCurr->pObject->Id) == 0)
+    {
+      return pObjectListCurr->pObject;
+    }
+    pObjectListCurr = pObjectListCurr->pNextObject;
+  }
+  return NULL;
+}
 
 // Read object definitions from Objects.txt and build the permanent object list.
 void ObjectReadFile()
