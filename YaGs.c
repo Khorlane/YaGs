@@ -519,6 +519,38 @@ struct sDirection DirectionTable[] =
   {NULL, NULL,        NULL}
 };
 
+// Equipment slots and their player-facing display labels.
+struct sEquipmentSlot
+{
+  char               *Slot;                           // Equipment slot name
+  char               *Label;                          // Label shown by equipment command
+};
+
+struct sEquipmentSlot EquipmentSlotTable[] =
+{
+  {"Head",        "Worn on head:"},
+  {"LeftEar",     "Worn on left ear:"},
+  {"RightEar",    "Worn on right ear:"},
+  {"Neck",        "Worn around neck:"},
+  {"Shoulders",   "Worn on shoulders:"},
+  {"Chest",       "Worn on chest:"},
+  {"Back",        "Worn on back:"},
+  {"Arms",        "Worn on arms:"},
+  {"LeftWrist",   "Worn on left wrist:"},
+  {"RightWrist",  "Worn on right wrist:"},
+  {"Hands",       "Worn on hands:"},
+  {"LeftFinger",  "Worn on left finger:"},
+  {"RightFinger", "Worn on right finger:"},
+  {"Shield",      "Shield held:"},
+  {"Waist",       "Worn around waist:"},
+  {"Legs",        "Worn on legs:"},
+  {"LeftAnkle",   "Worn on left ankle:"},
+  {"RightAnkle",  "Worn on right ankle:"},
+  {"Feet",        "Worn on feet:"},
+  {"Wielded",     "Weapon wielded:"},
+  {NULL,           NULL}
+};
+
 // Armor subtypes map to one or two actual equipment slots.
 struct sWearPosition
 {
@@ -971,7 +1003,26 @@ void DoColor()
 void DoEquipment()
 {
   DEBUGIT(1)
-  strcat(pConn->Output, "You have absolutely no equipment!\r\n\r\n");
+  strcat(pConn->Output, "\r\nEquipment\r\n---------\r\n");
+  if (pConn->pPlayerEquHead == NULL)
+  {
+    strcat(pConn->Output, "You have absolutely no equipment!\r\n");
+  }
+  else
+  {
+    i = 0;
+    while (EquipmentSlotTable[i].Slot != NULL)
+    {
+      pPlayerEquListCurr = PlayerEquSlotLookUp(EquipmentSlotTable[i].Slot);
+      if (pPlayerEquListCurr != NULL)
+      {
+        sprintf(Buffer, "%-25s%s\r\n", EquipmentSlotTable[i].Label, pPlayerEquListCurr->pObject->Desc1);
+        strcat(pConn->Output, Buffer);
+      }
+      i++;
+    }
+  }
+  strcat(pConn->Output, "\r\n");
   Prompt(pConn);
 }
 
@@ -1097,7 +1148,22 @@ void DoHelp()
 void DoInventory()
 {
   DEBUGIT(1)
-  strcat(pConn->Output, "You look into your bag and find it empty\r\n\r\n");
+  strcat(pConn->Output, "\r\nInventory\r\n---------\r\n");
+  if (pConn->pPlayerInvHead == NULL)
+  {
+    strcat(pConn->Output, "You look into your bag and find it empty\r\n");
+  }
+  else
+  {
+    pPlayerInvListCurr = pConn->pPlayerInvHead;
+    while (pPlayerInvListCurr != NULL)
+    {
+      sprintf(Buffer, "(%d) %s\r\n", pPlayerInvListCurr->Quantity, pPlayerInvListCurr->pObject->Desc1);
+      strcat(pConn->Output, Buffer);
+      pPlayerInvListCurr = pPlayerInvListCurr->pNextPlayerInv;
+    }
+  }
+  strcat(pConn->Output, "\r\n");
   Prompt(pConn);
 }
 
