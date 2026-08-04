@@ -263,7 +263,7 @@ struct ConnList
 };
 
 // The Player structure represents a player, encapsulating attributes such as
-// name, password, status flags, creation time, color preference, experience points, level, and sex.
+// name, password, status flags, creation time, color preference, coins, experience points, level, and sex.
 struct Player
 {
   char                Name[50];                       // Player name
@@ -272,6 +272,7 @@ struct Player
   char                Admin;                          // Admin flag (Y/N) - Controls which commands are available to the player
   time_t              Born;                           // Time player was created
   char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
+  int                 Coins;                          // Player coin balance
   int                 Experience;                     // Experience points
   char                Level;                          // Player level
   char                Sex;                            // Player sex (M/F)
@@ -426,6 +427,7 @@ void           DoKill();
 void           DoList();
 void           DoLoad();
 void           DoLook();
+void           DoMoney();
 void           DoPlayed();
 void           DoPlayerfile();
 void           DoQuit();
@@ -650,6 +652,7 @@ char *CommandTable[][9] =
     {"list",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"load",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Load what?"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
+    {"money",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -675,6 +678,7 @@ void (*DoCommand[])(void) =
   DoList,
   DoLoad,
   DoLook,
+  DoMoney,
   DoPlayed,
   DoPlayerfile,
   DoQuit,
@@ -1295,6 +1299,15 @@ void DoLook()
     strcat(pConn->Output, Buffer);
   }
   strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
+}
+
+// Display the player's coin balance.
+void DoMoney()
+{
+  DEBUGIT(1)
+  sprintf(Buffer, "You have %d coins\r\n\r\n", pConn->pPlayer->Coins);
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 
@@ -2675,6 +2688,7 @@ void InitalizeNewPlayer()
   pConn->pPlayer->Afk        = 'N';
   pConn->pPlayer->Born       = time(NULL);
   pConn->pPlayer->Color      = 'N';
+  pConn->pPlayer->Coins      = 0;
   pConn->pPlayer->Experience = 0;
   pConn->pPlayer->Level      = 1;
   pConn->pPlayer->RoomNbr    = PLAYER_START_ROOM;
