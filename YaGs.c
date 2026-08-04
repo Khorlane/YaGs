@@ -339,6 +339,7 @@ struct ObjectList
   ObjectList         *pNextObject;                    // Pointer to the next list node
 };
 
+Object                *pLoadObject     = NULL;        // Pointer to the object being loaded
 ObjectList            *pObjectListCurr = NULL;        // Pointer to the current object list node
 ObjectList            *pObjectListHead = NULL;        // Pointer to the head of the object list
 ObjectList            *pObjectListTail = NULL;        // Pointer to the tail of the object list
@@ -390,6 +391,7 @@ void           DoGo();
 void           DoHelp();
 void           DoInventory();
 void           DoKill();
+void           DoLoad();
 void           DoLook();
 void           DoPlayed();
 void           DoPlayerfile();
@@ -610,6 +612,7 @@ char *CommandTable[][9] =
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"kill",       "N",  "1",  "stand",  "N",   "Y",  "1",  "2",  "None"},
+    {"load",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Load what?"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -633,6 +636,7 @@ void (*DoCommand[])(void) =
   DoHelp,
   DoInventory,
   DoKill,
+  DoLoad,
   DoLook,
   DoPlayed,
   DoPlayerfile,
@@ -1180,6 +1184,26 @@ void DoKill()
 {
   DEBUGIT(1)
   strcat(pConn->Output, "You kill something\r\n\r\n");
+  Prompt(pConn);
+}
+
+// Load one object into the issuing admin's inventory.
+void DoLoad()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  pLoadObject = ObjectLookUp(CmdParm1);
+  if (pLoadObject == NULL)
+  {
+    sprintf(Buffer, "Object %s does not exist.\r\n\r\n", CmdParm1);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You load %s.\r\n\r\n", pLoadObject->Desc1);
+  PlayerInvAdd(pLoadObject);
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 
