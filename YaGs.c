@@ -63,6 +63,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define MOBILES_FILE            "Mobiles.txt"            // Mobiles file
 #define OBJECTS_FILE            "Objects.txt"            // Objects file
 #define ROOMS_FILE              "Rooms.txt"              // Rooms file
+#define SHOPS_FILE              "Shops.txt"              // Shops file
 #define PLAYER_FILE             "Player.yags"            // Player file
 #define PLAYER_START_ROOM       120                      // Player start room
 // Timer events
@@ -176,6 +177,7 @@ FILE                 *PlayerEquFile;                     // Player equipment fil
 FILE                 *PlayerFile;                        // Player file
 FILE                 *PlayerInvFile;                     // Player inventory file
 FILE                 *RoomFile;                          // Room file
+FILE                 *ShopFile;                          // Shop file
 FILE                 *ValidNamesFile;                    // Valid names file
 
 // Structures
@@ -224,16 +226,19 @@ typedef enum PlayerStates
 } PlayerState;
 
 // Player and World structure typedefs
-typedef struct Mobile        Mobile;
-typedef struct MobileList    MobileList;
-typedef struct Object        Object;
-typedef struct ObjectList    ObjectList;
-typedef struct PlayerEquList PlayerEquList;
-typedef struct PlayerInvList PlayerInvList;
-typedef struct ConnList      ConnList;
-typedef struct Player        Player;
-typedef struct Room          Room;
-typedef struct RoomList      RoomList;
+typedef struct Mobile         Mobile;
+typedef struct MobileList     MobileList;
+typedef struct Object         Object;
+typedef struct ObjectList     ObjectList;
+typedef struct PlayerEquList  PlayerEquList;
+typedef struct PlayerInvList  PlayerInvList;
+typedef struct ConnList       ConnList;
+typedef struct Player         Player;
+typedef struct Room           Room;
+typedef struct RoomList       RoomList;
+typedef struct Shop           Shop;
+typedef struct ShopList       ShopList;
+typedef struct ShopObjectList ShopObjectList;
 
 // The ConnList struct represents a connected player session, including socket state,
 // input and output buffers, player data, and connection list pointers.
@@ -360,6 +365,26 @@ struct RoomList
   RoomList           *pNextRoom;                      // Pointer to the next node in the list
 };
 
+struct Shop
+{
+  Room               *pRoom;                          // Pointer to the room containing the shop
+  char               *Message;                        // Message shown when viewing the shop room
+  ShopObjectList     *pShopObjectHead;                // Pointer to the head of the shop object list
+  ShopObjectList     *pShopObjectTail;                // Pointer to the tail of the shop object list
+};
+
+struct ShopList
+{
+  Shop               *pShop;                          // Pointer to a Shop struct
+  ShopList           *pNextShop;                      // Pointer to the next shop list node
+};
+
+struct ShopObjectList
+{
+  Object             *pObject;                        // Pointer to an object sold by the shop
+  ShopObjectList     *pNextShopObject;                // Pointer to the next shop object list node
+};
+
 Player                PlayerRcd;                      // Player record used for player file reads
 Room                  SingleRoom;
 Room                 *pCurrentRoom;
@@ -367,10 +392,15 @@ Room                 *pDestinationRoom;
 Room                 *pNewRoom;
 Room                 *pRoom;
 RoomList             *pNewRoomListNode;
-RoomList             *pRoomListCurr = NULL;
-RoomList             *pRoomListHead = NULL;
-RoomList             *pRoomListNext = NULL;
-RoomList             *pRoomListTail = NULL;
+RoomList             *pRoomListCurr       = NULL;
+RoomList             *pRoomListHead       = NULL;
+RoomList             *pRoomListNext       = NULL;
+RoomList             *pRoomListTail       = NULL;
+Shop                 *pShop               = NULL;     // Pointer to the current shop
+ShopList             *pShopListCurr       = NULL;     // Pointer to the current shop list node
+ShopList             *pShopListHead       = NULL;     // Pointer to the head of the shop list
+ShopList             *pShopListTail       = NULL;     // Pointer to the tail of the shop list
+ShopObjectList       *pShopObjectListCurr = NULL;     // Pointer to the current shop object list node
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -391,6 +421,7 @@ void           DoGo();
 void           DoHelp();
 void           DoInventory();
 void           DoKill();
+void           DoList();
 void           DoLoad();
 void           DoLook();
 void           DoPlayed();
@@ -449,6 +480,8 @@ void           RoomReadFile();
 void           SendGreeting();
 void           SendMotd();
 void           SendToAll();
+Shop          *ShopLookUp(int RoomNbr);
+void           ShopReadFile();
 void           ShutItDown();
 void           Sleep();
 void           SocketAcceptNewPlayer();
@@ -612,6 +645,7 @@ char *CommandTable[][9] =
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"kill",       "N",  "1",  "stand",  "N",   "Y",  "1",  "2",  "None"},
+    {"list",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"load",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Load what?"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -636,6 +670,7 @@ void (*DoCommand[])(void) =
   DoHelp,
   DoInventory,
   DoKill,
+  DoList,
   DoLoad,
   DoLook,
   DoPlayed,
@@ -1187,6 +1222,30 @@ void DoKill()
   Prompt(pConn);
 }
 
+// Display the objects sold by the shop in the player's current room.
+void DoList()
+{
+  DEBUGIT(1)
+  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  if (pShop == NULL)
+  {
+    strcat(pConn->Output, "Find a shop.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  strcat(pConn->Output, "\r\nItems for sale\r\n--------------\r\n\r\n");
+  strcat(pConn->Output, "Cost  Item\r\n----  ----\r\n");
+  pShopObjectListCurr = pShop->pShopObjectHead;
+  while (pShopObjectListCurr != NULL)
+  {
+    sprintf(Buffer, "%4d  %s\r\n", pShopObjectListCurr->pObject->Cost, pShopObjectListCurr->pObject->Desc1);
+    strcat(pConn->Output, Buffer);
+    pShopObjectListCurr = pShopObjectListCurr->pNextShopObject;
+  }
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
+}
+
 // Load one object into the issuing admin's inventory.
 void DoLoad()
 {
@@ -1224,8 +1283,15 @@ void DoLook()
   sprintf(Buffer, "%s", pRoom->Desc);
   strcat(pConn->Output, Buffer);
   RoomExits = RoomGetExits(pRoom);
-  sprintf(Buffer, "&CExits: %s&N\r\n\r\n", RoomExits);
+  sprintf(Buffer, "&CExits: %s&N\r\n", RoomExits);
   strcat(pConn->Output, Buffer);
+  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  if (pShop != NULL)
+  {
+    sprintf(Buffer, "%s\r\n", pShop->Message);
+    strcat(pConn->Output, Buffer);
+  }
+  strcat(pConn->Output, "\r\n");
   Prompt(pConn);
 }
 
@@ -1991,6 +2057,7 @@ void StartItUp()
   MobileReadFile();
   ObjectReadFile();
   RoomReadFile();
+  ShopReadFile();
 }
 
 // Set up the initial state of a game by resetting various player-related
@@ -3417,6 +3484,98 @@ void RoomReadFile()
     RoomAddToRoomList();
   }
   fclose(RoomFile);
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Shops
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Search the permanent shop list for a shop in the specified room.
+Shop *ShopLookUp(int RoomNbr)
+{
+  DEBUGIT(1)
+  pShopListCurr = pShopListHead;
+  while (pShopListCurr != NULL)
+  {
+    if (pShopListCurr->pShop->pRoom->RoomNbr == RoomNbr)
+    {
+      return pShopListCurr->pShop;
+    }
+    pShopListCurr = pShopListCurr->pNextShop;
+  }
+  return NULL;
+}
+
+// Read shop definitions and build the permanent shop and shop object lists.
+void ShopReadFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s", YAGS_DIR, WORLD_DIR, SHOPS_FILE);
+  ShopFile = fopen(TmpStr, "r");
+  if (ShopFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open %s failed: %s", SHOPS_FILE, strerror(errno));
+    AbortIt();
+  }
+  while (fgets(Buffer, sizeof(Buffer), ShopFile) != NULL)
+  {
+    TrimRight(Buffer);
+    if (Buffer[0] == '\0')
+    {
+      continue;
+    }
+    if (pShopListHead == NULL)
+    {
+      pShopListHead = (ShopList *)calloc(1, sizeof(ShopList));
+      pShopListTail = pShopListHead;
+    }
+    else
+    {
+      pShopListTail->pNextShop = (ShopList *)calloc(1, sizeof(ShopList));
+      pShopListTail = pShopListTail->pNextShop;
+    }
+    if (pShopListTail == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for ShopList node");
+      AbortIt();
+    }
+    pShopListTail->pShop = (Shop *)calloc(1, sizeof(Shop));
+    if (pShopListTail->pShop == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Shop");
+      AbortIt();
+    }
+    pShop = pShopListTail->pShop;
+    pShop->pRoom = RoomLookUp(atoi(Buffer));
+    fgets(Buffer, sizeof(Buffer), ShopFile);
+    TrimRight(Buffer);
+    pShop->Message = strdup(Buffer);
+    while (fgets(Buffer, sizeof(Buffer), ShopFile) != NULL)
+    {
+      TrimRight(Buffer);
+      if (Buffer[0] == '\0')
+      {
+        break;
+      }
+      if (pShop->pShopObjectHead == NULL)
+      {
+        pShop->pShopObjectHead = (ShopObjectList *)calloc(1, sizeof(ShopObjectList));
+        pShop->pShopObjectTail = pShop->pShopObjectHead;
+      }
+      else
+      {
+        pShop->pShopObjectTail->pNextShopObject = (ShopObjectList *)calloc(1, sizeof(ShopObjectList));
+        pShop->pShopObjectTail = pShop->pShopObjectTail->pNextShopObject;
+      }
+      if (pShop->pShopObjectTail == NULL)
+      {
+        sprintf(LogMsg, "ERROR: Memory allocation failed for ShopObjectList node");
+        AbortIt();
+      }
+      pShop->pShopObjectTail->pObject = ObjectLookUp(Buffer);
+    }
+  }
+  fclose(ShopFile);
 }
 
 /*
