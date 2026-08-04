@@ -3,6 +3,10 @@ Logs
 .vs
 bin
 obj
+/World/PlayerEqu/*
+!/World/PlayerEqu/.gitkeep
+/World/PlayerInv/*
+!/World/PlayerInv/.gitkeep
 
 # Ignore these files
 Player.yags
