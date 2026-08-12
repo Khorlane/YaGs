@@ -93,6 +93,7 @@ time_t                NextPlayerAutosave;                // Time of the next dir
 int                   Days;                              // Played time in days
 int                   DestRoomNbr;                       // Room number player is moving into
 int                   DirectionNbr;                      // The DirectionTable index of the direction
+int                   DestroyCount;                      // Number of objects to destroy
 double                ElapsedTime;                       // Elapsed player time
 int                   Hours;                             // Played time in hours
 socklen_t             LingerSize;                        // Size of Linger stucture
@@ -348,6 +349,8 @@ struct ObjectList
   ObjectList         *pNextObject;                    // Pointer to the next list node
 };
 
+Object                *pDestroyObject  = NULL;        // Pointer to the object being destroyed
+Object                *pGiveObject     = NULL;        // Pointer to the object being given
 Object                *pLoadObject     = NULL;        // Pointer to the object being loaded
 ObjectList            *pObjectListCurr = NULL;        // Pointer to the current object list node
 ObjectList            *pObjectListHead = NULL;        // Pointer to the head of the object list
@@ -436,9 +439,11 @@ int            DirectionLookUp(char *Direction);
 void           DoAdvance();
 void           DoBuy();
 void           DoColor();
+void           DoDestroy();
 void           DoDrop();
 void           DoEquipment();
 void           DoGet();
+void           DoGive();
 void           DoGo();
 void           DoHelp();
 void           DoInventory();
@@ -670,9 +675,11 @@ char *CommandTable[][9] =
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
     {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
     {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
     {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
+    {"give",        "N",  "1",  "sit",    "N",   "N",  "3",  "3",  "Give what to whom?"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
@@ -701,9 +708,11 @@ void (*DoCommand[])(void) =
   DoAdvance,
   DoBuy,
   DoColor,
+  DoDestroy,
   DoDrop,
   DoEquipment,
   DoGet,
+  DoGive,
   DoGo,
   DoHelp,
   DoInventory,
@@ -1121,6 +1130,62 @@ void DoColor()
   PlayerWriteFile();
 }
 
+// Permanently destroy one or more objects from the player's inventory.
+void DoDestroy()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pDestroyObject = pPlayerInvList->pObject;
+  DestroyCount = 1;
+  if (Words(Command) == 3)
+  {
+    Word(3, Command, CmdParm2);
+    LowerCase(CmdParm2);
+    if (Equal(CmdParm2, "all"))
+    {
+      DestroyCount = pPlayerInvList->Quantity;
+    }
+    else
+    {
+      DestroyCount = atoi(CmdParm2);
+    }
+  }
+  if (DestroyCount < 1)
+  {
+    strcat(pConn->Output, "Destroy count must be greater than zero.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (DestroyCount > pPlayerInvList->Quantity)
+  {
+    strcat(pConn->Output, "You don't have that many.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (DestroyCount == 1)
+  {
+    sprintf(Buffer, "You destroy %s.\r\n\r\n", pDestroyObject->Desc1);
+  }
+  else
+  {
+    sprintf(Buffer, "You destroy %d of %s.\r\n\r\n", DestroyCount, pDestroyObject->Desc1);
+  }
+  for (i = 0; i < (size_t)DestroyCount; i++)
+  {
+    PlayerInvRemoveOne();
+  }
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
 // Drop one inventory object on the ground in the current room.
 void DoDrop()
 {
@@ -1189,6 +1254,69 @@ void DoGet()
   PlayerInvWriteFile();
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
+}
+
+// Give one inventory object to an online player in the same room.
+void DoGive()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pGiveObject   = pPlayerInvList->pObject;
+  pTarget       = NULL;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  Word(3, Command, CmdParm2);
+  NormalizePlayerName(CmdParm2);
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr->State == Online && Equal(pConnCurr->pPlayer->Name, CmdParm2))
+    {
+      pTarget = pConnCurr;
+      break;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConnCurr = pConnCurrSave;
+  if (pTarget == NULL)
+  {
+    sprintf(Buffer, "%s is not online.\r\n\r\n", CmdParm2);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget == pConn)
+  {
+    strcat(pConn->Output, "You can't give something to yourself.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget->pPlayer->RoomNbr != pConn->pPlayer->RoomNbr)
+  {
+    sprintf(Buffer, "%s is not here.\r\n\r\n", pTarget->pPlayer->Name);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  pActor = pConn;
+  PlayerInvRemoveOne();
+  PlayerInvWriteFile();
+  pConn = pTarget;
+  PlayerInvAdd(pGiveObject);
+  PlayerInvWriteFile();
+  sprintf(Buffer, "\r\n%s gives you %s.\r\n\r\n", pActor->pPlayer->Name, pGiveObject->Desc1);
+  strcat(pTarget->Output, Buffer);
+  Prompt(pTarget);
+  pConn = pActor;
+  sprintf(Buffer, "You give %s to %s.\r\n\r\n", pGiveObject->Desc1, pTarget->pPlayer->Name);
+  strcat(pActor->Output, Buffer);
+  Prompt(pActor);
 }
 
 // Go in a specified direction
@@ -1403,6 +1531,18 @@ void DoLook()
   RoomExits = RoomGetExits(pRoom);
   sprintf(Buffer, "&CExits: %s&N\r\n", RoomExits);
   strcat(pConn->Output, Buffer);
+  pConnCurrSave = pConnCurr;
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr != pConn && pConnCurr->State == Online && pConnCurr->pPlayer->RoomNbr == pConn->pPlayer->RoomNbr)
+    {
+      sprintf(Buffer, "%s is here.\r\n", pConnCurr->pPlayer->Name);
+      strcat(pConn->Output, Buffer);
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConnCurr = pConnCurrSave;
   pRoomObjectListCurr = pRoom->pRoomObjectHead;
   while (pRoomObjectListCurr != NULL)
   {
