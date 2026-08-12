@@ -236,6 +236,7 @@ typedef struct ConnList       ConnList;
 typedef struct Player         Player;
 typedef struct Room           Room;
 typedef struct RoomList       RoomList;
+typedef struct RoomObjectList RoomObjectList;
 typedef struct Shop           Shop;
 typedef struct ShopList       ShopList;
 typedef struct ShopObjectList ShopObjectList;
@@ -360,12 +361,21 @@ struct Room
   char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
   char               *Flags;                          // Flags (e.g., "None", "NoFight")
   char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
+  RoomObjectList     *pRoomObjectHead;                 // Pointer to the head of the room object list
+  RoomObjectList     *pRoomObjectTail;                 // Pointer to the tail of the room object list
 };
 
 struct RoomList
 {
   Room               *pRoom;                          // Pointer to a Room struct
   RoomList           *pNextRoom;                      // Pointer to the next node in the list
+};
+
+struct RoomObjectList
+{
+  Object             *pObject;                        // Pointer to an object on the ground
+  int                 Quantity;                       // Number of identical objects on the ground
+  RoomObjectList     *pNextRoomObject;                // Pointer to the next room object list node
 };
 
 struct Shop
@@ -399,10 +409,16 @@ RoomList             *pRoomListCurr       = NULL;
 RoomList             *pRoomListHead       = NULL;
 RoomList             *pRoomListNext       = NULL;
 RoomList             *pRoomListTail       = NULL;
+RoomObjectList       *pRoomObjectList      = NULL;     // Pointer to found room object list node
+RoomObjectList       *pRoomObjectListCurr  = NULL;     // Pointer to the current room object list node
+RoomObjectList       *pRoomObjectListNew   = NULL;     // Pointer to a new room object list node
+RoomObjectList       *pRoomObjectListNext  = NULL;     // Pointer to the next room object list node
+RoomObjectList       *pRoomObjectListPrev  = NULL;     // Pointer to the previous room object list node
 Shop                 *pShop               = NULL;     // Pointer to the current shop
 ShopList             *pShopListCurr       = NULL;     // Pointer to the current shop list node
 ShopList             *pShopListHead       = NULL;     // Pointer to the head of the shop list
 ShopList             *pShopListTail       = NULL;     // Pointer to the tail of the shop list
+ShopObjectList       *pShopObjectList     = NULL;     // Pointer to found shop object list node
 ShopObjectList       *pShopObjectListCurr = NULL;     // Pointer to the current shop object list node
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -418,8 +434,11 @@ void           Color();
 void           DelFromConnList();
 int            DirectionLookUp(char *Direction);
 void           DoAdvance();
+void           DoBuy();
 void           DoColor();
+void           DoDrop();
 void           DoEquipment();
+void           DoGet();
 void           DoGo();
 void           DoHelp();
 void           DoInventory();
@@ -432,9 +451,11 @@ void           DoPlayed();
 void           DoPlayerfile();
 void           DoQuit();
 void           DoRemove();
+void           DoSell();
 void           DoShutdown();
 void           DoStatus();
 void           DoWear();
+void           DoWield();
 void           DoWho();
 bool           Equal(char *Str1, char *Str2);
 void           GetNextPlayerRcdNbr();
@@ -480,11 +501,15 @@ Room          *RoomAllocateAndCopy(const Room *SourceRoom);
 void           RoomFreeList();
 char          *RoomGetExits(const Room *pRoom);
 Room          *RoomLookUp(int RoomNbr);
+void           RoomObjectAdd(Object *pObject);
+void           RoomObjectLookUp(char *Id);
+void           RoomObjectRemoveOne();
 void           RoomReadFile();
 void           SendGreeting();
 void           SendMotd();
 void           SendToAll();
 Shop          *ShopLookUp(int RoomNbr);
+void           ShopObjectLookUp(char *Id);
 void           ShopReadFile();
 void           ShutItDown();
 void           Sleep();
@@ -643,8 +668,11 @@ char *CommandTable[][9] =
   //                                                   MIN  MAX
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
+    {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
     {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
+    {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
@@ -657,9 +685,11 @@ char *CommandTable[][9] =
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"remove",     "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Remove what?"},
+    {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
+    {"wield",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wield what?"},
     {"who",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
 };
@@ -669,8 +699,11 @@ char *CommandTable[][9] =
 void (*DoCommand[])(void) =
 { // This list and the CommandTable MUST BE in the same order
   DoAdvance,
+  DoBuy,
   DoColor,
+  DoDrop,
   DoEquipment,
+  DoGet,
   DoGo,
   DoHelp,
   DoInventory,
@@ -683,9 +716,11 @@ void (*DoCommand[])(void) =
   DoPlayerfile,
   DoQuit,
   DoRemove,
+  DoSell,
   DoShutdown,
   DoStatus,
   DoWear,
+  DoWield,
   DoWho
 };
 
@@ -1015,6 +1050,40 @@ void DoAdvance()
   pConn = pActor;
 }
 
+// Buy one object from the shop in the player's current room.
+void DoBuy()
+{
+  DEBUGIT(1)
+  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  if (pShop == NULL)
+  {
+    strcat(pConn->Output, "Find a shop.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  Word(2, Command, CmdParm1);
+  ShopObjectLookUp(CmdParm1);
+  if (pShopObjectList == NULL)
+  {
+    strcat(pConn->Output, "That item is not for sale.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->pPlayer->Coins < pShopObjectList->pObject->Cost)
+  {
+    strcat(pConn->Output, "You don't have enough coins.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You buy %s for %d coins.\r\n\r\n", pShopObjectList->pObject->Desc1, pShopObjectList->pObject->Cost);
+  pConn->pPlayer->Coins -= pShopObjectList->pObject->Cost;
+  PlayerInvAdd(pShopObjectList->pObject);
+  PlayerWriteFile();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
 // Manage the player's color settings in a game, allowing them to toggle color
 // output on or off.
 void DoColor()
@@ -1052,6 +1121,27 @@ void DoColor()
   PlayerWriteFile();
 }
 
+// Drop one inventory object on the ground in the current room.
+void DoDrop()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+  sprintf(Buffer, "You drop %s.\r\n\r\n", pPlayerInvList->pObject->Desc1);
+  RoomObjectAdd(pPlayerInvList->pObject);
+  PlayerInvRemoveOne();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
 // Display the player's equipment.
 void DoEquipment()
 {
@@ -1077,6 +1167,27 @@ void DoEquipment()
     }
   }
   strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
+}
+
+// Get one object from the ground in the current room.
+void DoGet()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+  RoomObjectLookUp(CmdParm1);
+  if (pRoomObjectList == NULL)
+  {
+    strcat(pConn->Output, "You don't see that here.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You get %s.\r\n\r\n", pRoomObjectList->pObject->Desc1);
+  PlayerInvAdd(pRoomObjectList->pObject);
+  RoomObjectRemoveOne();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 
@@ -1292,6 +1403,13 @@ void DoLook()
   RoomExits = RoomGetExits(pRoom);
   sprintf(Buffer, "&CExits: %s&N\r\n", RoomExits);
   strcat(pConn->Output, Buffer);
+  pRoomObjectListCurr = pRoom->pRoomObjectHead;
+  while (pRoomObjectListCurr != NULL)
+  {
+    sprintf(Buffer, "(%d) %s\r\n", pRoomObjectListCurr->Quantity, pRoomObjectListCurr->pObject->Desc2);
+    strcat(pConn->Output, Buffer);
+    pRoomObjectListCurr = pRoomObjectListCurr->pNextRoomObject;
+  }
   pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
   if (pShop != NULL)
   {
@@ -1391,6 +1509,34 @@ void DoRemove()
   Prompt(pConn);
 }
 
+// Sell one inventory object to the shop in the player's current room.
+void DoSell()
+{
+  DEBUGIT(1)
+  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  if (pShop == NULL)
+  {
+    strcat(pConn->Output, "Find a shop.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You sell %s for %d coins.\r\n\r\n", pPlayerInvList->pObject->Desc1, pPlayerInvList->pObject->Cost);
+  pConn->pPlayer->Coins += pPlayerInvList->pObject->Cost;
+  PlayerInvRemoveOne();
+  PlayerWriteFile();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
 // Initiate the shutdown process of the game by setting a shutdown flag,
 // displaying a shutdown message, and notifying all connected users.
 void DoShutdown()
@@ -1483,6 +1629,41 @@ void DoWear()
     }
   }
   sprintf(Buffer, "You wear %s.\r\n\r\n", pPlayerInvList->pObject->Desc1);
+  PlayerEquAdd(pPlayerInvList->pObject, TmpStr);
+  PlayerInvRemoveOne();
+  PlayerEquWriteFile();
+  PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Wield a weapon object from the player's inventory.
+void DoWield()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (!Equal(pPlayerInvList->pObject->Type, "Weapon"))
+  {
+    strcat(pConn->Output, "You can't wield that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  strcpy(TmpStr, "Wielded");
+  PlayerEquSlotLookUp(TmpStr);
+  if (pPlayerEquList != NULL)
+  {
+    strcat(pConn->Output, "You are already wielding something.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You wield %s.\r\n\r\n", pPlayerInvList->pObject->Desc1);
   PlayerEquAdd(pPlayerInvList->pObject, TmpStr);
   PlayerInvRemoveOne();
   PlayerEquWriteFile();
@@ -3317,6 +3498,8 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   {
     pNewRoom->Exits = NULL;
   }
+  pNewRoom->pRoomObjectHead = NULL;
+  pNewRoom->pRoomObjectTail = NULL;
   return pNewRoom;
 }
 
@@ -3330,6 +3513,13 @@ void RoomFreeList()
     pRoomListNext = pRoomListCurr->pNextRoom;
     if (pRoomListCurr->pRoom != NULL)
     {
+      pRoomObjectListCurr = pRoomListCurr->pRoom->pRoomObjectHead;
+      while (pRoomObjectListCurr != NULL)
+      {
+        pRoomObjectListNext = pRoomObjectListCurr->pNextRoomObject;
+        free(pRoomObjectListCurr);
+        pRoomObjectListCurr = pRoomObjectListNext;
+      }
       free(pRoomListCurr->pRoom->Name);
       free(pRoomListCurr->pRoom->Desc);
       free(pRoomListCurr->pRoom->Terrain);
@@ -3391,6 +3581,87 @@ Room *RoomLookUp(int RoomNbr)
     pRoomListCurr = pRoomListCurr->pNextRoom;
   }
   return NULL;
+}
+
+// Add one object to the ground in the current room.
+void RoomObjectAdd(Object *pObject)
+{
+  DEBUGIT(1)
+  RoomObjectLookUp(pObject->Id);
+  pRoomObjectListCurr = pRoomObjectList;
+  if (pRoomObjectListCurr != NULL)
+  {
+    pRoomObjectListCurr->Quantity++;
+    return;
+  }
+  pRoomObjectListNew = (RoomObjectList *)calloc(1, sizeof(RoomObjectList));
+  if (pRoomObjectListNew == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for RoomObjectList node");
+    AbortIt();
+  }
+  pRoomObjectListNew->pObject = pObject;
+  pRoomObjectListNew->Quantity = 1;
+  if (pRoom->pRoomObjectHead == NULL)
+  {
+    pRoom->pRoomObjectHead = pRoomObjectListNew;
+    pRoom->pRoomObjectTail = pRoomObjectListNew;
+  }
+  else
+  {
+    pRoom->pRoomObjectTail->pNextRoomObject = pRoomObjectListNew;
+    pRoom->pRoomObjectTail = pRoomObjectListNew;
+  }
+}
+
+// Find an object on the ground in the current room by object Id.
+void RoomObjectLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pRoomObjectListCurr = pRoom->pRoomObjectHead;
+  while (pRoomObjectListCurr != NULL)
+  {
+    if (strcasecmp(Id, pRoomObjectListCurr->pObject->Id) == 0)
+    {
+      pRoomObjectList = pRoomObjectListCurr;
+      return;
+    }
+    pRoomObjectListCurr = pRoomObjectListCurr->pNextRoomObject;
+  }
+  pRoomObjectList = NULL;
+}
+
+// Remove one object from the ground and delete the node when empty.
+void RoomObjectRemoveOne()
+{
+  DEBUGIT(1)
+  if (pRoomObjectList->Quantity > 1)
+  {
+    pRoomObjectList->Quantity--;
+    return;
+  }
+  pRoomObjectListCurr = pRoom->pRoomObjectHead;
+  pRoomObjectListPrev = NULL;
+  while (pRoomObjectListCurr != pRoomObjectList)
+  {
+    pRoomObjectListPrev = pRoomObjectListCurr;
+    pRoomObjectListCurr = pRoomObjectListCurr->pNextRoomObject;
+  }
+  if (pRoomObjectListPrev == NULL)
+  {
+    pRoom->pRoomObjectHead = pRoomObjectListCurr->pNextRoomObject;
+  }
+  else
+  {
+    pRoomObjectListPrev->pNextRoomObject = pRoomObjectListCurr->pNextRoomObject;
+  }
+  if (pRoom->pRoomObjectTail == pRoomObjectListCurr)
+  {
+    pRoom->pRoomObjectTail = pRoomObjectListPrev;
+  }
+  free(pRoomObjectListCurr);
+  pRoomObjectList     = NULL;
+  pRoomObjectListCurr = NULL;
 }
 
 // Read room data from a file, parsing the room number, name, etc, store it in
@@ -3531,6 +3802,23 @@ Shop *ShopLookUp(int RoomNbr)
     pShopListCurr = pShopListCurr->pNextShop;
   }
   return NULL;
+}
+
+// Find an object sold by the current shop using its object Id.
+void ShopObjectLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pShopObjectListCurr = pShop->pShopObjectHead;
+  while (pShopObjectListCurr != NULL)
+  {
+    if (strcasecmp(Id, pShopObjectListCurr->pObject->Id) == 0)
+    {
+      pShopObjectList = pShopObjectListCurr;
+      return;
+    }
+    pShopObjectListCurr = pShopObjectListCurr->pNextShopObject;
+  }
+  pShopObjectList = NULL;
 }
 
 // Read shop definitions and build the permanent shop and shop object lists.
