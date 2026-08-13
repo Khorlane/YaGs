@@ -40,6 +40,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define DEBUGIT(dl)             if (DEBUGIT_LVL >= dl) {sprintf(LogMsg,"*** %s ***",__FUNCTION__);LogIt(LogMsg);} // dl = debug level
 #define DEBUGIT_LVL             1                        // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
 // Configuration
+#define BASE_MOB_XP             50                       // Base mob xp per level
 #define BUFFER_LIMIT            2048                     // Max size of Buffer including '\0'
 #define PORT                    3737                     // Port number
 #define SLEEP_TIME              100000                   // Sleep for a short period of time
@@ -99,6 +100,9 @@ int                   DestRoomNbr;                       // Room number player i
 int                   DirectionNbr;                      // The DirectionTable index of the direction
 int                   DestroyCount;                      // Number of objects to destroy
 double                ElapsedTime;                       // Elapsed player time
+int                   ExpAward;                          // Experience awarded for killing a mobile
+int                   ExpLevelDiff;                      // Player and mobile level difference for experience calculation
+int                   ExpPercent;                        // Percentage of base mobile experience awarded
 int                   Hours;                             // Played time in hours
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
@@ -544,6 +548,7 @@ void           MobileInstanceFreeList();
 void           MobileInstanceLookUp(char *Id);
 void           MobileInstanceMove();
 void           MobileInstanceRemove();
+void           MobileExpCalc();
 void           MobileLookUp(char *Id);
 void           MobileMove();
 void           MobileReadFile();
@@ -1638,7 +1643,8 @@ void DoKill()
     return;
   }
   pMobile = pMobileInstance->pMobile;
-  sprintf(Buffer, "You kill %s.\r\nYou gain %d experience.\r\n\r\n", pMobile->Desc1, pMobile->Exp);
+  MobileExpCalc();
+  sprintf(Buffer, "You kill %s.\r\nYou gain %d experience.\r\n\r\n", pMobile->Desc1, ExpAward);
   MobileInstanceRemove();
   if (!Equal(pMobile->Loot, "None"))
   {
@@ -1649,7 +1655,7 @@ void DoKill()
       RoomObjectAdd(pObject);
     }
   }
-  pConn->pPlayer->Experience += pMobile->Exp;
+  pConn->pPlayer->Experience += ExpAward;
   PlayerWriteFile();
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
@@ -3722,6 +3728,24 @@ void MobileRespawn()
     }
     pSpawnListCurr = pSpawnListCurr->pNextSpawn;
   }
+}
+
+// Calculate the experience awarded for killing the current mobile.
+void MobileExpCalc()
+{
+  DEBUGIT(1)
+  ExpLevelDiff = pConn->pPlayer->Level - pMobile->Level;
+  ExpPercent = 100;
+  if (ExpLevelDiff > 2)
+  {
+    ExpPercent = 100 - ((ExpLevelDiff - 2) * 20);
+  }
+  if (ExpPercent < 0)
+  {
+    ExpPercent = 0;
+  }
+  ExpAward = (pMobile->Level * BASE_MOB_XP * ExpPercent) / 100;
+  ExpAward += pMobile->Exp;
 }
 
 // Search the permanent mobile list for a case-insensitive Id match.
