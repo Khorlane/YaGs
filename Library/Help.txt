@@ -85,6 +85,8 @@ I'm hungery, ordering some pizza now!
 Usage: Chat <some chatter>
 Example: &Ychat Hi everyone!&N
 
+&YNot Implemented Yet&N
+
 Related help: Say Gsay Social Tell Emote Chat
 
 Help:Combat
@@ -156,6 +158,8 @@ wish know what chance you have to win a fight with them.
 
 Usage: Consider <NPC>
 Example: &Yconsider smallrat&N
+
+&YNot Implemented Yet&N
 
 Related help: Kill Wield
 
@@ -275,6 +279,8 @@ Usage: Emote <message>
 Example: &Yemote is very happy!&N
 Abbreviation: em
 
+&YNot Implemented Yet&N
+
 Related help: Say Gsay Social Tell Chat
 
 Help:Equipment
@@ -339,6 +345,8 @@ before the exit name. For example,
 &Ygo weaponshop&N
 to enter the weapon shop.
 
+&YFormat 2 Exits are Not Implemented Yet&N
+
 Related help: Help Newbie NPC Object Room
 
 Help:Flee
@@ -351,6 +359,8 @@ in which you wish to flee. You CANNOT just flee.
 
 Usage: Flee <direction>
 Example: &Yflee n&N
+
+&YNot Implemented Yet&N
 
 Related help: Exits
 
@@ -412,6 +422,18 @@ Example: &Ygo armorshop&N
 
 Related help: Exits
 
+Help:Goto
+&C
+*************
+* Help Goto *
+*************&N
+Magically transports an admin to the specified room.
+
+Usage: Goto <roomid>
+Example: &Ygoto 111&N
+
+Related help: Go Look
+
 Help:Group
 &C
 **************
@@ -450,6 +472,8 @@ Use this command to 'speak' to everyone in your group.
 
 Usage: Gsay <What you want to say goes here>
 Example: &Ygsay Hi all, thanks for inviting into the group!&N
+
+&YNot Implemented Yet&N
 
 Related help: Say Gsay Social Tell Emote Chat
 
@@ -763,15 +787,6 @@ Example: &Ypassword myoldpass anewpass anewpass&N
 
 Related help: None
 
-Help:Put
-&C
-************
-* Help Put *
-************&N
-Not implemented yet.
-
-Related help: None
-
 Help:Remove
 &C
 ***************
@@ -837,6 +852,8 @@ Use this command to 'speak' to everyone in the room.
 Usage: Say <What you want to say goes here>
 Example: say Hi everyone!
 
+&Not Implemented Yet&N
+
 Related help: Gsay Social Tell Emote Chat
 
 Help:Sell
@@ -862,6 +879,8 @@ Provides a list of commands, help topics, or socials.
 
 Usage: Show COMMANDS | HELP | SOCIALS
 Example: &Yshow commands&N
+
+&YNot Implemented Yet&N
 
 Related help: Commands Help Social
 
@@ -898,6 +917,8 @@ Usage: <social> {<target>}
 Example: &Ybow&N
      or: &Ybow Joab&N
 
+&YNot Implemented Yet&N
+
 Related help: Say Gsay Tell Emote Chat Show
 
 Help:Stand
@@ -932,6 +953,8 @@ another player.
 
 Usage: Tell <player> <private message goes here>
 Example: &Ytell Joab Where did you get that sword?&N
+
+&YNot Implemented Yet&N
 
 Related help: Say Gsay Social Tell Emote Chat
 
@@ -981,6 +1004,8 @@ Usage: Train {<weapon type>} {- 999}
 Example: &Ytrain&N
      or: &Ytrain sword&N
      or: &Ytrain sword - 250&N
+
+&YNot Implemented Yet&N
 
 Related help: Kill Flee
 
