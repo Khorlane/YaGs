@@ -47,7 +47,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define MOB_HPT_PER_LEVEL       31                       // Mobile hit points per level
 #define PORT                    3737                     // Port number
 #define PLAYER_HPT_PER_LEVEL    31                       // Player hit points per level
-#define PLAYER_RECOVERY_AMOUNT  1                        // Hit points recovered per recovery event
+#define PLAYER_RECOVERY_AMOUNT  1                        // Base hit points recovered per recovery event
 #define SLEEP_TIME              100000                   // Sleep for a short period of time
 #define STRING_LIMIT            1024                     // Max size of string including '\0'
 #define USE_USLEEP              'N'                      // Use usleep() Y or N
@@ -120,6 +120,7 @@ int                   ExpPercent;                        // Percentage of base m
 long long             ExpRequired;                       // Total experience required for a player level
 int                   Hours;                             // Player age in hours
 int                   HitPercent;                        // Remaining hit point percentage
+int                   HitPointsRecovered;                // Whole hit points recovered during a recovery event
 int                   HungerThirstTick;                  // Heartbeat ticks since the last metabolism event
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
@@ -135,6 +136,7 @@ int                   OptVal;                            // Set socket option va
 socklen_t             OptValSize;                        // Size of socket option value
 int                   PlayerRcdNbr;                      // Player record number within Player.yags
 int                   PlayerRecoveryTick;                // Heartbeat ticks since the last player recovery event
+double                RecoveryRate;                      // Hit points accumulated per player recovery event
 int                   ReturnValue1;                      // Return value
 size_t                ReturnValue2;                      // Return value
 long int              SendResult;                        // Number of bytes sent to player
@@ -301,6 +303,7 @@ struct ConnList
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
   int                 HitPoints;                     // Current player hit points
+  double              HitPointRecovery;              // Fractional hit points accumulated during recovery
   PlayerPosition      Position;                      // Current player position
   bool                PlayerDirty;                    // Player record has unsaved changes
   Player             *pPlayer;                        // Pointer to the connected player data
@@ -3830,11 +3833,29 @@ void PlayerRecoverHitPoints()
     MaxHitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
     if (pConn->State == Online && pConn->pFightingMobile == NULL && pConn->HitPoints < MaxHitPoints)
     {
-      pConn->HitPoints += PLAYER_RECOVERY_AMOUNT;
+      RecoveryRate = (double)PLAYER_RECOVERY_AMOUNT;
+      if (pConn->Position == Sitting)
+      {
+        RecoveryRate += 0.25;
+      }
+      else if (pConn->Position == Sleeping)
+      {
+        RecoveryRate += 0.5;
+      }
+      RecoveryRate += (((double)pConn->pPlayer->Hunger + pConn->pPlayer->Thirst) / 200.0) * 1.5;
+      pConn->HitPointRecovery += RecoveryRate;
+      HitPointsRecovered = (int)pConn->HitPointRecovery;
+      pConn->HitPointRecovery -= HitPointsRecovered;
+      pConn->HitPoints += HitPointsRecovered;
       if (pConn->HitPoints > MaxHitPoints)
       {
         pConn->HitPoints = MaxHitPoints;
+        pConn->HitPointRecovery = 0.0;
       }
+    }
+    else
+    {
+      pConn->HitPointRecovery = 0.0;
     }
     pConnCurr = pConnCurr->pConnNext;
   }
