@@ -13,7 +13,7 @@ Loot:   RatFoot
 
 Id:     SneakyThief
 Desc1:  a sneaky thief
-Desc2:  a sneaky thief is hiding in the bushes. He will pick your pocket for sure!
+Desc2:  a sneaky thief is sneaking around. He will pick your pocket for sure!
 Desc3:
   This thief is wearing a dark hooded cloak, and has a wicked looking dagger.
 Flags:  None
@@ -23,7 +23,7 @@ Hit:    10
 Exp:    15
 Loot:   SmallDagger RatFoot
 
-Id:     PalaceGuard
+Id:     PersonalGuard
 Desc1:  a palace guard
 Desc2:  a palace guard is standing at attention, guarding the palace entrance!
 Desc3:

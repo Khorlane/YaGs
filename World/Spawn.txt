@@ -13,7 +13,7 @@ MaxInWorld: 1
 RoomId:     101
 Interval:   30 0 0 0 0 0 0
 
-MobileId:   PalaceGuard
+MobileId:   PersonalGuard
 MaxInWorld: 1
 RoomId:     120
 Interval:   0 0 0 0 0 0 0
