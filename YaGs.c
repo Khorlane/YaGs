@@ -600,7 +600,7 @@ void           RoomReadFile();
 void           SendGreeting();
 void           SendMotd();
 void           SendToAll();
-void           SendToRoom(int RoomNbr);
+void           SendToRoom(int RoomNbr, ConnList *pExclude);
 void           ShopLookUp(int RoomNbr);
 void           ShopObjectLookUp(char *Id);
 void           ShopReadFile();
@@ -1531,7 +1531,11 @@ void DoGo()
     Prompt(pConn);
     return;
   }
+  sprintf(MsgTxt, "%s leaves.\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   pConn->pPlayer->RoomNbr = DestRoomNbr;
+  sprintf(MsgTxt, "%s arrives.\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   pConn->PlayerDirty = true;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
   strcat(pConn->Output, Buffer);
@@ -2091,8 +2095,8 @@ void SendToAll()
   pConnCurr = pConnCurrSave;
 }
 
-// Send a message to every online player in the specified room.
-void SendToRoom(int RoomNbr)
+// Send a message to every online player in the specified room except pExclude.
+void SendToRoom(int RoomNbr, ConnList *pExclude)
 {
   DEBUGIT(1)
   pConnSave     = pConn;
@@ -2100,7 +2104,7 @@ void SendToRoom(int RoomNbr)
   pConnCurr     = pConnHead;
   while (pConnCurr != NULL)
   {
-    if (pConnCurr->State == Online && pConnCurr->pPlayer->RoomNbr == RoomNbr)
+    if (pConnCurr != pExclude && pConnCurr->State == Online && pConnCurr->pPlayer->RoomNbr == RoomNbr)
     {
       pConn = pConnCurr;
       strcat(pConn->Output, "\r\n");
@@ -3675,7 +3679,7 @@ void MobileInstanceMove()
   }
   pMobileMoveRoom = pMobileMoveRooms[rand() % MobileMoveRoomCount];
   sprintf(MsgTxt, "%s leaves.\r\n", pMobileInstanceCurr->pMobile->Desc1);
-  SendToRoom(pMobileInstanceCurr->pRoom->RoomNbr);
+  SendToRoom(pMobileInstanceCurr->pRoom->RoomNbr, NULL);
   pMobileInstance = pMobileInstanceCurr->pRoom->pMobileInstanceHead;
   pMobileInstancePrev = NULL;
   while (pMobileInstance != pMobileInstanceCurr)
@@ -3708,7 +3712,7 @@ void MobileInstanceMove()
     pMobileMoveRoom->pMobileInstanceTail = pMobileInstanceCurr;
   }
   sprintf(MsgTxt, "%s arrives.\r\n", pMobileInstanceCurr->pMobile->Desc1);
-  SendToRoom(pMobileInstanceCurr->pRoom->RoomNbr);
+  SendToRoom(pMobileInstanceCurr->pRoom->RoomNbr, NULL);
 }
 
 // Remove the found runtime mobile from its room and the world.
