@@ -551,6 +551,7 @@ void           DoMoney();
 void           DoPlayerfile();
 void           DoQuit();
 void           DoRemove();
+void           DoRestore();
 void           DoSell();
 void           DoShutdown();
 void           DoStatus();
@@ -806,6 +807,7 @@ char *CommandTable[][9] =
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"remove",     "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Remove what?"},
+    {"restore",    "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Restore whom?"},
     {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -841,6 +843,7 @@ void (*DoCommand[])(void) =
   DoPlayerfile,
   DoQuit,
   DoRemove,
+  DoRestore,
   DoSell,
   DoShutdown,
   DoStatus,
@@ -1895,6 +1898,47 @@ void DoRemove()
   PlayerEquRemove();
   PlayerEquWriteFile();
   PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Restore an online player to their maximum hit points.
+void DoRestore()
+{
+  DEBUGIT(1)
+  pTarget       = NULL;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  Word(2, Command, CmdParm1);
+  NormalizePlayerName(CmdParm1);
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr->State == Online && Equal(pConnCurr->pPlayer->Name, CmdParm1))
+    {
+      pTarget = pConnCurr;
+      break;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConnCurr = pConnCurrSave;
+  if (pTarget == NULL)
+  {
+    sprintf(Buffer, "%s is not online.\r\n\r\n", CmdParm1);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  pTarget->HitPoints = pTarget->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
+  if (pTarget == pConn)
+  {
+    strcat(pConn->Output, "You restore yourself to full health.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "\r\n%s restores you to full health.\r\n\r\n", pConn->pPlayer->Name);
+  strcat(pTarget->Output, Buffer);
+  Prompt(pTarget);
+  sprintf(Buffer, "You restore %s to full health.\r\n\r\n", pTarget->pPlayer->Name);
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
