@@ -29,7 +29,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #include <string.h>                                      // a whole bunch of string functions
 #include <strings.h>                                     // strcasecmp()
 #include <sys/socket.h>                                  // This and arpa/inet - a whole plethora of socket related stuff
-#include <time.h>                                        // ctime(), difftime(), time(), time_t
+#include <time.h>                                        // ctime(), difftime(), localtime(), mktime(), time(), time_t
 #include <unistd.h>                                      // close(), fsync(), read(), usleep()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -42,7 +42,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 // Configuration
 #define BUFFER_LIMIT            2048                     // Max size of Buffer including '\0'
 #define PORT                    3737                     // Port number
-#define SLEEP_TIME              0400000                  // Sleep for a short period of time
+#define SLEEP_TIME              100000                   // Sleep for a short period of time
 #define STRING_LIMIT            1024                     // Max size of string including '\0'
 #define USE_USLEEP              'N'                      // Use usleep() Y or N
 // Directories
@@ -72,6 +72,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
 #define MOBILE_MOVE_CHANCE      25                       // Percent chance a movable mobile changes rooms
 #define MOBILE_MOVE_TICKS       10                       // Heartbeat ticks between mobile movement checks
+#define MOBILE_RESPAWN_TICKS    10                       // Heartbeat ticks between mobile respawn checks
 #define PLAYER_AUTOSAVE_SECONDS 60                       // Seconds between dirty player saves
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -106,6 +107,7 @@ int                   MaxSocket;                         // Maximum socket value
 int                   Minutes;                           // Played time in minutes
 int                   MobileMoveRoomCount;               // Number of eligible rooms for mobile movement
 int                   MobileMoveTick;                    // Heartbeat ticks since the last mobile movement check
+int                   MobileRespawnTick;                 // Heartbeat ticks since the last mobile respawn check
 long                  Offset;                            // Offset for fseek()
 int                   OptVal;                            // Set socket option value
 socklen_t             OptValSize;                        // Size of socket option value
@@ -144,6 +146,7 @@ struct ConnList      *pConnHead;                         // Pointer to the head 
 struct ConnList      *pConnTail;                         // Pointer to the tail of connection list
 struct ConnList      *pTarget;                           // Pointer to target player in the connection list
 struct Room          *pMobileMoveRooms[10];             // Eligible destination rooms for mobile movement
+struct tm            *pSpawnTime;                        // Pointer to calendar time used for respawn scheduling
 
 // Strings
 char                  aTmpStr[STRING_LIMIT];             // Temp string
@@ -193,6 +196,7 @@ fd_set                InpSet;                            // File Descriptor Set 
 struct linger         Linger;                            // Linger structure
 struct sockaddr_in    SocketAddr;                        // Socket Address structure
 struct timeval        TimeOut;                           // Time value structure
+struct tm             SpawnTime;                         // Calendar time used for respawn scheduling
 
 // Color codes
 char                 *Normal        = "\x1B[0;m";        // NORMAL     &N
@@ -439,6 +443,8 @@ struct Spawn
   Mobile             *pMobile;                        // Pointer to the mobile definition
   int                 MaxInWorld;                     // Maximum number of this mobile in the world
   int                 CurrentInWorld;                 // Current number of this mobile in the world
+  bool                RespawnPending;                 // A replacement mobile is waiting to respawn
+  time_t              NextSpawnTime;                  // Real time when the next mobile may respawn
   Room               *pRoom;                          // Pointer to the room where the mobile spawns
   int                 Seconds;                        // Respawn interval seconds
   int                 Minutes;                        // Respawn interval minutes
@@ -537,9 +543,11 @@ void           MobileInstanceAdd();
 void           MobileInstanceFreeList();
 void           MobileInstanceLookUp(char *Id);
 void           MobileInstanceMove();
+void           MobileInstanceRemove();
 void           MobileLookUp(char *Id);
 void           MobileMove();
 void           MobileReadFile();
+void           MobileRespawn();
 void           NormalizePlayerName(char *Name);
 bool           MudCmdOk();
 void           ObjectLookUp(char *Id);
@@ -592,6 +600,7 @@ void           SocketListen();
 void           SocketSendPlayerOutput();
 void           SpawnMobiles();
 void           SpawnReadFile();
+void           SpawnScheduleNext();
 void           StartItUp();
 void           StrAppend(char *Str1, char *Str2);
 void           Trim(char *Str);
@@ -753,7 +762,7 @@ char *CommandTable[][9] =
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
-    {"kill",       "N",  "1",  "stand",  "N",   "Y",  "1",  "2",  "None"},
+    {"kill",       "N",  "1",  "stand",  "N",   "Y",  "2",  "2",  "Kill what?"},
     {"list",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"load",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Load what?"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
@@ -846,6 +855,12 @@ void HeartBeat()
   {
     MobileMoveTick = 0;
     MobileMove();
+  }
+  MobileRespawnTick++;
+  if (MobileRespawnTick >= MOBILE_RESPAWN_TICKS)
+  {
+    MobileRespawnTick = 0;
+    MobileRespawn();
   }
   if (CurrentTimeSec >= NextPlayerAutosave)
   {
@@ -1603,11 +1618,40 @@ void DoInventory()
   Prompt(pConn);
 }
 
-// Attack something.
+// Immediately kill a mobile in the current room.
 void DoKill()
 {
   DEBUGIT(1)
-  strcat(pConn->Output, "You kill something\r\n\r\n");
+  RoomLookUp(pConn->pPlayer->RoomNbr);
+  if (strstr(pRoom->Flags, "NoFight") != NULL)
+  {
+    strcat(pConn->Output, "You can't fight here.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  Word(2, Command, CmdParm1);
+  MobileInstanceLookUp(CmdParm1);
+  if (pMobileInstance == NULL)
+  {
+    strcat(pConn->Output, "You don't see that here.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pMobile = pMobileInstance->pMobile;
+  sprintf(Buffer, "You kill %s.\r\nYou gain %d experience.\r\n\r\n", pMobile->Desc1, pMobile->Exp);
+  MobileInstanceRemove();
+  if (!Equal(pMobile->Loot, "None"))
+  {
+    for (k = 1; k <= Words(pMobile->Loot); k++)
+    {
+      Word(k, pMobile->Loot, TmpStr1);
+      ObjectLookUp(TmpStr1);
+      RoomObjectAdd(pObject);
+    }
+  }
+  pConn->pPlayer->Experience += pMobile->Exp;
+  PlayerWriteFile();
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 
@@ -2558,6 +2602,7 @@ void Initialization()
 { // Do not add DEBUGIT
   GameShutDown       = false;
   MobileMoveTick     = 0;
+  MobileRespawnTick  = 0;
   NoPlayers          = true;
   NextPlayerAutosave = time(NULL) + PLAYER_AUTOSAVE_SECONDS;
   pConnHead          = NULL;
@@ -3589,6 +3634,60 @@ void MobileInstanceMove()
   }
 }
 
+// Remove the found runtime mobile from its room and the world.
+void MobileInstanceRemove()
+{
+  DEBUGIT(1)
+  pSpawn = pMobileInstance->pSpawn;
+  pMobileInstanceCurr = pMobileInstance->pRoom->pMobileInstanceHead;
+  pMobileInstancePrev = NULL;
+  while (pMobileInstanceCurr != pMobileInstance)
+  {
+    pMobileInstancePrev = pMobileInstanceCurr;
+    pMobileInstanceCurr = pMobileInstanceCurr->pNextRoomMobile;
+  }
+  if (pMobileInstancePrev == NULL)
+  {
+    pMobileInstance->pRoom->pMobileInstanceHead = pMobileInstance->pNextRoomMobile;
+  }
+  else
+  {
+    pMobileInstancePrev->pNextRoomMobile = pMobileInstance->pNextRoomMobile;
+  }
+  if (pMobileInstance->pRoom->pMobileInstanceTail == pMobileInstance)
+  {
+    pMobileInstance->pRoom->pMobileInstanceTail = pMobileInstancePrev;
+  }
+  pMobileInstanceCurr = pMobileInstanceHead;
+  pMobileInstancePrev = NULL;
+  while (pMobileInstanceCurr != pMobileInstance)
+  {
+    pMobileInstancePrev = pMobileInstanceCurr;
+    pMobileInstanceCurr = pMobileInstanceCurr->pNextMobileInstance;
+  }
+  if (pMobileInstancePrev == NULL)
+  {
+    pMobileInstanceHead = pMobileInstance->pNextMobileInstance;
+  }
+  else
+  {
+    pMobileInstancePrev->pNextMobileInstance = pMobileInstance->pNextMobileInstance;
+  }
+  if (pMobileInstanceTail == pMobileInstance)
+  {
+    pMobileInstanceTail = pMobileInstancePrev;
+  }
+  pSpawn->CurrentInWorld--;
+  free(pMobileInstance);
+  pMobileInstance = NULL;
+  pMobileInstanceCurr = NULL;
+  pMobileInstancePrev = NULL;
+  if (!pSpawn->RespawnPending)
+  {
+    SpawnScheduleNext();
+  }
+}
+
 // Give every movable runtime mobile a chance to change rooms.
 void MobileMove()
 {
@@ -3601,6 +3700,27 @@ void MobileMove()
       MobileInstanceMove();
     }
     pMobileInstanceCurr = pMobileInstanceCurr->pNextMobileInstance;
+  }
+}
+
+// Spawn one due replacement per rule during a respawn check.
+void MobileRespawn()
+{
+  DEBUGIT(1)
+  pSpawnListCurr = pSpawnListHead;
+  while (pSpawnListCurr != NULL)
+  {
+    pSpawn = pSpawnListCurr->pSpawn;
+    if (pSpawn->RespawnPending && pSpawn->CurrentInWorld < pSpawn->MaxInWorld && CurrentTimeSec >= pSpawn->NextSpawnTime)
+    {
+      pSpawn->RespawnPending = false;
+      MobileInstanceAdd();
+      if (pSpawn->CurrentInWorld < pSpawn->MaxInWorld)
+      {
+        SpawnScheduleNext();
+      }
+    }
+    pSpawnListCurr = pSpawnListCurr->pNextSpawn;
   }
 }
 
@@ -4367,6 +4487,23 @@ void ShopReadFile()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Spawns
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Calculate when the current spawn rule may create its next replacement.
+void SpawnScheduleNext()
+{
+  DEBUGIT(1)
+  CurrentTimeSec = time(NULL);
+  pSpawnTime = localtime(&CurrentTimeSec);
+  SpawnTime = *pSpawnTime;
+  SpawnTime.tm_year += pSpawn->Years;
+  SpawnTime.tm_mon += pSpawn->Months;
+  SpawnTime.tm_mday += pSpawn->Days + (pSpawn->Weeks * 7);
+  SpawnTime.tm_hour += pSpawn->Hours;
+  SpawnTime.tm_min += pSpawn->Minutes;
+  SpawnTime.tm_sec += pSpawn->Seconds;
+  pSpawn->NextSpawnTime = mktime(&SpawnTime);
+  pSpawn->RespawnPending = true;
+}
 
 // Fill every spawn rule to its maximum runtime mobile population.
 void SpawnMobiles()
