@@ -222,11 +222,11 @@ Help:Drink
 * Help Drink *
 **************&N
 You drink the object specified only if the object is a
-drink object. Each drink object eaten reduces the your
-thirst. Thirst is represented on a scale of 0 to 100, 0
-being no thirst and 100 being maximum thirst. When you have
-a thirst of 0 you will gain hit points faster than a when
-you have a thirst of 100.
+drink object. Each drink object increases your thirst
+percentage. Thirst is represented on a scale of 0 to 100,
+0 being extremely thirsty and 100 being not thirsty at all.
+When you have a thirst of 100 you will gain hit points faster
+than when you have a thirst of 0.
 
 Usage: Drink <object>
 Example: &Ydrink water&N
@@ -251,11 +251,11 @@ Help:Eat
 * Help Eat *
 ************&N
 You eat the object specified only if the object is a food
-object. Each food object eaten reduces the your hunger.
-Hunger is represented on a scale of 0 to 100, 0 being no
-hunger and 100 being maximum hunger. When you have a hunger
-of 0 you will gain hit points faster than a when you have a
-hunger of 100.
+object. Each food object eaten increases your hunger
+percentage. Hunger is represented on a scale of 0 to 100,
+0 being extremely hungry and 100 being not hungry at all.
+When you have a hunger of 100 you will gain hit points faster
+than when you have a hunger of 0.
 
 Usage: Eat <object>
 Example: &Yeat apple&N

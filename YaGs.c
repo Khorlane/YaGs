@@ -75,7 +75,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 // Timer events
 #define COMBAT_TICKS            20                       // Heartbeat ticks between combat rounds
 #define HUNGER_THIRST_RATE      10                       // Hunger and thirst percentage lost per metabolism event
-#define HUNGER_THIRST_TICKS     100                      // Heartbeat ticks between metabolism events
+#define HUNGER_THIRST_TICKS     1000                     // Heartbeat ticks between metabolism events
 #define NO_INPUT_TICK           500                      // Ticks before checking if player is still there
 #define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
 #define MOBILE_MOVE_CHANCE      25                       // Percent chance a movable mobile changes rooms
@@ -540,7 +540,9 @@ void           DoBorn();
 void           DoBuy();
 void           DoColor();
 void           DoDestroy();
+void           DoDrink();
 void           DoDrop();
+void           DoEat();
 void           DoEquipment();
 void           DoExamine();
 void           DoGet();
@@ -797,7 +799,9 @@ char *CommandTable[][9] =
     {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
+    {"drink",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drink what?"},
     {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
+    {"eat",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Eat what?"},
     {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"examine",    "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Examine what?"},
     {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
@@ -833,7 +837,9 @@ void (*DoCommand[])(void) =
   DoBuy,
   DoColor,
   DoDestroy,
+  DoDrink,
   DoDrop,
+  DoEat,
   DoEquipment,
   DoExamine,
   DoGet,
@@ -1364,6 +1370,67 @@ void DoDestroy()
   Prompt(pConn);
 }
 
+// Drink one drink object from the player's inventory.
+void DoDrink()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (!Equal(pPlayerInvList->pObject->Type, "Drink"))
+  {
+    strcat(pConn->Output, "You can't drink that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->pPlayer->Thirst >= 100)
+  {
+    strcat(pConn->Output, "You can't take another sip.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You drink %s.\r\n", pPlayerInvList->pObject->Desc1);
+  strcat(pConn->Output, Buffer);
+  pConn->pPlayer->Thirst += pPlayerInvList->pObject->Value;
+  if (pConn->pPlayer->Thirst > 100)
+  {
+    pConn->pPlayer->Thirst = 100;
+  }
+  PlayerInvRemoveOne();
+  PlayerInvWriteFile();
+  PlayerWriteFile();
+  if (pConn->pPlayer->Thirst >= 100)
+  {
+    strcat(pConn->Output, "You are no longer thirsty, not even a little bit.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Thirst > 80)
+  {
+    strcat(pConn->Output, "You are a little bit thirsty.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Thirst > 60)
+  {
+    strcat(pConn->Output, "You need some lip balm.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Thirst > 40)
+  {
+    strcat(pConn->Output, "You are thirsty.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Thirst > 20)
+  {
+    strcat(pConn->Output, "Your throat is parched!\r\n\r\n");
+  }
+  else
+  {
+    strcat(pConn->Output, "You are extremely thirsty!!!\r\n\r\n");
+  }
+  Prompt(pConn);
+}
+
 // Drop one inventory object on the ground in the current room.
 void DoDrop()
 {
@@ -1382,6 +1449,67 @@ void DoDrop()
   PlayerInvRemoveOne();
   PlayerInvWriteFile();
   strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Eat one food object from the player's inventory.
+void DoEat()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList == NULL)
+  {
+    strcat(pConn->Output, "You don't have that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (!Equal(pPlayerInvList->pObject->Type, "Food"))
+  {
+    strcat(pConn->Output, "You can't eat that.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->pPlayer->Hunger >= 100)
+  {
+    strcat(pConn->Output, "You can't take another bite.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "You eat %s.\r\n", pPlayerInvList->pObject->Desc1);
+  strcat(pConn->Output, Buffer);
+  pConn->pPlayer->Hunger += pPlayerInvList->pObject->Value;
+  if (pConn->pPlayer->Hunger > 100)
+  {
+    pConn->pPlayer->Hunger = 100;
+  }
+  PlayerInvRemoveOne();
+  PlayerInvWriteFile();
+  PlayerWriteFile();
+  if (pConn->pPlayer->Hunger >= 100)
+  {
+    strcat(pConn->Output, "You are no longer hungry, not even a little bit.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Hunger > 80)
+  {
+    strcat(pConn->Output, "You are a little bit hungry.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Hunger > 60)
+  {
+    strcat(pConn->Output, "Your stomach is growling.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Hunger > 40)
+  {
+    strcat(pConn->Output, "You are hungry.\r\n\r\n");
+  }
+  else if (pConn->pPlayer->Hunger > 20)
+  {
+    strcat(pConn->Output, "You could eat a horse!\r\n\r\n");
+  }
+  else
+  {
+    strcat(pConn->Output, "You are extremely hungry!!!\r\n\r\n");
+  }
   Prompt(pConn);
 }
 
