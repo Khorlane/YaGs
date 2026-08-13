@@ -190,7 +190,7 @@ char                  Buffer[BUFFER_LIMIT];              // Just a buffer
 char                  Command[STRING_LIMIT];             // The command from the player
 char                  HealthPct[20];                     // Color-coded remaining health percentage
 char                  LogMsg[100];                       // Log message
-char                  MsgTxt[100];                       // Message text
+char                  MsgTxt[BUFFER_LIMIT];              // Message text
 char                  MudCmd[10];                        // Mud command
 char                 *Parameters;                        // Command parameters
 char                  TheRest[50];                       // The rest of the command
@@ -575,6 +575,7 @@ void           DoPlayerfile();
 void           DoQuit();
 void           DoRemove();
 void           DoRestore();
+void           DoSay();
 void           DoSell();
 void           DoShutdown();
 void           DoSit();
@@ -842,6 +843,7 @@ char *CommandTable[][9] =
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"remove",     "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Remove what?"},
     {"restore",    "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Restore whom?"},
+    {"say",        "N",  "1",  "sit",    "N",   "Y",  "2",  "999", "Say what?"},
     {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"sit",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -886,6 +888,7 @@ void (*DoCommand[])(void) =
   DoQuit,
   DoRemove,
   DoRestore,
+  DoSay,
   DoSell,
   DoShutdown,
   DoSit,
@@ -1801,7 +1804,7 @@ void DoGo()
   sprintf(MsgTxt, "%s leaves.\r\n", pConn->pPlayer->Name);
   SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   pConn->pPlayer->RoomNbr = DestRoomNbr;
-  sprintf(MsgTxt, "%s arrives.\r\n", pConn->pPlayer->Name);
+  sprintf(MsgTxt, "%s arrives.\r\n\r\n", pConn->pPlayer->Name);
   SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   pConn->PlayerDirty = true;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
@@ -2184,6 +2187,20 @@ void DoRestore()
   Prompt(pTarget);
   sprintf(Buffer, "You restore %s to full health.\r\n\r\n", pTarget->pPlayer->Name);
   strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Send a spoken message to every other player in the current room.
+void DoSay()
+{
+  DEBUGIT(1)
+  Parameters = strchr(Command, ' ');
+  Parameters++;
+  Trim(Parameters);
+  sprintf(Buffer, "You say, \"%s\"\r\n\r\n", Parameters);
+  strcat(pConn->Output, Buffer);
+  sprintf(MsgTxt, "%s says, \"%s\"\r\n\r\n", pConn->pPlayer->Name, Parameters);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   Prompt(pConn);
 }
 

@@ -852,8 +852,6 @@ Use this command to 'speak' to everyone in the room.
 Usage: Say <What you want to say goes here>
 Example: say Hi everyone!
 
-&Not Implemented Yet&N
-
 Related help: Gsay Social Tell Emote Chat
 
 Help:Sell
