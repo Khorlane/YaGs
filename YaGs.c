@@ -171,7 +171,7 @@ struct ConnList      *pConnCurrSave;                     // Pointer to current c
 struct ConnList      *pConnHead;                         // Pointer to the head of connection list
 struct ConnList      *pConnTail;                         // Pointer to the tail of connection list
 struct ConnList      *pTarget;                           // Pointer to target player in the connection list
-struct Room          *pMobileMoveRooms[10];             // Eligible destination rooms for mobile movement
+struct Room          *pMobileMoveRooms[10];              // Eligible destination rooms for mobile movement
 struct tm            *pSpawnTime;                        // Pointer to calendar time used for respawn scheduling
 
 // Strings
@@ -294,69 +294,69 @@ typedef struct SpawnList      SpawnList;
 // input and output buffers, player data, and connection list pointers.
 struct ConnList
 {
-  int                 Socket;                         // Socket number returned from accept()
-  PlayerState         State;                          // Player state
-  char                Input[1024];                    // Player input buffer
-  char                Output[2048];                   // Player output buffer
-  int                 BadPswdCount;                   // Number of bad passwords entered
-  int                 PlayerRcdNbr;                   // Player record number within Player.yags
-  int                 NoInputTick;                    // Ticks before checking if player is still there
-  int                 NoInputCount;                   // Number of no input ticks
-  int                 HitPoints;                     // Current player hit points
-  double              HitPointRecovery;              // Fractional hit points accumulated during recovery
-  PlayerPosition      Position;                      // Current player position
-  char                Afk;                           // Away from keyboard flag (Y/N)
-  bool                PlayerDirty;                    // Player record has unsaved changes
-  Player             *pPlayer;                        // Pointer to the connected player data
-  MobileInstance     *pFightingMobile;                // Pointer to the mobile currently fighting the player
-  PlayerEquList      *pPlayerEquHead;                 // Pointer to the head of the player equipment list
-  PlayerEquList      *pPlayerEquTail;                 // Pointer to the tail of the player equipment list
-  PlayerInvList      *pPlayerInvHead;                 // Pointer to the head of the player inventory list
-  PlayerInvList      *pPlayerInvTail;                 // Pointer to the tail of the player inventory list
-  ConnList           *pConnNext;                      // Pointer to next connection in the connection list
-  ConnList           *pConnPrev;                      // Pointer to previous connection in the connection list
+  int                 Socket;                            // Socket number returned from accept()
+  PlayerState         State;                             // Player state
+  char                Input[1024];                       // Player input buffer
+  char                Output[2048];                      // Player output buffer
+  int                 BadPswdCount;                      // Number of bad passwords entered
+  int                 PlayerRcdNbr;                      // Player record number within Player.yags
+  int                 NoInputTick;                       // Ticks before checking if player is still there
+  int                 NoInputCount;                      // Number of no input ticks
+  int                 HitPoints;                         // Current player hit points
+  double              HitPointRecovery;                  // Fractional hit points accumulated during recovery
+  PlayerPosition      Position;                          // Current player position
+  char                Afk;                               // Away from keyboard flag (Y/N)
+  bool                PlayerDirty;                       // Player record has unsaved changes
+  Player             *pPlayer;                           // Pointer to the connected player data
+  MobileInstance     *pFightingMobile;                   // Pointer to the mobile currently fighting the player
+  PlayerEquList      *pPlayerEquHead;                    // Pointer to the head of the player equipment list
+  PlayerEquList      *pPlayerEquTail;                    // Pointer to the tail of the player equipment list
+  PlayerInvList      *pPlayerInvHead;                    // Pointer to the head of the player inventory list
+  PlayerInvList      *pPlayerInvTail;                    // Pointer to the tail of the player inventory list
+  ConnList           *pConnNext;                         // Pointer to next connection in the connection list
+  ConnList           *pConnPrev;                         // Pointer to previous connection in the connection list
 };
 
 // The Player structure represents a player, encapsulating attributes such as
 // name, password, status flags, creation time, color preference, coins, experience points, hunger, level, sex, and thirst.
 struct Player
 {
-  char                Name[50];                       // Player name
-  char                Password[50];                   // Player password
-  char                Admin;                          // Admin flag (Y/N) - Controls which commands are available to the player
-  time_t              Born;                           // Time player was created
-  char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
-  int                 Coins;                          // Player coin balance
-  long long           Experience;                     // Experience points
-  int                 Hunger;                         // Player fullness percentage
-  int                 Level;                          // Player level
-  char                Sex;                            // Player sex (M/F)
-  int                 Thirst;                         // Player hydration percentage
-  int                 RoomNbr;                        // Room number
+  char                Name[50];                          // Player name
+  char                Password[50];                      // Player password
+  char                Admin;                             // Admin flag (Y/N) - Controls which commands are available to the player
+  time_t              Born;                              // Time player was created
+  char                Color;                             // Color code (Y/N) Y means that player output is run through the Color() function
+  int                 Coins;                             // Player coin balance
+  long long           Experience;                        // Experience points
+  int                 Hunger;                            // Player fullness percentage
+  int                 Level;                             // Player level
+  char                Sex;                               // Player sex (M/F)
+  int                 Thirst;                            // Player hydration percentage
+  int                 RoomNbr;                           // Room number
 };
 
 struct PlayerEquList
 {
-  Object             *pObject;                        // Pointer to an equipped Object struct
-  char               *Slot;                           // Equipment slot occupied by the object
-  PlayerEquList      *pNextPlayerEqu;                 // Pointer to the next equipment list node
+  Object             *pObject;                           // Pointer to an equipped Object struct
+  char               *Slot;                              // Equipment slot occupied by the object
+  PlayerEquList      *pNextPlayerEqu;                    // Pointer to the next equipment list node
 };
 
 struct PlayerInvList
 {
-  Object             *pObject;                        // Pointer to an inventory Object struct
-  int                 Quantity;                       // Number of identical objects carried
-  PlayerInvList      *pNextPlayerInv;                 // Pointer to the next inventory list node
+  Object             *pObject;                           // Pointer to an inventory Object struct
+  int                 Quantity;                          // Number of identical objects carried
+  PlayerInvList      *pNextPlayerInv;                    // Pointer to the next inventory list node
 };
 
-PlayerEquList        *pPlayerEquList     = NULL;      // Pointer to found player equipment list node
-PlayerInvList        *pPlayerInvList     = NULL;      // Pointer to found player inventory list node
-PlayerEquList        *pPlayerEquListCurr = NULL;      // Pointer to the current player equipment list node
-PlayerEquList        *pPlayerEquListNew  = NULL;      // Pointer to a new player equipment list node
-PlayerEquList        *pPlayerEquListPrev = NULL;      // Pointer to the previous player equipment list node
-PlayerInvList        *pPlayerInvListCurr = NULL;      // Pointer to the current player inventory list node
-PlayerInvList        *pPlayerInvListNew  = NULL;      // Pointer to a new player inventory list node
-PlayerInvList        *pPlayerInvListPrev = NULL;      // Pointer to the previous player inventory list node
+PlayerEquList        *pPlayerEquList     = NULL;         // Pointer to found player equipment list node
+PlayerInvList        *pPlayerInvList     = NULL;         // Pointer to found player inventory list node
+PlayerEquList        *pPlayerEquListCurr = NULL;         // Pointer to the current player equipment list node
+PlayerEquList        *pPlayerEquListNew  = NULL;         // Pointer to a new player equipment list node
+PlayerEquList        *pPlayerEquListPrev = NULL;         // Pointer to the previous player equipment list node
+PlayerInvList        *pPlayerInvListCurr = NULL;         // Pointer to the current player inventory list node
+PlayerInvList        *pPlayerInvListNew  = NULL;         // Pointer to a new player inventory list node
+PlayerInvList        *pPlayerInvListPrev = NULL;         // Pointer to the previous player inventory list node
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // World
@@ -364,92 +364,92 @@ PlayerInvList        *pPlayerInvListPrev = NULL;      // Pointer to the previous
 
 struct Mobile
 {
-  char               *Id;                             // Unique mobile identifier
-  char               *Desc1;                          // Short mobile description
-  char               *Desc2;                          // Description shown in a room
-  char               *Desc3;                          // Detailed mobile description
-  char               *Flags;                          // Mobile behavior flags
-  char               *Attack;                         // Mobile attack description
-  int                 Level;                          // Mobile level
-  int                 Hit;                            // Mobile hit point adjustment
-  int                 Exp;                            // Experience award
-  char               *Loot;                           // Space-separated object identifiers
+  char               *Id;                                // Unique mobile identifier
+  char               *Desc1;                             // Short mobile description
+  char               *Desc2;                             // Description shown in a room
+  char               *Desc3;                             // Detailed mobile description
+  char               *Flags;                             // Mobile behavior flags
+  char               *Attack;                            // Mobile attack description
+  int                 Level;                             // Mobile level
+  int                 Hit;                               // Mobile hit point adjustment
+  int                 Exp;                               // Experience award
+  char               *Loot;                              // Space-separated object identifiers
 };
 
 struct MobileList
 {
-  Mobile             *pMobile;                        // Pointer to a Mobile struct
-  MobileList         *pNextMobile;                    // Pointer to the next node in the list
+  Mobile             *pMobile;                           // Pointer to a Mobile struct
+  MobileList         *pNextMobile;                       // Pointer to the next node in the list
 };
 
 struct MobileInstance
 {
-  Mobile             *pMobile;                        // Pointer to the permanent mobile definition
-  Spawn              *pSpawn;                         // Pointer to the spawn rule that created the mobile
-  Room               *pRoom;                          // Pointer to the mobile's current room
-  int                 HitPoints;                      // Current mobile hit points
-  ConnList           *pFightingPlayer;                // Pointer to the player currently fighting the mobile
-  MobileInstance     *pNextMobileInstance;            // Pointer to the next mobile in the world
-  MobileInstance     *pNextRoomMobile;                // Pointer to the next mobile in the room
+  Mobile             *pMobile;                           // Pointer to the permanent mobile definition
+  Spawn              *pSpawn;                            // Pointer to the spawn rule that created the mobile
+  Room               *pRoom;                             // Pointer to the mobile's current room
+  int                 HitPoints;                         // Current mobile hit points
+  ConnList           *pFightingPlayer;                   // Pointer to the player currently fighting the mobile
+  MobileInstance     *pNextMobileInstance;               // Pointer to the next mobile in the world
+  MobileInstance     *pNextRoomMobile;                   // Pointer to the next mobile in the room
 };
 
-MobileInstance        *pMobileInstance     = NULL;    // Pointer to a found mobile instance
-MobileInstance        *pMobileInstanceCurr = NULL;    // Pointer to the current mobile instance
-MobileInstance        *pMobileInstanceHead = NULL;    // Pointer to the head of the world mobile list
-MobileInstance        *pMobileInstanceNew  = NULL;    // Pointer to a new mobile instance
-MobileInstance        *pMobileInstanceNext = NULL;    // Pointer to the next mobile instance
-MobileInstance        *pMobileInstancePrev = NULL;    // Pointer to the previous mobile instance
-MobileInstance        *pMobileInstanceTail = NULL;    // Pointer to the tail of the world mobile list
-MobileList            *pMobileListCurr     = NULL;    // Pointer to the current mobile list node
-MobileList            *pMobileListHead     = NULL;    // Pointer to the head of the mobile list
-MobileList            *pMobileListTail     = NULL;    // Pointer to the tail of the mobile list
+MobileInstance        *pMobileInstance     = NULL;       // Pointer to a found mobile instance
+MobileInstance        *pMobileInstanceCurr = NULL;       // Pointer to the current mobile instance
+MobileInstance        *pMobileInstanceHead = NULL;       // Pointer to the head of the world mobile list
+MobileInstance        *pMobileInstanceNew  = NULL;       // Pointer to a new mobile instance
+MobileInstance        *pMobileInstanceNext = NULL;       // Pointer to the next mobile instance
+MobileInstance        *pMobileInstancePrev = NULL;       // Pointer to the previous mobile instance
+MobileInstance        *pMobileInstanceTail = NULL;       // Pointer to the tail of the world mobile list
+MobileList            *pMobileListCurr     = NULL;       // Pointer to the current mobile list node
+MobileList            *pMobileListHead     = NULL;       // Pointer to the head of the mobile list
+MobileList            *pMobileListTail     = NULL;       // Pointer to the tail of the mobile list
 
 struct Object
 {
-  char               *Id;                             // Unique object identifier
-  char               *Desc1;                          // Short object description
-  char               *Desc2;                          // Description shown in a room
-  char               *Desc3;                          // Detailed object description
-  int                 Weight;                         // Object weight
-  int                 Cost;                           // Object purchase cost
-  char               *Type;                           // General object type
-  char               *Subtype;                        // Specific object type
-  int                 Value;                          // Type-specific object value
+  char               *Id;                                // Unique object identifier
+  char               *Desc1;                             // Short object description
+  char               *Desc2;                             // Description shown in a room
+  char               *Desc3;                             // Detailed object description
+  int                 Weight;                            // Object weight
+  int                 Cost;                              // Object purchase cost
+  char               *Type;                              // General object type
+  char               *Subtype;                           // Specific object type
+  int                 Value;                             // Type-specific object value
 };
 
 struct ObjectList
 {
-  Object             *pObject;                        // Pointer to an Object struct
-  ObjectList         *pNextObject;                    // Pointer to the next list node
+  Object             *pObject;                           // Pointer to an Object struct
+  ObjectList         *pNextObject;                       // Pointer to the next list node
 };
 
-Object                *pDestroyObject  = NULL;        // Pointer to the object being destroyed
-Object                *pExamineObject  = NULL;        // Pointer to the object being examined
-Object                *pGiveObject     = NULL;        // Pointer to the object being given
-Object                *pLoadObject     = NULL;        // Pointer to the object being loaded
-Object                *pObject         = NULL;        // Pointer to object
-ObjectList            *pObjectListCurr = NULL;        // Pointer to the current object list node
-ObjectList            *pObjectListHead = NULL;        // Pointer to the head of the object list
-ObjectList            *pObjectListTail = NULL;        // Pointer to the tail of the object list
+Object                *pDestroyObject  = NULL;           // Pointer to the object being destroyed
+Object                *pExamineObject  = NULL;           // Pointer to the object being examined
+Object                *pGiveObject     = NULL;           // Pointer to the object being given
+Object                *pLoadObject     = NULL;           // Pointer to the object being loaded
+Object                *pObject         = NULL;           // Pointer to object
+ObjectList            *pObjectListCurr = NULL;           // Pointer to the current object list node
+ObjectList            *pObjectListHead = NULL;           // Pointer to the head of the object list
+ObjectList            *pObjectListTail = NULL;           // Pointer to the tail of the object list
 
 struct Room
 {
-  int                 RoomNbr;                        // Room number (e.g., 101)
-  char               *Name;                           // Room name (e.g., "Back Porch")
-  char               *Desc;                           // Room description (multi-line text)
-  char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
-  char               *Flags;                          // Flags (e.g., "None", "NoFight")
-  char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
-  MobileInstance     *pMobileInstanceHead;            // Pointer to the head of the room mobile list
-  MobileInstance     *pMobileInstanceTail;            // Pointer to the tail of the room mobile list
-  RoomObjectList     *pRoomObjectHead;                // Pointer to the head of the room object list
-  RoomObjectList     *pRoomObjectTail;                // Pointer to the tail of the room object list
+  int                 RoomNbr;                           // Room number (e.g., 101)
+  char               *Name;                              // Room name (e.g., "Back Porch")
+  char               *Desc;                              // Room description (multi-line text)
+  char               *Terrain;                           // Terrain type (e.g., "Concrete", "Indoor")
+  char               *Flags;                             // Flags (e.g., "None", "NoFight")
+  char               *Exits;                             // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
+  MobileInstance     *pMobileInstanceHead;               // Pointer to the head of the room mobile list
+  MobileInstance     *pMobileInstanceTail;               // Pointer to the tail of the room mobile list
+  RoomObjectList     *pRoomObjectHead;                   // Pointer to the head of the room object list
+  RoomObjectList     *pRoomObjectTail;                   // Pointer to the tail of the room object list
 };
 
 struct RoomList
 {
-  Room               *pRoom;                          // Pointer to a Room struct
-  RoomList           *pNextRoom;                      // Pointer to the next node in the list
+  Room               *pRoom;                             // Pointer to a Room struct
+  RoomList           *pNextRoom;                         // Pointer to the next node in the list
 };
 
 struct RoomObjectList
@@ -461,75 +461,75 @@ struct RoomObjectList
 
 struct Shop
 {
-  Room               *pRoom;                          // Pointer to the room containing the shop
-  char               *Message;                        // Message shown when viewing the shop room
-  ShopObjectList     *pShopObjectHead;                // Pointer to the head of the shop object list
-  ShopObjectList     *pShopObjectTail;                // Pointer to the tail of the shop object list
+  Room               *pRoom;                             // Pointer to the room containing the shop
+  char               *Message;                           // Message shown when viewing the shop room
+  ShopObjectList     *pShopObjectHead;                   // Pointer to the head of the shop object list
+  ShopObjectList     *pShopObjectTail;                   // Pointer to the tail of the shop object list
 };
 
 struct ShopList
 {
-  Shop               *pShop;                          // Pointer to a Shop struct
-  ShopList           *pNextShop;                      // Pointer to the next shop list node
+  Shop               *pShop;                             // Pointer to a Shop struct
+  ShopList           *pNextShop;                         // Pointer to the next shop list node
 };
 
 struct ShopObjectList
 {
-  Object             *pObject;                        // Pointer to an object sold by the shop
-  ShopObjectList     *pNextShopObject;                // Pointer to the next shop object list node
+  Object             *pObject;                           // Pointer to an object sold by the shop
+  ShopObjectList     *pNextShopObject;                   // Pointer to the next shop object list node
 };
 
 struct Spawn
 {
-  Mobile             *pMobile;                        // Pointer to the mobile definition
-  int                 MaxInWorld;                     // Maximum number of this mobile in the world
-  int                 CurrentInWorld;                 // Current number of this mobile in the world
-  bool                RespawnPending;                 // A replacement mobile is waiting to respawn
-  time_t              NextSpawnTime;                  // Real time when the next mobile may respawn
-  Room               *pRoom;                          // Pointer to the room where the mobile spawns
-  int                 Seconds;                        // Respawn interval seconds
-  int                 Minutes;                        // Respawn interval minutes
-  int                 Hours;                          // Respawn interval hours
-  int                 Days;                           // Respawn interval days
-  int                 Weeks;                          // Respawn interval weeks
-  int                 Months;                         // Respawn interval months
-  int                 Years;                          // Respawn interval years
+  Mobile             *pMobile;                           // Pointer to the mobile definition
+  int                 MaxInWorld;                        // Maximum number of this mobile in the world
+  int                 CurrentInWorld;                    // Current number of this mobile in the world
+  bool                RespawnPending;                    // A replacement mobile is waiting to respawn
+  time_t              NextSpawnTime;                     // Real time when the next mobile may respawn
+  Room               *pRoom;                             // Pointer to the room where the mobile spawns
+  int                 Seconds;                           // Respawn interval seconds
+  int                 Minutes;                           // Respawn interval minutes
+  int                 Hours;                             // Respawn interval hours
+  int                 Days;                              // Respawn interval days
+  int                 Weeks;                             // Respawn interval weeks
+  int                 Months;                            // Respawn interval months
+  int                 Years;                             // Respawn interval years
 };
 
 struct SpawnList
 {
-  Spawn              *pSpawn;                         // Pointer to a Spawn struct
-  SpawnList          *pNextSpawn;                     // Pointer to the next spawn list node
+  Spawn              *pSpawn;                            // Pointer to a Spawn struct
+  SpawnList          *pNextSpawn;                        // Pointer to the next spawn list node
 };
 
-Mobile               *pMobile;                        // Pointer to mobile
-Player                PlayerRcd;                      // Player record used for player file reads
-Room                  SingleRoom;
-Room                 *pCurrentRoom;
-Room                 *pDestinationRoom;
-Room                 *pNewRoom;
-Room                 *pRoom;
-Room                 *pMobileMoveRoom;
-RoomList             *pNewRoomListNode;
-RoomList             *pRoomListCurr        = NULL;
-RoomList             *pRoomListHead        = NULL;
-RoomList             *pRoomListNext        = NULL;
-RoomList             *pRoomListTail        = NULL;
-RoomObjectList       *pRoomObjectList      = NULL;    // Pointer to found room object list node
-RoomObjectList       *pRoomObjectListCurr  = NULL;    // Pointer to the current room object list node
-RoomObjectList       *pRoomObjectListNew   = NULL;    // Pointer to a new room object list node
-RoomObjectList       *pRoomObjectListNext  = NULL;    // Pointer to the next room object list node
-RoomObjectList       *pRoomObjectListPrev  = NULL;    // Pointer to the previous room object list node
-Shop                 *pShop                = NULL;    // Pointer to the current shop
-ShopList             *pShopListCurr        = NULL;    // Pointer to the current shop list node
-ShopList             *pShopListHead        = NULL;    // Pointer to the head of the shop list
-ShopList             *pShopListTail        = NULL;    // Pointer to the tail of the shop list
-ShopObjectList       *pShopObjectList      = NULL;    // Pointer to found shop object list node
-ShopObjectList       *pShopObjectListCurr  = NULL;    // Pointer to the current shop object list node
-Spawn                *pSpawn               = NULL;    // Pointer to the current spawn definition
-SpawnList            *pSpawnListCurr       = NULL;    // Pointer to the current spawn list node
-SpawnList            *pSpawnListHead       = NULL;    // Pointer to the head of the spawn list
-SpawnList            *pSpawnListTail       = NULL;    // Pointer to the tail of the spawn list
+Mobile               *pMobile;                           // Pointer to mobile
+Player                PlayerRcd;                         // Player record used for player file reads
+Room                  SingleRoom;                        // Temporary room read from Rooms.txt
+Room                 *pCurrentRoom;                      // Pointer to player's current room during movement
+Room                 *pDestinationRoom;                  // Pointer to player's destination room during movement
+Room                 *pNewRoom;                          // Pointer to newly allocated room
+Room                 *pRoom;                             // Pointer to room found by RoomLookUp()
+Room                 *pMobileMoveRoom;                   // Pointer to eligible or selected mobile destination room
+RoomList             *pNewRoomListNode;                  // Pointer to newly allocated room list node
+RoomList             *pRoomListCurr        = NULL;       // Pointer to current room list node
+RoomList             *pRoomListHead        = NULL;       // Pointer to head of room list
+RoomList             *pRoomListNext        = NULL;       // Pointer to next room list node
+RoomList             *pRoomListTail        = NULL;       // Pointer to tail of room list
+RoomObjectList       *pRoomObjectList      = NULL;       // Pointer to found room object list node
+RoomObjectList       *pRoomObjectListCurr  = NULL;       // Pointer to the current room object list node
+RoomObjectList       *pRoomObjectListNew   = NULL;       // Pointer to a new room object list node
+RoomObjectList       *pRoomObjectListNext  = NULL;       // Pointer to the next room object list node
+RoomObjectList       *pRoomObjectListPrev  = NULL;       // Pointer to the previous room object list node
+Shop                 *pShop                = NULL;       // Pointer to the current shop
+ShopList             *pShopListCurr        = NULL;       // Pointer to the current shop list node
+ShopList             *pShopListHead        = NULL;       // Pointer to the head of the shop list
+ShopList             *pShopListTail        = NULL;       // Pointer to the tail of the shop list
+ShopObjectList       *pShopObjectList      = NULL;       // Pointer to found shop object list node
+ShopObjectList       *pShopObjectListCurr  = NULL;       // Pointer to the current shop object list node
+Spawn                *pSpawn               = NULL;       // Pointer to the current spawn definition
+SpawnList            *pSpawnListCurr       = NULL;       // Pointer to the current spawn list node
+SpawnList            *pSpawnListHead       = NULL;       // Pointer to the head of the spawn list
+SpawnList            *pSpawnListTail       = NULL;       // Pointer to the tail of the spawn list
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -686,22 +686,22 @@ size_t         Words(char *Str);
 // fight commands, words, parts, and messages.
 struct sCommands
 {
-  char               *Name;                           // Command name
-  char               *Admin;                          // This is an admin command
-  char               *Level;                          // Player must be at this level to use the command
-  char               *Position;                       // Player must be, at least, in this position to use the command
-  char               *Social;                         // Is this a social command
-  char               *Fight;                          // Can this command be issued during a fight
-  char               *MinWords;                       // Minimum number of words in the command
-  char               *MaxWords;                       // Maximum number of words in the command
-  char               *Message;                        // Message to display if command is invalid
+  char               *Name;                              // Command name
+  char               *Admin;                             // This is an admin command
+  char               *Level;                             // Player must be at this level to use the command
+  char               *Position;                          // Player must be, at least, in this position to use the command
+  char               *Social;                            // Is this a social command
+  char               *Fight;                             // Can this command be issued during a fight
+  char               *MinWords;                          // Minimum number of words in the command
+  char               *MaxWords;                          // Maximum number of words in the command
+  char               *Message;                           // Message to display if command is invalid
 } Commands;
 
 // Command aliases provide abbreviated forms of commands.
 struct sCommandAlias
 {
-  char               *Alias;                          // Command alias
-  char               *Command;                        // Full command name
+  char               *Alias;                             // Command alias
+  char               *Command;                           // Full command name
 };
 
 struct sCommandAlias CommandAliasTable[] =
@@ -716,9 +716,9 @@ struct sCommandAlias CommandAliasTable[] =
 // Direction aliases and names are ordered to match the exits in Rooms.txt.
 struct sDirection
 {
-  char               *ShortName;                      // Abbreviated direction
-  char               *LongName;                       // Full direction name
-  char               *DisplayName;                    // Direction shown in room exits
+  char               *ShortName;                         // Abbreviated direction
+  char               *LongName;                          // Full direction name
+  char               *DisplayName;                       // Direction shown in room exits
 };
 
 struct sDirection DirectionTable[] =
@@ -739,8 +739,8 @@ struct sDirection DirectionTable[] =
 // Equipment slots and their player-facing display labels.
 struct sEquipmentSlot
 {
-  char               *Slot;                           // Equipment slot name
-  char               *Label;                          // Label shown by equipment command
+  char               *Slot;                              // Equipment slot name
+  char               *Label;                             // Label shown by equipment command
 };
 
 struct sEquipmentSlot EquipmentSlotTable[] =
@@ -771,9 +771,9 @@ struct sEquipmentSlot EquipmentSlotTable[] =
 // Armor subtypes map to one or two actual equipment slots.
 struct sWearPosition
 {
-  char               *Subtype;                        // Armor subtype from Objects.txt
-  char               *Slot1;                          // First equipment slot
-  char               *Slot2;                          // Optional second equipment slot
+  char               *Subtype;                           // Armor subtype from Objects.txt
+  char               *Slot1;                             // First equipment slot
+  char               *Slot2;                             // Optional second equipment slot
 };
 
 struct sWearPosition WearPositionTable[] =
