@@ -47,6 +47,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define MOB_HPT_PER_LEVEL       31                       // Mobile hit points per level
 #define PORT                    3737                     // Port number
 #define PLAYER_HPT_PER_LEVEL    31                       // Player hit points per level
+#define PLAYER_RECOVERY_AMOUNT  1                        // Hit points recovered per recovery event
 #define SLEEP_TIME              100000                   // Sleep for a short period of time
 #define STRING_LIMIT            1024                     // Max size of string including '\0'
 #define USE_USLEEP              'N'                      // Use usleep() Y or N
@@ -82,6 +83,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define MOBILE_MOVE_TICKS       50                       // Heartbeat ticks between mobile movement checks
 #define MOBILE_RESPAWN_TICKS    10                       // Heartbeat ticks between mobile respawn checks
 #define PLAYER_AUTOSAVE_SECONDS 60                       // Seconds between dirty player saves
+#define PLAYER_RECOVERY_TICKS   10                       // Heartbeat ticks between player recovery events
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Globals
@@ -132,6 +134,7 @@ long                  Offset;                            // Offset for fseek()
 int                   OptVal;                            // Set socket option value
 socklen_t             OptValSize;                        // Size of socket option value
 int                   PlayerRcdNbr;                      // Player record number within Player.yags
+int                   PlayerRecoveryTick;                // Heartbeat ticks since the last player recovery event
 int                   ReturnValue1;                      // Return value
 size_t                ReturnValue2;                      // Return value
 long int              SendResult;                        // Number of bytes sent to player
@@ -259,6 +262,13 @@ typedef enum PlayerStates
   Disconnect
 } PlayerState;
 
+typedef enum PlayerPositions
+{
+  Sleeping,
+  Sitting,
+  Standing
+} PlayerPosition;
+
 // Player and World structure typedefs
 typedef struct Mobile         Mobile;
 typedef struct MobileInstance MobileInstance;
@@ -291,6 +301,7 @@ struct ConnList
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
   int                 HitPoints;                     // Current player hit points
+  PlayerPosition      Position;                      // Current player position
   bool                PlayerDirty;                    // Player record has unsaved changes
   Player             *pPlayer;                        // Pointer to the connected player data
   MobileInstance     *pFightingMobile;                // Pointer to the mobile currently fighting the player
@@ -561,8 +572,12 @@ void           DoRemove();
 void           DoRestore();
 void           DoSell();
 void           DoShutdown();
+void           DoSit();
+void           DoSleep();
+void           DoStand();
 void           DoStatus();
 void           DoTime();
+void           DoWake();
 void           DoWear();
 void           DoWield();
 void           DoWho();
@@ -614,6 +629,7 @@ bool           PlayerNameValidNew();
 bool           PlayerNameValidOld();
 void           PlayerOpenFile();
 void           PlayerReadFile();
+void           PlayerRecoverHitPoints();
 void           PlayerWriteFile();
 void           ProcessCommandAlias();
 void           ProcessCommand();
@@ -820,8 +836,12 @@ char *CommandTable[][9] =
     {"restore",    "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Restore whom?"},
     {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"sit",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"sleep",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"stand",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"time",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"wake",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
     {"wield",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wield what?"},
     {"who",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -858,8 +878,12 @@ void (*DoCommand[])(void) =
   DoRestore,
   DoSell,
   DoShutdown,
+  DoSit,
+  DoSleep,
+  DoStand,
   DoStatus,
   DoTime,
+  DoWake,
   DoWear,
   DoWield,
   DoWho
@@ -913,6 +937,12 @@ void HeartBeat()
   {
     HungerThirstTick = 0;
     PlayerHungerThirst();
+  }
+  PlayerRecoveryTick++;
+  if (PlayerRecoveryTick >= PLAYER_RECOVERY_TICKS)
+  {
+    PlayerRecoveryTick = 0;
+    PlayerRecoverHitPoints();
   }
   MobileMoveTick++;
   if (MobileMoveTick >= MOBILE_MOVE_TICKS)
@@ -1127,6 +1157,18 @@ bool MudCmdOk()
       if (pConn->pFightingMobile != NULL && !Equal(Commands.Fight, "Y"))
       {
         strcat(pConn->Output, "You can't do that while fighting.\r\n\r\n");
+        Prompt(pConn);
+        return false;
+      }
+      if (Equal(Commands.Position, "stand") && pConn->Position != Standing)
+      {
+        strcat(pConn->Output, "You must be standing to do that.\r\n\r\n");
+        Prompt(pConn);
+        return false;
+      }
+      if (Equal(Commands.Position, "sit") && pConn->Position == Sleeping)
+      {
+        strcat(pConn->Output, "You must be sitting or standing to do that.\r\n\r\n");
         Prompt(pConn);
         return false;
       }
@@ -2121,6 +2163,75 @@ void DoShutdown()
   SendToAll();
 }
 
+// Move the player from standing to sitting.
+void DoSit()
+{
+  DEBUGIT(1)
+  if (pConn->Position == Sitting)
+  {
+    strcat(pConn->Output, "You are already sitting.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->Position == Sleeping)
+  {
+    strcat(pConn->Output, "You must wake up before you can sit.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pConn->Position = Sitting;
+  strcat(pConn->Output, "You sit down.\r\n\r\n");
+  sprintf(MsgTxt, "%s sits down.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  Prompt(pConn);
+}
+
+// Move the player from sitting to sleeping.
+void DoSleep()
+{
+  DEBUGIT(1)
+  if (pConn->Position == Sleeping)
+  {
+    strcat(pConn->Output, "You are already asleep.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->Position == Standing)
+  {
+    strcat(pConn->Output, "You must be sitting before you can sleep.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pConn->Position = Sleeping;
+  strcat(pConn->Output, "You fall asleep.\r\n\r\n");
+  sprintf(MsgTxt, "%s falls asleep.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  Prompt(pConn);
+}
+
+// Move the player from sitting to standing.
+void DoStand()
+{
+  DEBUGIT(1)
+  if (pConn->Position == Standing)
+  {
+    strcat(pConn->Output, "You are already standing.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->Position == Sleeping)
+  {
+    strcat(pConn->Output, "You must wake up before you can stand.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pConn->Position = Standing;
+  strcat(pConn->Output, "You stand up.\r\n\r\n");
+  sprintf(MsgTxt, "%s stands up.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  Prompt(pConn);
+}
+
 // Generates a status report for the player.
 void DoStatus()
 {
@@ -2173,6 +2284,23 @@ void DoTime()
   GetTime();
   sprintf(Buffer, "Server time: %s\r\n\r\n", CurrentTimeTxt);
   strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Wake the player from sleeping and leave them sitting.
+void DoWake()
+{
+  DEBUGIT(1)
+  if (pConn->Position != Sleeping)
+  {
+    strcat(pConn->Output, "You are already awake.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pConn->Position = Sitting;
+  strcat(pConn->Output, "You wake up.\r\n\r\n");
+  sprintf(MsgTxt, "%s wakes up.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   Prompt(pConn);
 }
 
@@ -2631,6 +2759,7 @@ void GetPlayerOnline()
       SendMotd();
       pConn->State = Online;
       pConn->HitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
+      pConn->Position = Standing;
       DoLook();
       return;
     }
@@ -2716,6 +2845,7 @@ void GetPlayerOnline()
       SendMotd();
       pConn->State = Online;
       pConn->HitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
+      pConn->Position = Standing;
       DoLook();
       return;
     }
@@ -2970,6 +3100,13 @@ void SocketGetPlayerInput()
     if (FD_ISSET(Socket, &InpSet))
     {
       BytesRead = read(Socket, Buffer, 1024);
+      if (BytesRead <= 0)
+      {
+        pConn->State = Disconnect;
+        pConn->Output[0] = '\0';
+        pConnCurr = pConnCurr->pConnNext;
+        continue;
+      }
       Buffer[BytesRead] = '\0';
       strcpy(pConn->Input, Buffer);
       if (strlen(pConn->Input) > 0)
@@ -3021,11 +3158,10 @@ void SocketSendPlayerOutput()
     pConn->Output[0] = '\0';
     BufferLen = strlen(Buffer);
     Socket = pConn->Socket;
-    SendResult = send(Socket, Buffer, BufferLen, 0);
+    SendResult = send(Socket, Buffer, BufferLen, MSG_NOSIGNAL);
     if (SendResult != BufferLen)
     {
-      strcpy(Buffer, "quit\0");
-      perror("-- Send failed\r\n");
+      pConn->State = Disconnect;
     }
     else
     {
@@ -3090,6 +3226,7 @@ void Initialization()
   HungerThirstTick   = 0;
   MobileMoveTick     = 0;
   MobileRespawnTick  = 0;
+  PlayerRecoveryTick = 0;
   NoPlayers          = true;
   NextPlayerAutosave = time(NULL) + PLAYER_AUTOSAVE_SECONDS;
   pConnHead          = NULL;
@@ -3673,6 +3810,31 @@ void PlayerHungerThirst()
         pConn->pPlayer->Thirst = 0;
       }
       pConn->PlayerDirty = true;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn     = pConnSave;
+  pConnCurr = pConnCurrSave;
+}
+
+// Silently recover hit points for online players who are not fighting.
+void PlayerRecoverHitPoints()
+{
+  DEBUGIT(1)
+  pConnSave     = pConn;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    pConn = pConnCurr;
+    MaxHitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
+    if (pConn->State == Online && pConn->pFightingMobile == NULL && pConn->HitPoints < MaxHitPoints)
+    {
+      pConn->HitPoints += PLAYER_RECOVERY_AMOUNT;
+      if (pConn->HitPoints > MaxHitPoints)
+      {
+        pConn->HitPoints = MaxHitPoints;
+      }
     }
     pConnCurr = pConnCurr->pConnNext;
   }
