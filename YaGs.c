@@ -348,16 +348,16 @@ struct MobileInstance
   MobileInstance     *pNextRoomMobile;                // Pointer to the next mobile in the room
 };
 
-MobileInstance        *pMobileInstance     = NULL;     // Pointer to a found mobile instance
-MobileInstance        *pMobileInstanceCurr = NULL;     // Pointer to the current mobile instance
-MobileInstance        *pMobileInstanceHead = NULL;     // Pointer to the head of the world mobile list
-MobileInstance        *pMobileInstanceNew  = NULL;     // Pointer to a new mobile instance
-MobileInstance        *pMobileInstanceNext = NULL;     // Pointer to the next mobile instance
-MobileInstance        *pMobileInstancePrev = NULL;     // Pointer to the previous mobile instance
-MobileInstance        *pMobileInstanceTail = NULL;     // Pointer to the tail of the world mobile list
-MobileList            *pMobileListCurr = NULL;        // Pointer to the current mobile list node
-MobileList            *pMobileListHead = NULL;        // Pointer to the head of the mobile list
-MobileList            *pMobileListTail = NULL;        // Pointer to the tail of the mobile list
+MobileInstance        *pMobileInstance     = NULL;    // Pointer to a found mobile instance
+MobileInstance        *pMobileInstanceCurr = NULL;    // Pointer to the current mobile instance
+MobileInstance        *pMobileInstanceHead = NULL;    // Pointer to the head of the world mobile list
+MobileInstance        *pMobileInstanceNew  = NULL;    // Pointer to a new mobile instance
+MobileInstance        *pMobileInstanceNext = NULL;    // Pointer to the next mobile instance
+MobileInstance        *pMobileInstancePrev = NULL;    // Pointer to the previous mobile instance
+MobileInstance        *pMobileInstanceTail = NULL;    // Pointer to the tail of the world mobile list
+MobileList            *pMobileListCurr     = NULL;    // Pointer to the current mobile list node
+MobileList            *pMobileListHead     = NULL;    // Pointer to the head of the mobile list
+MobileList            *pMobileListTail     = NULL;    // Pointer to the tail of the mobile list
 
 struct Object
 {
@@ -382,6 +382,7 @@ Object                *pDestroyObject  = NULL;        // Pointer to the object b
 Object                *pExamineObject  = NULL;        // Pointer to the object being examined
 Object                *pGiveObject     = NULL;        // Pointer to the object being given
 Object                *pLoadObject     = NULL;        // Pointer to the object being loaded
+Object                *pObject         = NULL;        // Pointer to object
 ObjectList            *pObjectListCurr = NULL;        // Pointer to the current object list node
 ObjectList            *pObjectListHead = NULL;        // Pointer to the head of the object list
 ObjectList            *pObjectListTail = NULL;        // Pointer to the tail of the object list
@@ -394,10 +395,10 @@ struct Room
   char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
   char               *Flags;                          // Flags (e.g., "None", "NoFight")
   char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
-  MobileInstance     *pMobileInstanceHead;             // Pointer to the head of the room mobile list
-  MobileInstance     *pMobileInstanceTail;             // Pointer to the tail of the room mobile list
-  RoomObjectList     *pRoomObjectHead;                 // Pointer to the head of the room object list
-  RoomObjectList     *pRoomObjectTail;                 // Pointer to the tail of the room object list
+  MobileInstance     *pMobileInstanceHead;            // Pointer to the head of the room mobile list
+  MobileInstance     *pMobileInstanceTail;            // Pointer to the tail of the room mobile list
+  RoomObjectList     *pRoomObjectHead;                // Pointer to the head of the room object list
+  RoomObjectList     *pRoomObjectTail;                // Pointer to the tail of the room object list
 };
 
 struct RoomList
@@ -454,6 +455,7 @@ struct SpawnList
   SpawnList          *pNextSpawn;                     // Pointer to the next spawn list node
 };
 
+Mobile               *pMobile;                        // Pointer to mobile
 Player                PlayerRcd;                      // Player record used for player file reads
 Room                  SingleRoom;
 Room                 *pCurrentRoom;
@@ -462,25 +464,25 @@ Room                 *pNewRoom;
 Room                 *pRoom;
 Room                 *pMobileMoveRoom;
 RoomList             *pNewRoomListNode;
-RoomList             *pRoomListCurr       = NULL;
-RoomList             *pRoomListHead       = NULL;
-RoomList             *pRoomListNext       = NULL;
-RoomList             *pRoomListTail       = NULL;
-RoomObjectList       *pRoomObjectList      = NULL;     // Pointer to found room object list node
-RoomObjectList       *pRoomObjectListCurr  = NULL;     // Pointer to the current room object list node
-RoomObjectList       *pRoomObjectListNew   = NULL;     // Pointer to a new room object list node
-RoomObjectList       *pRoomObjectListNext  = NULL;     // Pointer to the next room object list node
-RoomObjectList       *pRoomObjectListPrev  = NULL;     // Pointer to the previous room object list node
-Shop                 *pShop               = NULL;     // Pointer to the current shop
-ShopList             *pShopListCurr       = NULL;     // Pointer to the current shop list node
-ShopList             *pShopListHead       = NULL;     // Pointer to the head of the shop list
-ShopList             *pShopListTail       = NULL;     // Pointer to the tail of the shop list
-ShopObjectList       *pShopObjectList     = NULL;     // Pointer to found shop object list node
-ShopObjectList       *pShopObjectListCurr = NULL;     // Pointer to the current shop object list node
-Spawn                *pSpawn              = NULL;     // Pointer to the current spawn definition
-SpawnList            *pSpawnListCurr      = NULL;     // Pointer to the current spawn list node
-SpawnList            *pSpawnListHead      = NULL;     // Pointer to the head of the spawn list
-SpawnList            *pSpawnListTail      = NULL;     // Pointer to the tail of the spawn list
+RoomList             *pRoomListCurr        = NULL;
+RoomList             *pRoomListHead        = NULL;
+RoomList             *pRoomListNext        = NULL;
+RoomList             *pRoomListTail        = NULL;
+RoomObjectList       *pRoomObjectList      = NULL;    // Pointer to found room object list node
+RoomObjectList       *pRoomObjectListCurr  = NULL;    // Pointer to the current room object list node
+RoomObjectList       *pRoomObjectListNew   = NULL;    // Pointer to a new room object list node
+RoomObjectList       *pRoomObjectListNext  = NULL;    // Pointer to the next room object list node
+RoomObjectList       *pRoomObjectListPrev  = NULL;    // Pointer to the previous room object list node
+Shop                 *pShop                = NULL;    // Pointer to the current shop
+ShopList             *pShopListCurr        = NULL;    // Pointer to the current shop list node
+ShopList             *pShopListHead        = NULL;    // Pointer to the head of the shop list
+ShopList             *pShopListTail        = NULL;    // Pointer to the tail of the shop list
+ShopObjectList       *pShopObjectList      = NULL;    // Pointer to found shop object list node
+ShopObjectList       *pShopObjectListCurr  = NULL;    // Pointer to the current shop object list node
+Spawn                *pSpawn               = NULL;    // Pointer to the current spawn definition
+SpawnList            *pSpawnListCurr       = NULL;    // Pointer to the current spawn list node
+SpawnList            *pSpawnListHead       = NULL;    // Pointer to the head of the spawn list
+SpawnList            *pSpawnListTail       = NULL;    // Pointer to the tail of the spawn list
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -535,12 +537,12 @@ void           MobileInstanceAdd();
 void           MobileInstanceFreeList();
 void           MobileInstanceLookUp(char *Id);
 void           MobileInstanceMove();
-Mobile        *MobileLookUp(char *Id);
+void           MobileLookUp(char *Id);
 void           MobileMove();
 void           MobileReadFile();
 void           NormalizePlayerName(char *Name);
 bool           MudCmdOk();
-Object        *ObjectLookUp(char *Id);
+void           ObjectLookUp(char *Id);
 void           ObjectReadFile();
 void           OpenLog();
 void           PlayerAutoSave();
@@ -567,10 +569,10 @@ void           ProcessCommand();
 void           ProcessPlayerInput();
 void           Prompt(ConnList *pConn);
 void           RoomAddToRoomList();
-Room          *RoomAllocateAndCopy(const Room *SourceRoom);
+void           RoomAllocateAndCopy(const Room *SourceRoom);
 void           RoomFreeList();
 char          *RoomGetExits(const Room *pRoom);
-Room          *RoomLookUp(int RoomNbr);
+void           RoomLookUp(int RoomNbr);
 void           RoomObjectAdd(Object *pObject);
 void           RoomObjectLookUp(char *Id);
 void           RoomObjectRemoveOne();
@@ -1273,7 +1275,7 @@ void DoDrop()
     Prompt(pConn);
     return;
   }
-  pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+  RoomLookUp(pConn->pPlayer->RoomNbr);
   sprintf(Buffer, "You drop %s.\r\n\r\n", pPlayerInvList->pObject->Desc1);
   RoomObjectAdd(pPlayerInvList->pObject);
   PlayerInvRemoveOne();
@@ -1332,7 +1334,7 @@ void DoExamine()
   }
   if (pExamineObject == NULL)
   {
-    pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+    RoomLookUp(pConn->pPlayer->RoomNbr);
     RoomObjectLookUp(CmdParm1);
     if (pRoomObjectList != NULL)
     {
@@ -1379,7 +1381,7 @@ void DoGet()
 {
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
-  pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+  RoomLookUp(pConn->pPlayer->RoomNbr);
   RoomObjectLookUp(CmdParm1);
   if (pRoomObjectList == NULL)
   {
@@ -1471,7 +1473,8 @@ void DoGo()
     Prompt(pConn);
     return;
   }
-  pCurrentRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+  RoomLookUp(pConn->pPlayer->RoomNbr);
+  pCurrentRoom = pRoom;
   if (pCurrentRoom == NULL || pCurrentRoom->Exits == NULL)
   {
     sprintf(LogMsg, "ERROR: Player is in missing room %d", pConn->pPlayer->RoomNbr);
@@ -1488,7 +1491,8 @@ void DoGo()
     return;
   }
   DestRoomNbr = atoi(CmdParm2);
-  pDestinationRoom = RoomLookUp(DestRoomNbr);
+  RoomLookUp(DestRoomNbr);
+  pDestinationRoom = pRoom;
   if (pDestinationRoom == NULL)
   {
     sprintf(LogMsg, "ERROR: Room %d exit points to missing room %d", pConn->pPlayer->RoomNbr, DestRoomNbr);
@@ -1636,7 +1640,8 @@ void DoLoad()
 {
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
-  pLoadObject = ObjectLookUp(CmdParm1);
+  ObjectLookUp(CmdParm1);
+  pLoadObject = pObject;
   if (pLoadObject == NULL)
   {
     sprintf(Buffer, "Object %s does not exist.\r\n\r\n", CmdParm1);
@@ -1655,7 +1660,7 @@ void DoLoad()
 void DoLook()
 {
   DEBUGIT(1)
-  pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+  RoomLookUp(pConn->pPlayer->RoomNbr);
   if (pConn->pPlayer->Admin == 'N')
   {
     sprintf(Buffer, "\r\n&C%s&N\r\n", pRoom->Name);
@@ -2746,7 +2751,8 @@ void PlayerEquReadFile()
       sprintf(LogMsg, "ERROR: Memory allocation failed for PlayerEquList node");
       AbortIt();
     }
-    pConn->pPlayerEquTail->pObject = ObjectLookUp(TmpStr1);
+    ObjectLookUp(TmpStr1);
+    pConn->pPlayerEquTail->pObject = pObject;
     pConn->pPlayerEquTail->Slot = strdup(TmpStr2);
   }
   fclose(PlayerEquFile);
@@ -2916,7 +2922,8 @@ void PlayerInvReadFile()
       sprintf(LogMsg, "ERROR: Memory allocation failed for PlayerInvList node");
       AbortIt();
     }
-    pConn->pPlayerInvTail->pObject = ObjectLookUp(TmpStr1);
+    ObjectLookUp(TmpStr1);
+    pConn->pPlayerInvTail->pObject = pObject;
     pConn->pPlayerInvTail->Quantity = atoi(TmpStr2);
   }
   fclose(PlayerInvFile);
@@ -3535,7 +3542,8 @@ void MobileInstanceMove()
     {
       continue;
     }
-    pMobileMoveRoom = RoomLookUp(atoi(TmpStr1));
+    RoomLookUp(atoi(TmpStr1));
+    pMobileMoveRoom = pRoom;
     if (pMobileMoveRoom == NULL || strstr(pMobileMoveRoom->Flags, "NoNPC") != NULL)
     {
       continue;
@@ -3597,7 +3605,7 @@ void MobileMove()
 }
 
 // Search the permanent mobile list for a case-insensitive Id match.
-Mobile *MobileLookUp(char *Id)
+void MobileLookUp(char *Id)
 {
   DEBUGIT(1)
   pMobileListCurr = pMobileListHead;
@@ -3605,11 +3613,12 @@ Mobile *MobileLookUp(char *Id)
   {
     if (strcasecmp(Id, pMobileListCurr->pMobile->Id) == 0)
     {
-      return pMobileListCurr->pMobile;
+      pMobile = pMobileListCurr->pMobile;
+      return;
     }
     pMobileListCurr = pMobileListCurr->pNextMobile;
   }
-  return NULL;
+  pMobile = NULL;
 }
 
 // Read mobile definitions from Mobiles.txt and build the permanent mobile list.
@@ -3726,7 +3735,7 @@ void MobileReadFile()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Search the permanent object list for a case-insensitive Id match.
-Object *ObjectLookUp(char *Id)
+void ObjectLookUp(char *Id)
 {
   DEBUGIT(1)
   pObjectListCurr = pObjectListHead;
@@ -3734,11 +3743,12 @@ Object *ObjectLookUp(char *Id)
   {
     if (strcasecmp(Id, pObjectListCurr->pObject->Id) == 0)
     {
-      return pObjectListCurr->pObject;
+      pObject = pObjectListCurr->pObject;
+      return;
     }
     pObjectListCurr = pObjectListCurr->pNextObject;
   }
-  return NULL;
+  pObject = NULL;
 }
 
 // Read object definitions from Objects.txt and build the permanent object list.
@@ -3875,9 +3885,9 @@ void RoomAddToRoomList()
   }
 }
 
-// Dynamically allocate a Room structure, copy the contents of SingleRoom, and
-// return a pointer to the newly allocated Room structure.
-Room *RoomAllocateAndCopy(const Room *SourceRoom)
+// Dynamically allocate a Room structure and copy the contents of SingleRoom
+// into the global pNewRoom.
+void RoomAllocateAndCopy(const Room *SourceRoom)
 {
   // Allocate memory for the new Room
   pNewRoom = (Room*)malloc(sizeof(Room));
@@ -3960,7 +3970,6 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   pNewRoom->pMobileInstanceTail = NULL;
   pNewRoom->pRoomObjectHead = NULL;
   pNewRoom->pRoomObjectTail = NULL;
-  return pNewRoom;
 }
 
 // Free all dynamically allocated memory for the linked list of rooms
@@ -4026,9 +4035,8 @@ char *RoomGetExits(const Room *pRoom)
   return TmpStr;
 }
 
-// Search for a room in the linked list of rooms by its RoomNbr. Return a pointer
-// to the Room structure if found, or NULL if not found.
-Room *RoomLookUp(int RoomNbr)
+// Search for a room by RoomNbr and store the result in the global pRoom.
+void RoomLookUp(int RoomNbr)
 {
   DEBUGIT(1)
   pRoomListCurr = pRoomListHead;
@@ -4036,11 +4044,12 @@ Room *RoomLookUp(int RoomNbr)
   {
     if (pRoomListCurr->pRoom != NULL && pRoomListCurr->pRoom->RoomNbr == RoomNbr)
     {
-      return pRoomListCurr->pRoom; // Return the matching Room pointer
+      pRoom = pRoomListCurr->pRoom;
+      return;
     }
     pRoomListCurr = pRoomListCurr->pNextRoom;
   }
-  return NULL;
+  pRoom = NULL;
 }
 
 // Add one object to the ground in the current room.
@@ -4238,7 +4247,7 @@ void RoomReadFile()
       AbortIt();
     }
     LineNbr++;
-    pNewRoom = RoomAllocateAndCopy(&SingleRoom);
+    RoomAllocateAndCopy(&SingleRoom);
     RoomAddToRoomList();
   }
   fclose(RoomFile);
@@ -4321,7 +4330,8 @@ void ShopReadFile()
       AbortIt();
     }
     pShop = pShopListTail->pShop;
-    pShop->pRoom = RoomLookUp(atoi(Buffer));
+    RoomLookUp(atoi(Buffer));
+    pShop->pRoom = pRoom;
     fgets(Buffer, sizeof(Buffer), ShopFile);
     TrimRight(Buffer);
     pShop->Message = strdup(Buffer);
@@ -4347,7 +4357,8 @@ void ShopReadFile()
         sprintf(LogMsg, "ERROR: Memory allocation failed for ShopObjectList node");
         AbortIt();
       }
-      pShop->pShopObjectTail->pObject = ObjectLookUp(Buffer);
+      ObjectLookUp(Buffer);
+      pShop->pShopObjectTail->pObject = pObject;
     }
   }
   fclose(ShopFile);
@@ -4415,7 +4426,8 @@ void SpawnReadFile()
     pSpawn = pSpawnListTail->pSpawn;
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
-    pSpawn->pMobile = MobileLookUp(TmpStr);
+    MobileLookUp(TmpStr);
+    pSpawn->pMobile = pMobile;
     fgets(Buffer, sizeof(Buffer), SpawnFile);
     TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
@@ -4425,7 +4437,8 @@ void SpawnReadFile()
     TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
-    pSpawn->pRoom = RoomLookUp(atoi(TmpStr));
+    RoomLookUp(atoi(TmpStr));
+    pSpawn->pRoom = pRoom;
     fgets(Buffer, sizeof(Buffer), SpawnFile);
     TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
