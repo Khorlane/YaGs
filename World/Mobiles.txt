@@ -36,10 +36,10 @@ Exp:    -500
 Loot:   None
 
 Id:     WeaponSmith
-Desc1:  a weapon smith
-Desc2:  a weapon smith is standing by a weapon rack, ready to serve customers.
+Desc1:  a weaponsmith
+Desc2:  a weaponsmith is standing by a weapon rack, ready to serve customers.
 Desc3:
-  This weapon smith is wearing a thick leather apron with large pockets.
+  This weaponsmith is wearing a thick leather apron with large pockets.
 Flags:  NoMove
 Attack: Slash
 Level:  99
