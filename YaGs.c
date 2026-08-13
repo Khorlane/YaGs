@@ -350,6 +350,7 @@ struct ObjectList
 };
 
 Object                *pDestroyObject  = NULL;        // Pointer to the object being destroyed
+Object                *pExamineObject  = NULL;        // Pointer to the object being examined
 Object                *pGiveObject     = NULL;        // Pointer to the object being given
 Object                *pLoadObject     = NULL;        // Pointer to the object being loaded
 ObjectList            *pObjectListCurr = NULL;        // Pointer to the current object list node
@@ -442,6 +443,7 @@ void           DoColor();
 void           DoDestroy();
 void           DoDrop();
 void           DoEquipment();
+void           DoExamine();
 void           DoGet();
 void           DoGive();
 void           DoGo();
@@ -678,6 +680,7 @@ char *CommandTable[][9] =
     {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
     {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
     {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
+    {"examine",    "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Examine what?"},
     {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
     {"give",        "N",  "1",  "sit",    "N",   "N",  "3",  "3",  "Give what to whom?"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
@@ -711,6 +714,7 @@ void (*DoCommand[])(void) =
   DoDestroy,
   DoDrop,
   DoEquipment,
+  DoExamine,
   DoGet,
   DoGive,
   DoGo,
@@ -1231,6 +1235,58 @@ void DoEquipment()
       i++;
     }
   }
+  strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
+}
+
+// Display the detailed description of a visible object.
+void DoExamine()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  pExamineObject = NULL;
+  PlayerInvLookUp(CmdParm1);
+  if (pPlayerInvList != NULL)
+  {
+    pExamineObject = pPlayerInvList->pObject;
+  }
+  if (pExamineObject == NULL)
+  {
+    PlayerEquLookUp(CmdParm1);
+    if (pPlayerEquList != NULL)
+    {
+      pExamineObject = pPlayerEquList->pObject;
+    }
+  }
+  if (pExamineObject == NULL)
+  {
+    pRoom = RoomLookUp(pConn->pPlayer->RoomNbr);
+    RoomObjectLookUp(CmdParm1);
+    if (pRoomObjectList != NULL)
+    {
+      pExamineObject = pRoomObjectList->pObject;
+    }
+  }
+  if (pExamineObject == NULL)
+  {
+    pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+    if (pShop != NULL)
+    {
+      ShopObjectLookUp(CmdParm1);
+      if (pShopObjectList != NULL)
+      {
+        pExamineObject = pShopObjectList->pObject;
+      }
+    }
+  }
+  if (pExamineObject == NULL)
+  {
+    strcat(pConn->Output, "You don't see that here.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  strcat(pConn->Output, "\r\n");
+  strcat(pConn->Output, pExamineObject->Desc3);
   strcat(pConn->Output, "\r\n");
   Prompt(pConn);
 }
