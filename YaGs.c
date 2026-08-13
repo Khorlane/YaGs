@@ -74,6 +74,8 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define PLAYER_START_ROOM       120                      // Player start room
 // Timer events
 #define COMBAT_TICKS            20                       // Heartbeat ticks between combat rounds
+#define HUNGER_THIRST_RATE      10                       // Hunger and thirst percentage lost per metabolism event
+#define HUNGER_THIRST_TICKS     100                      // Heartbeat ticks between metabolism events
 #define NO_INPUT_TICK           500                      // Ticks before checking if player is still there
 #define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
 #define MOBILE_MOVE_CHANCE      25                       // Percent chance a movable mobile changes rooms
@@ -116,6 +118,7 @@ int                   ExpPercent;                        // Percentage of base m
 long long             ExpRequired;                       // Total experience required for a player level
 int                   Hours;                             // Player age in hours
 int                   HitPercent;                        // Remaining hit point percentage
+int                   HungerThirstTick;                  // Heartbeat ticks since the last metabolism event
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
 int                   Listen;                            // Listening socket
@@ -300,7 +303,7 @@ struct ConnList
 };
 
 // The Player structure represents a player, encapsulating attributes such as
-// name, password, status flags, creation time, color preference, coins, experience points, level, and sex.
+// name, password, status flags, creation time, color preference, coins, experience points, hunger, level, sex, and thirst.
 struct Player
 {
   char                Name[50];                       // Player name
@@ -311,8 +314,10 @@ struct Player
   char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
   int                 Coins;                          // Player coin balance
   long long           Experience;                     // Experience points
+  int                 Hunger;                         // Player fullness percentage
   int                 Level;                          // Player level
   char                Sex;                            // Player sex (M/F)
+  int                 Thirst;                         // Player hydration percentage
   int                 RoomNbr;                        // Room number
 };
 
@@ -595,6 +600,7 @@ void           PlayerEquRemove();
 void           PlayerEquSlotLookUp(char *Slot);
 void           PlayerEquWriteFile();
 void           PlayerExpCalc();
+void           PlayerHungerThirst();
 void           PlayerInvAdd(Object *pObject);
 void           PlayerInvLookUp(char *Id);
 void           PlayerInvReadFile();
@@ -895,6 +901,12 @@ void HeartBeat()
   {
     CombatTick = 0;
     Combat();
+  }
+  HungerThirstTick++;
+  if (HungerThirstTick >= HUNGER_THIRST_TICKS)
+  {
+    HungerThirstTick = 0;
+    PlayerHungerThirst();
   }
   MobileMoveTick++;
   if (MobileMoveTick >= MOBILE_MOVE_TICKS)
@@ -2011,6 +2023,12 @@ void DoStatus()
   //  Sex
   sprintf(Buffer, "Sex: %c\r\n", pConn->pPlayer->Sex);
   strcat(pConn->Output, Buffer);
+  // Hunger
+  sprintf(Buffer, "Hunger: %d%%\r\n", pConn->pPlayer->Hunger);
+  strcat(pConn->Output, Buffer);
+  // Thirst
+  sprintf(Buffer, "Thirst: %d%%\r\n", pConn->pPlayer->Thirst);
+  strcat(pConn->Output, Buffer);
   // Admin
   if (pConn->pPlayer->Admin == 'Y')
   {
@@ -2941,6 +2959,7 @@ void Initialization()
 { // Do not add DEBUGIT
   GameShutDown       = false;
   CombatTick         = 0;
+  HungerThirstTick   = 0;
   MobileMoveTick     = 0;
   MobileRespawnTick  = 0;
   NoPlayers          = true;
@@ -3503,6 +3522,36 @@ void PlayerExpCalc()
   ExpRequired = ExpBase + llround(ExpAdditional);
 }
 
+// Reduce hunger and thirst for every online player without sending messages.
+void PlayerHungerThirst()
+{
+  DEBUGIT(1)
+  pConnSave     = pConn;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    pConn = pConnCurr;
+    if (pConn->State == Online && (pConn->pPlayer->Hunger > 0 || pConn->pPlayer->Thirst > 0))
+    {
+      pConn->pPlayer->Hunger -= HUNGER_THIRST_RATE;
+      if (pConn->pPlayer->Hunger < 0)
+      {
+        pConn->pPlayer->Hunger = 0;
+      }
+      pConn->pPlayer->Thirst -= HUNGER_THIRST_RATE;
+      if (pConn->pPlayer->Thirst < 0)
+      {
+        pConn->pPlayer->Thirst = 0;
+      }
+      pConn->PlayerDirty = true;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn     = pConnSave;
+  pConnCurr = pConnCurrSave;
+}
+
 // Advance the current player through every level earned by their experience.
 void PlayerLevelUp()
 {
@@ -3586,7 +3635,9 @@ void InitalizeNewPlayer()
   pConn->pPlayer->Color      = 'N';
   pConn->pPlayer->Coins      = 0;
   pConn->pPlayer->Experience = 0;
+  pConn->pPlayer->Hunger     = 100;
   pConn->pPlayer->Level      = 1;
+  pConn->pPlayer->Thirst     = 100;
   pConn->pPlayer->RoomNbr    = PLAYER_START_ROOM;
 }
 

@@ -224,3 +224,26 @@ Cost:    5
 Type:    Armor
 Subtype: Feet
 Value:   1
+
+Id:      SmallWaterskin
+Desc1:   a small waterskin
+Desc2:   a small waterskin is here.
+Desc3:
+  This small leather waterskin contains enough cool, clean
+water to ease a traveler's thirst.
+Weight:  1
+Cost:    5
+Type:    Drink
+Subtype: Water
+Value:   20
+
+Id:      Apple
+Desc1:   an apple
+Desc2:   an apple is here.
+Desc3:
+  This crisp &Rred&N apple looks fresh and ready to eat.
+Weight:  1
+Cost:    2
+Type:    Food
+Subtype: Fruit
+Value:   20
