@@ -9,7 +9,7 @@ Weight:  3
 Cost:    35
 Type:    Weapon
 Subtype: Hammer
-Value:   59
+Value:   10
 
 Id:      ShortSword
 Desc1:   a short sword
@@ -22,7 +22,7 @@ Weight:  3
 Cost:    90
 Type:    Weapon
 Subtype: Sword
-Value:   118
+Value:   15
 
 Id:      RatFoot
 Desc1:   a rat foot

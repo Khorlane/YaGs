@@ -43,7 +43,10 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define BASE_MOB_XP             50                       // Base mob xp per level
 #define BASE_PLAYER_XP          1000                     // Base player xp per level
 #define BUFFER_LIMIT            2048                     // Max size of Buffer including '\0'
+#define DAMAGE_PER_LEVEL        10                       // Maximum base damage per attacker level
+#define MOB_HPT_PER_LEVEL       31                       // Mobile hit points per level
 #define PORT                    3737                     // Port number
+#define PLAYER_HPT_PER_LEVEL    31                       // Player hit points per level
 #define SLEEP_TIME              100000                   // Sleep for a short period of time
 #define STRING_LIMIT            1024                     // Max size of string including '\0'
 #define USE_USLEEP              'N'                      // Use usleep() Y or N
@@ -70,6 +73,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define PLAYER_FILE             "Player.yags"            // Player file
 #define PLAYER_START_ROOM       120                      // Player start room
 // Timer events
+#define COMBAT_TICKS            20                       // Heartbeat ticks between combat rounds
 #define NO_INPUT_TICK           500                      // Ticks before checking if player is still there
 #define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
 #define MOBILE_MOVE_CHANCE      25                       // Percent chance a movable mobile changes rooms
@@ -92,11 +96,13 @@ size_t                BufferLen;                         // Length of the string
 long int              BytesRead;                         // Number of bytes read
 size_t                CmdDoCount;                        // Count of function pointers in the DoCommand array
 size_t                CmdTableCount;                     // Count of entries in the CommandTable array
+int                   CombatTick;                        // Heartbeat ticks since the last combat round
 int                   CommandNbr;                        // Command number zero based
 time_t                CurrentTime;                       // Current time for player age calculation
 time_t                CurrentTimeSec;                    // Current time in seconds
 time_t                NextPlayerAutosave;                // Time of the next dirty player save
 int                   Days;                              // Player age in days
+int                   Damage;                            // Damage inflicted by the current attack
 int                   DestRoomNbr;                       // Room number player is moving into
 int                   DirectionNbr;                      // The DirectionTable index of the direction
 int                   DestroyCount;                      // Number of objects to destroy
@@ -109,10 +115,12 @@ int                   ExpLevelDiff;                      // Player and mobile le
 int                   ExpPercent;                        // Percentage of base mobile experience awarded
 long long             ExpRequired;                       // Total experience required for a player level
 int                   Hours;                             // Player age in hours
+int                   HitPercent;                        // Remaining hit point percentage
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
 int                   Listen;                            // Listening socket
 int                   MaxSocket;                         // Maximum socket value
+int                   MaxHitPoints;                      // Maximum hit points for the current combatant
 int                   Minutes;                           // Player age in minutes
 int                   MobileMoveRoomCount;               // Number of eligible rooms for mobile movement
 int                   MobileMoveTick;                    // Heartbeat ticks since the last mobile movement check
@@ -129,6 +137,7 @@ int                   Socket;                            // Socket value
 socklen_t             SocketAddrSize;                    // Size of Socket structure
 size_t                StrLen;                            // String length
 int                   WearPositionNbr;                   // WearPositionTable index
+int                   WeaponDamage;                      // Damage bonus from the wielded weapon
 int                   WordState;                         // Tracks WordState: NotWord | InWord
 extern int            errno;                             // Error number set by fopen(), for example
 size_t                i;                                 // A non-negative integer
@@ -277,8 +286,10 @@ struct ConnList
   int                 PlayerRcdNbr;                   // Player record number within Player.yags
   int                 NoInputTick;                    // Ticks before checking if player is still there
   int                 NoInputCount;                   // Number of no input ticks
+  int                 HitPoints;                     // Current player hit points
   bool                PlayerDirty;                    // Player record has unsaved changes
   Player             *pPlayer;                        // Pointer to the connected player data
+  MobileInstance     *pFightingMobile;                // Pointer to the mobile currently fighting the player
   PlayerEquList      *pPlayerEquHead;                 // Pointer to the head of the player equipment list
   PlayerEquList      *pPlayerEquTail;                 // Pointer to the tail of the player equipment list
   PlayerInvList      *pPlayerInvHead;                 // Pointer to the head of the player inventory list
@@ -340,7 +351,7 @@ struct Mobile
   char               *Flags;                          // Mobile behavior flags
   char               *Attack;                         // Mobile attack description
   int                 Level;                          // Mobile level
-  int                 Hit;                            // Mobile hit value
+  int                 Hit;                            // Mobile hit point adjustment
   int                 Exp;                            // Experience award
   char               *Loot;                           // Space-separated object identifiers
 };
@@ -356,7 +367,8 @@ struct MobileInstance
   Mobile             *pMobile;                        // Pointer to the permanent mobile definition
   Spawn              *pSpawn;                         // Pointer to the spawn rule that created the mobile
   Room               *pRoom;                          // Pointer to the mobile's current room
-  int                 Hit;                            // Current mobile hit value
+  int                 HitPoints;                      // Current mobile hit points
+  ConnList           *pFightingPlayer;                // Pointer to the player currently fighting the mobile
   MobileInstance     *pNextMobileInstance;            // Pointer to the next mobile in the world
   MobileInstance     *pNextRoomMobile;                // Pointer to the next mobile in the room
 };
@@ -509,6 +521,11 @@ void           AddToConnList();
 void           SocketCheckForNewPlayers();
 void           CloseLog();
 void           Color();
+void           Combat();
+void           CombatPlayerDeath();
+void           CombatRound();
+void           CombatStop();
+void           CombatVictory();
 void           DelFromConnList();
 int            DirectionLookUp(char *Direction);
 void           DoAdvance();
@@ -554,6 +571,7 @@ void           MobileInstanceFreeList();
 void           MobileInstanceLookUp(char *Id);
 void           MobileInstanceMove();
 void           MobileInstanceRemove();
+void           MobileAttackVerb();
 void           MobileExpCalc();
 void           MobileLookUp(char *Id);
 void           MobileMove();
@@ -565,6 +583,7 @@ void           ObjectLookUp(char *Id);
 void           ObjectReadFile();
 void           OpenLog();
 void           PlayerAutoSave();
+void           PlayerAttackVerb();
 void           PlayerCloseFile();
 void           PlayerEquAdd(Object *pObject, char *Slot);
 void           PlayerEquLookUp(char *Id);
@@ -866,6 +885,12 @@ void HeartBeat()
 {
   DEBUGIT(2)
   CurrentTimeSec = time(NULL);
+  CombatTick++;
+  if (CombatTick >= COMBAT_TICKS)
+  {
+    CombatTick = 0;
+    Combat();
+  }
   MobileMoveTick++;
   if (MobileMoveTick >= MOBILE_MOVE_TICKS)
   {
@@ -1076,6 +1101,12 @@ bool MudCmdOk()
         Prompt(pConn);
         return false;
       }
+      if (pConn->pFightingMobile != NULL && !Equal(Commands.Fight, "Y"))
+      {
+        strcat(pConn->Output, "You can't do that while fighting.\r\n\r\n");
+        Prompt(pConn);
+        return false;
+      }
       // Command is OK!
       return true;
     }
@@ -1149,6 +1180,7 @@ void DoAdvance()
     sprintf(TmpStr, "%s", "demoted");
   }
   pTarget->pPlayer->Level      = atoi(CmdParm2);
+  pTarget->HitPoints           = pTarget->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
   ExpCalcLevel = pTarget->pPlayer->Level;
   PlayerExpCalc();
   pTarget->pPlayer->Experience = ExpRequired;
@@ -1659,10 +1691,16 @@ void DoInventory()
   Prompt(pConn);
 }
 
-// Immediately kill a mobile in the current room.
+// Start a fight with a mobile in the current room.
 void DoKill()
 {
   DEBUGIT(1)
+  if (pConn->pFightingMobile != NULL)
+  {
+    strcat(pConn->Output, "You are already fighting.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
   RoomLookUp(pConn->pPlayer->RoomNbr);
   if (strstr(pRoom->Flags, "NoFight") != NULL)
   {
@@ -1678,28 +1716,16 @@ void DoKill()
     Prompt(pConn);
     return;
   }
-  pMobile = pMobileInstance->pMobile;
-  MobileExpCalc();
-  sprintf(Buffer, "You kill %s.\r\nYou gain %d experience.\r\n", pMobile->Desc1, ExpAward);
-  strcat(pConn->Output, Buffer);
-  MobileInstanceRemove();
-  if (!Equal(pMobile->Loot, "None"))
+  if (pMobileInstance->pFightingPlayer != NULL)
   {
-    strcat(pConn->Output, "You loot:\r\n");
-    for (k = 1; k <= Words(pMobile->Loot); k++)
-    {
-      Word(k, pMobile->Loot, TmpStr1);
-      ObjectLookUp(TmpStr1);
-      PlayerInvAdd(pObject);
-      sprintf(Buffer, "%s\r\n", pObject->Desc1);
-      strcat(pConn->Output, Buffer);
-    }
-    PlayerInvWriteFile();
+    strcat(pConn->Output, "That mobile is already fighting someone.\r\n\r\n");
+    Prompt(pConn);
+    return;
   }
-  strcat(pConn->Output, "\r\n");
-  pConn->pPlayer->Experience += ExpAward;
-  PlayerLevelUp();
-  PlayerWriteFile();
+  pConn->pFightingMobile = pMobileInstance;
+  pMobileInstance->pFightingPlayer = pConn;
+  sprintf(Buffer, "You start a fight with %s!\r\n\r\n", pMobileInstance->pMobile->Desc1);
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 
@@ -2073,15 +2099,188 @@ void DoWho()
   pConnCurr = pConnCurrSave;
 }
 
+// Process one combat round for every player who is fighting.
+void Combat()
+{
+  DEBUGIT(1)
+  pConnSave     = pConn;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    pConn = pConnCurr;
+    if (pConn->State == Online && pConn->pFightingMobile != NULL)
+    {
+      CombatRound();
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn     = pConnSave;
+  pConnCurr = pConnCurrSave;
+}
+
+// End combat when the player dies, restore them, and return them to the starting room.
+void CombatPlayerDeath()
+{
+  DEBUGIT(1)
+  strcpy(TmpStr1, pMobile->Desc1);
+  Up1stChar(TmpStr1);
+  sprintf(Buffer, "%s %s you for %d points of damage.\r\nYou have been killed by %s.\r\nYou awaken fully restored.\r\n", TmpStr1, TmpStr, Damage, pMobile->Desc1);
+  strcat(pConn->Output, Buffer);
+  CombatStop();
+  pConn->HitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
+  pConn->pPlayer->RoomNbr = PLAYER_START_ROOM;
+  pConn->PlayerDirty = true;
+  DoLook();
+}
+
+// Process one player attack followed by one surviving mobile counterattack.
+void CombatRound()
+{
+  DEBUGIT(1)
+  strcat(pConn->Output, "\r\n");
+  pMobileInstance = pConn->pFightingMobile;
+  pMobile = pMobileInstance->pMobile;
+  PlayerAttackVerb();
+  Damage = (rand() % ((pConn->pPlayer->Level * DAMAGE_PER_LEVEL) + WeaponDamage)) + 1;
+  pMobileInstance->HitPoints -= Damage;
+  if (pMobileInstance->HitPoints <= 0)
+  {
+    CombatVictory();
+    return;
+  }
+  MaxHitPoints = (pMobile->Level * MOB_HPT_PER_LEVEL) + pMobile->Hit;
+  HitPercent = (pMobileInstance->HitPoints * 100) / MaxHitPoints;
+  sprintf(Buffer, "%3d You %s %s for %d points of damage.\r\n", HitPercent, TmpStr, pMobile->Desc1, Damage);
+  strcat(pConn->Output, Buffer);
+  MobileAttackVerb();
+  Damage = (rand() % (pMobile->Level * DAMAGE_PER_LEVEL)) + 1;
+  pConn->HitPoints -= Damage;
+  if (pConn->HitPoints <= 0)
+  {
+    CombatPlayerDeath();
+    return;
+  }
+  MaxHitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
+  HitPercent = (pConn->HitPoints * 100) / MaxHitPoints;
+  strcpy(TmpStr1, pMobile->Desc1);
+  Up1stChar(TmpStr1);
+  sprintf(Buffer, "%3d %s %s you for %d points of damage.\r\n\r\n", HitPercent, TmpStr1, TmpStr, Damage);
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Release the current player's mobile and restore the mobile to full health.
+void CombatStop()
+{
+  DEBUGIT(1)
+  if (pConn->pFightingMobile == NULL)
+  {
+    return;
+  }
+  pConn->pFightingMobile->pFightingPlayer = NULL;
+  pConn->pFightingMobile->HitPoints = (pConn->pFightingMobile->pMobile->Level * MOB_HPT_PER_LEVEL) + pConn->pFightingMobile->pMobile->Hit;
+  pConn->pFightingMobile = NULL;
+}
+
+// Finish a defeated mobile and award its experience and loot to the player.
+void CombatVictory()
+{
+  DEBUGIT(1)
+  sprintf(Buffer, "You vanquish %s with a %s that did %d points of damage.\r\n", pMobile->Desc1, TmpStr, Damage);
+  strcat(pConn->Output, Buffer);
+  MobileExpCalc();
+  sprintf(Buffer, "You gain %d points of experience!\r\n", ExpAward);
+  strcat(pConn->Output, Buffer);
+  pMobileInstance->pFightingPlayer = NULL;
+  pConn->pFightingMobile = NULL;
+  MobileInstanceRemove();
+  if (!Equal(pMobile->Loot, "None"))
+  {
+    strcat(pConn->Output, "You loot:\r\n");
+    for (k = 1; k <= Words(pMobile->Loot); k++)
+    {
+      Word(k, pMobile->Loot, TmpStr1);
+      ObjectLookUp(TmpStr1);
+      PlayerInvAdd(pObject);
+      sprintf(Buffer, "%s\r\n", pObject->Desc1);
+      strcat(pConn->Output, Buffer);
+    }
+    PlayerInvWriteFile();
+  }
+  strcat(pConn->Output, "\r\n");
+  pConn->pPlayer->Experience += ExpAward;
+  PlayerLevelUp();
+  PlayerWriteFile();
+  Prompt(pConn);
+}
+
+// Select the current mobile's player-facing attack verb.
+void MobileAttackVerb()
+{
+  DEBUGIT(1)
+  if (Equal(pMobile->Attack, "Bite") || Equal(pMobile->Attack, "Bites"))
+  {
+    strcpy(TmpStr, "bites");
+    return;
+  }
+  if (Equal(pMobile->Attack, "Slash"))
+  {
+    strcpy(TmpStr, "slashes");
+    return;
+  }
+  if (Equal(pMobile->Attack, "Stab"))
+  {
+    strcpy(TmpStr, "stabs");
+    return;
+  }
+  strcpy(TmpStr, "hits");
+}
+
+// Select the player's attack verb and wielded weapon damage bonus.
+void PlayerAttackVerb()
+{
+  DEBUGIT(1)
+  WeaponDamage = 0;
+  strcpy(TmpStr, "Wielded");
+  PlayerEquSlotLookUp(TmpStr);
+  strcpy(TmpStr, "hit");
+  if (pPlayerEquList == NULL)
+  {
+    return;
+  }
+  WeaponDamage = pPlayerEquList->pObject->Value;
+  if (Equal(pPlayerEquList->pObject->Subtype, "Dagger"))
+  {
+    strcpy(TmpStr, "stab");
+    return;
+  }
+  if (Equal(pPlayerEquList->pObject->Subtype, "Hammer"))
+  {
+    strcpy(TmpStr, "smash");
+    return;
+  }
+  if (Equal(pPlayerEquList->pObject->Subtype, "Sword"))
+  {
+    strcpy(TmpStr, "slash");
+  }
+}
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // General player communication
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// Append a prompt string ("> ") to the player output.
+// Append the player's current hit points and prompt to online output.
 void Prompt(ConnList *pConn)
 {
   DEBUGIT(1)
-  strcat(pConn->Output,"> ");
+  if (pConn->State == Online)
+  {
+    sprintf(Buffer, "%dH > ", pConn->HitPoints);
+    strcat(pConn->Output, Buffer);
+    return;
+  }
+  strcat(pConn->Output, "> ");
 }
 
 // Send a message to all players that are online.
@@ -2209,6 +2408,7 @@ void GetPlayerOnline()
       PlayerInvReadFile();
       SendMotd();
       pConn->State = Online;
+      pConn->HitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
       DoLook();
       return;
     }
@@ -2293,6 +2493,7 @@ void GetPlayerOnline()
       PlayerInvReadFile();
       SendMotd();
       pConn->State = Online;
+      pConn->HitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
       DoLook();
       return;
     }
@@ -2624,6 +2825,7 @@ void SocketDisconnectPlayers()
     pConn = pConnCurr;
     if (pConn->State == Disconnect)
     {
+      CombatStop();
       if (pConn->PlayerRcdNbr > 0 && pConn->PlayerDirty)
       {
         PlayerWriteFile();
@@ -2662,6 +2864,7 @@ void StartItUp()
 void Initialization()
 { // Do not add DEBUGIT
   GameShutDown       = false;
+  CombatTick         = 0;
   MobileMoveTick     = 0;
   MobileRespawnTick  = 0;
   NoPlayers          = true;
@@ -3609,7 +3812,7 @@ void MobileInstanceAdd()
   pMobileInstanceNew->pMobile = pSpawn->pMobile;
   pMobileInstanceNew->pSpawn = pSpawn;
   pMobileInstanceNew->pRoom = pSpawn->pRoom;
-  pMobileInstanceNew->Hit = pSpawn->pMobile->Hit;
+  pMobileInstanceNew->HitPoints = (pSpawn->pMobile->Level * MOB_HPT_PER_LEVEL) + pSpawn->pMobile->Hit;
   if (pMobileInstanceHead == NULL)
   {
     pMobileInstanceHead = pMobileInstanceNew;
@@ -3735,6 +3938,11 @@ void MobileInstanceMove()
 void MobileInstanceRemove()
 {
   DEBUGIT(1)
+  if (pMobileInstance->pFightingPlayer != NULL)
+  {
+    pMobileInstance->pFightingPlayer->pFightingMobile = NULL;
+    pMobileInstance->pFightingPlayer = NULL;
+  }
   pSpawn = pMobileInstance->pSpawn;
   pMobileInstanceCurr = pMobileInstance->pRoom->pMobileInstanceHead;
   pMobileInstancePrev = NULL;
@@ -3792,7 +4000,7 @@ void MobileMove()
   pMobileInstanceCurr = pMobileInstanceHead;
   while (pMobileInstanceCurr != NULL)
   {
-    if (strstr(pMobileInstanceCurr->pMobile->Flags, "NoMove") == NULL && rand() % 100 < MOBILE_MOVE_CHANCE)
+    if (pMobileInstanceCurr->pFightingPlayer == NULL && strstr(pMobileInstanceCurr->pMobile->Flags, "NoMove") == NULL && rand() % 100 < MOBILE_MOVE_CHANCE)
     {
       MobileInstanceMove();
     }
