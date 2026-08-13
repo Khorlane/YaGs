@@ -305,6 +305,7 @@ struct ConnList
   int                 HitPoints;                     // Current player hit points
   double              HitPointRecovery;              // Fractional hit points accumulated during recovery
   PlayerPosition      Position;                      // Current player position
+  char                Afk;                           // Away from keyboard flag (Y/N)
   bool                PlayerDirty;                    // Player record has unsaved changes
   Player             *pPlayer;                        // Pointer to the connected player data
   MobileInstance     *pFightingMobile;                // Pointer to the mobile currently fighting the player
@@ -322,7 +323,6 @@ struct Player
 {
   char                Name[50];                       // Player name
   char                Password[50];                   // Player password
-  char                Afk;                            // Away from keyboard flag (Y/N)
   char                Admin;                          // Admin flag (Y/N) - Controls which commands are available to the player
   time_t              Born;                           // Time player was created
   char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
@@ -550,6 +550,7 @@ void           CombatVictory();
 void           DelFromConnList();
 int            DirectionLookUp(char *Direction);
 void           DoAdvance();
+void           DoAfk();
 void           DoBorn();
 void           DoBuy();
 void           DoColor();
@@ -814,6 +815,7 @@ char *CommandTable[][9] =
   //                                                   MIN  MAX
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
+    {"afk",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"born",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
@@ -856,6 +858,7 @@ char *CommandTable[][9] =
 void (*DoCommand[])(void) =
 { // This list and the CommandTable MUST BE in the same order
   DoAdvance,
+  DoAfk,
   DoBorn,
   DoBuy,
   DoColor,
@@ -1267,6 +1270,22 @@ void DoAdvance()
   pConn = pTarget;
   PlayerWriteFile();
   pConn = pActor;
+}
+
+// Toggle the current connection's away from keyboard flag.
+void DoAfk()
+{
+  DEBUGIT(1)
+  if (pConn->Afk == 'Y')
+  {
+    pConn->Afk = 'N';
+    strcat(pConn->Output, "You are no longer AFK.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pConn->Afk = 'Y';
+  strcat(pConn->Output, "You are now AFK.\r\n\r\n");
+  Prompt(pConn);
 }
 
 // Display the current player's birthdate and age.
@@ -2244,7 +2263,7 @@ void DoStatus()
   sprintf(Buffer, "Name: %s\r\n", pConn->pPlayer->Name);
   strcat(pConn->Output, Buffer);
   // Afk
-  sprintf(Buffer, "AFK: %c\r\n", pConn->pPlayer->Afk);
+  sprintf(Buffer, "AFK: %c\r\n", pConn->Afk);
   strcat(pConn->Output, Buffer);
   // Born
   strcpy(TmpStr, ctime(&pConn->pPlayer->Born));
@@ -2404,14 +2423,14 @@ void DoWho()
   strcat(pConn->Output, "Players online\r\n");
   strcat(pConn->Output, "&N");
   strcat(pConn->Output, "-------------------\r\n");
-  strcat(pConn->Output, "Name       Level \r\n");
+  strcat(pConn->Output, "Name       Level AFK\r\n");
   pConnCurrSave = pConnCurr;
   pConnCurr     = pConnHead;
   while (pConnCurr != NULL)
   {
     if (pConnCurr->State == Online)
     {
-      sprintf(Buffer, "%-10s %2s %2i", pConnCurr->pPlayer->Name, " ", pConnCurr->pPlayer->Level);
+      sprintf(Buffer, "%-10s %2s %2i   %c", pConnCurr->pPlayer->Name, " ", pConnCurr->pPlayer->Level, pConnCurr->Afk);
       strcat(pConn->Output, Buffer);
       strcat(pConn->Output, "\r\n");
     }
@@ -3262,6 +3281,7 @@ void AddToConnList()
   DEBUGIT(1)
   pConn          = (ConnList *)calloc(1, sizeof(ConnList));
   pConn->pPlayer = (Player *)calloc(1, sizeof(Player));
+  pConn->Afk     = 'N';
   pConnCurr      = pConn;
   if (pConnHead != NULL)
   { // Not 1st Node
@@ -3941,7 +3961,6 @@ void InitalizeNewPlayer()
 {
   DEBUGIT(1)
   pConn->pPlayer->Admin      = 'N';
-  pConn->pPlayer->Afk        = 'N';
   pConn->pPlayer->Born       = time(NULL);
   pConn->pPlayer->Color      = 'N';
   pConn->pPlayer->Coins      = 0;
