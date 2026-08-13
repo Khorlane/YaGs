@@ -6,9 +6,8 @@ YaGs calculates the experience awarded for killing a mobile from the mobile's le
 
 ```c
 #define BASE_MOB_XP 50 // Base mob xp per level
+#define BASE_PLAYER_XP 1000 // Base player xp per level
 ```
-
-The player-level progression model uses 1,000 base experience points per level.
 
 ## Mobile Experience Award
 
@@ -104,7 +103,7 @@ The following descriptions and colors correspond to the difference between the m
 
 ## Player-Level Progression Model
 
-The player-level model calculates the total experience required for levels 1 through 60. It is documentation for future level advancement work and is separate from the mobile experience award.
+The player-level model calculates the total experience required for any player level. The original worksheet displayed levels 1 through 60 as examples, but level 60 is not a maximum. The model is separate from the mobile experience award.
 
 For player level `L`, starting with level 1 at zero experience:
 
@@ -118,11 +117,13 @@ Additional Experience(L) =
   Base Experience(L) ^ Log Level(L) * (L / 10000)
 
 Total Experience(L) =
-  Base Experience(L) + Additional Experience(L)
+  round(Base Experience(L) + Additional Experience(L))
 
 Experience To Gain(L) =
   Total Experience(L) - Total Experience(L - 1)
 ```
+
+The total is rounded to the nearest whole experience point. Player experience is stored as a 64-bit integer because the level-60 requirement exceeds the range of a signed 32-bit integer.
 
 The base-experience recurrence can also be written as:
 

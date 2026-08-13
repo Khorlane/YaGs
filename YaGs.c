@@ -22,7 +22,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #include <ctype.h>                                       // isspace(), tolower(), toupper()
 #include <errno.h>                                       // errno, EINTR
 #include <fcntl.h>                                       // fcntl(), F_SETFL, FNDELAY
-#include <math.h>                                        // fmod()
+#include <math.h>                                        // fmod(), llround(), log10(), pow()
 #include <stdbool.h>                                     // bool, true, false
 #include <stdio.h>                                       // a whole bunch of i/o functions
 #include <stdlib.h>                                      // atoi(), calloc(), exit(), free(), malloc(), rand(), srand()
@@ -41,6 +41,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define DEBUGIT_LVL             1                        // Range of 0 to 5 where 0 = No debug messages and 5 = Maximum debug messages
 // Configuration
 #define BASE_MOB_XP             50                       // Base mob xp per level
+#define BASE_PLAYER_XP          1000                     // Base player xp per level
 #define BUFFER_LIMIT            2048                     // Max size of Buffer including '\0'
 #define PORT                    3737                     // Port number
 #define SLEEP_TIME              100000                   // Sleep for a short period of time
@@ -100,9 +101,13 @@ int                   DestRoomNbr;                       // Room number player i
 int                   DirectionNbr;                      // The DirectionTable index of the direction
 int                   DestroyCount;                      // Number of objects to destroy
 double                ElapsedTime;                       // Elapsed player time
+double                ExpAdditional;                     // Additional experience required for a player level
 int                   ExpAward;                          // Experience awarded for killing a mobile
+long long             ExpBase;                           // Base experience required for a player level
+int                   ExpCalcLevel;                      // Player level used for experience calculation
 int                   ExpLevelDiff;                      // Player and mobile level difference for experience calculation
 int                   ExpPercent;                        // Percentage of base mobile experience awarded
+long long             ExpRequired;                       // Total experience required for a player level
 int                   Hours;                             // Played time in hours
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
@@ -293,8 +298,8 @@ struct Player
   time_t              Born;                           // Time player was created
   char                Color;                          // Color code (Y/N) Y means that player output is run through the Color() function
   int                 Coins;                          // Player coin balance
-  int                 Experience;                     // Experience points
-  char                Level;                          // Player level
+  long long           Experience;                     // Experience points
+  int                 Level;                          // Player level
   char                Sex;                            // Player sex (M/F)
   int                 RoomNbr;                        // Room number
 };
@@ -566,11 +571,13 @@ void           PlayerEquReadFile();
 void           PlayerEquRemove();
 void           PlayerEquSlotLookUp(char *Slot);
 void           PlayerEquWriteFile();
+void           PlayerExpCalc();
 void           PlayerInvAdd(Object *pObject);
 void           PlayerInvLookUp(char *Id);
 void           PlayerInvReadFile();
 void           PlayerInvRemoveOne();
 void           PlayerInvWriteFile();
+void           PlayerLevelUp();
 bool           PlayerNameValid();
 bool           PlayerNameValidNew();
 bool           PlayerNameValidOld();
@@ -1119,8 +1126,8 @@ void DoAdvance()
     Prompt(pConn);
     return;
   }
-  if (x > 127)
-  { // Level is type char and max value is 127
+  if (atoi(CmdParm2) < 1)
+  { // Level must be greater than zero
     sprintf(Buffer, "%s %s %s", "Level", CmdParm2, "is invalid\r\n");
     strcat(pConn->Output, Buffer);
     strcat(pConn->Output, "\r\n");
@@ -1137,8 +1144,10 @@ void DoAdvance()
   {
     sprintf(TmpStr, "%s", "demoted");
   }
-  pTarget->pPlayer->Level      = (char)atoi(CmdParm2);
-  pTarget->pPlayer->Experience = (int)(pTarget->pPlayer->Level) * 100;
+  pTarget->pPlayer->Level      = atoi(CmdParm2);
+  ExpCalcLevel = pTarget->pPlayer->Level;
+  PlayerExpCalc();
+  pTarget->pPlayer->Experience = ExpRequired;
   // Message to target player
   strcat(pTarget->Output,"\r\n");
   sprintf(Buffer, "%s %s %s %s %s", pActor->pPlayer->Name, "has", TmpStr, "you to level", CmdParm2);
@@ -1656,8 +1665,9 @@ void DoKill()
     }
   }
   pConn->pPlayer->Experience += ExpAward;
-  PlayerWriteFile();
   strcat(pConn->Output, Buffer);
+  PlayerLevelUp();
+  PlayerWriteFile();
   Prompt(pConn);
 }
 
@@ -1807,7 +1817,7 @@ void DoPlayerfile()
   PlayerReadFile();
   while (EndFile == false)
   {
-    sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %i", PlayerRcd.Name, " ", PlayerRcd.Admin, " ", PlayerRcd.Color, " ", PlayerRcd.Level, " ", PlayerRcd.Experience);
+    sprintf(Buffer, "%-10s %1s %c %3s %c %4s %2i %8s %lld", PlayerRcd.Name, " ", PlayerRcd.Admin, " ", PlayerRcd.Color, " ", PlayerRcd.Level, " ", PlayerRcd.Experience);
     strcat(pConn->Output, Buffer);
     strcat(pConn->Output, "\r\n");
     PlayerRcdNbr++;
@@ -1908,7 +1918,9 @@ void DoStatus()
   sprintf(Buffer, "Color: %c\r\n", pConn->pPlayer->Color);
   strcat(pConn->Output, Buffer);
   // Experience
-  sprintf(Buffer, "Experience: %i\r\n", pConn->pPlayer->Experience);
+  ExpCalcLevel = pConn->pPlayer->Level + 1;
+  PlayerExpCalc();
+  sprintf(Buffer, "Experience: %lld / %lld\r\n", pConn->pPlayer->Experience, ExpRequired);
   strcat(pConn->Output, Buffer);
   // Level
   sprintf(Buffer, "Level: %i\r\n", pConn->pPlayer->Level);
@@ -3152,6 +3164,38 @@ void PlayerReadFile()
   {
     sprintf(LogMsg,"ERROR: Reading %s", PLAYER_FILE);
     AbortIt();
+  }
+}
+
+// Calculate the total experience required for ExpCalcLevel.
+void PlayerExpCalc()
+{
+  DEBUGIT(1)
+  if (ExpCalcLevel <= 1)
+  {
+    ExpRequired = 0;
+    return;
+  }
+  ExpBase = (long long)BASE_PLAYER_XP * ((((long long)ExpCalcLevel * (ExpCalcLevel + 1)) / 2) - 1);
+  ExpAdditional = pow((double)ExpBase, log10((double)ExpCalcLevel + 20.0)) * ((double)ExpCalcLevel / 10000.0);
+  ExpRequired = ExpBase + llround(ExpAdditional);
+}
+
+// Advance the current player through every level earned by their experience.
+void PlayerLevelUp()
+{
+  DEBUGIT(1)
+  for (;;)
+  {
+    ExpCalcLevel = pConn->pPlayer->Level + 1;
+    PlayerExpCalc();
+    if (pConn->pPlayer->Experience < ExpRequired)
+    {
+      return;
+    }
+    pConn->pPlayer->Level++;
+    sprintf(Buffer, "You advance to level %d!\r\n\r\n", pConn->pPlayer->Level);
+    strcat(pConn->Output, Buffer);
   }
 }
 
