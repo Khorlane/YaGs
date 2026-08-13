@@ -19,7 +19,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 #include <arpa/inet.h>                                   // This and sys/socket.h - a whole plethora of socket related stuff
-#include <ctype.h>                                       // isspace(), tolower(), toupper()
+#include <ctype.h>                                       // isdigit(), isspace(), tolower(), toupper()
 #include <errno.h>                                       // errno, EINTR
 #include <fcntl.h>                                       // fcntl(), F_SETFL, FNDELAY
 #include <math.h>                                        // fmod(), llround(), log10(), pow()
@@ -563,6 +563,7 @@ void           DoExamine();
 void           DoGet();
 void           DoGive();
 void           DoGo();
+void           DoGoto();
 void           DoHelp();
 void           DoInventory();
 void           DoKill();
@@ -829,6 +830,7 @@ char *CommandTable[][9] =
     {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
     {"give",        "N",  "1",  "sit",    "N",   "N",  "3",  "3",  "Give what to whom?"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
+    {"goto",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Goto which room?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"kill",       "N",  "1",  "stand",  "N",   "Y",  "2",  "2",  "Kill what?"},
@@ -872,6 +874,7 @@ void (*DoCommand[])(void) =
   DoGet,
   DoGive,
   DoGo,
+  DoGoto,
   DoHelp,
   DoInventory,
   DoKill,
@@ -1802,6 +1805,42 @@ void DoGo()
   SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   pConn->PlayerDirty = true;
   sprintf(Buffer, "You go %s\r\n", DirectionTable[DirectionNbr].LongName);
+  strcat(pConn->Output, Buffer);
+  DoLook();
+}
+
+// Magically transport an admin to a room and display the destination.
+void DoGoto()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  for (i = 0; CmdParm1[i] != '\0'; i++)
+  {
+    if (!isdigit((unsigned char)CmdParm1[i]))
+    {
+      sprintf(Buffer, "Room %s does not exist.\r\n\r\n", CmdParm1);
+      strcat(pConn->Output, Buffer);
+      Prompt(pConn);
+      return;
+    }
+  }
+  DestRoomNbr = atoi(CmdParm1);
+  RoomLookUp(DestRoomNbr);
+  pDestinationRoom = pRoom;
+  if (pDestinationRoom == NULL)
+  {
+    sprintf(Buffer, "Room %s does not exist.\r\n\r\n", CmdParm1);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  sprintf(MsgTxt, "%s disappears.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  pConn->pPlayer->RoomNbr = DestRoomNbr;
+  sprintf(MsgTxt, "%s appears.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  pConn->PlayerDirty = true;
+  sprintf(Buffer, "You magically transport to room %d.\r\n", DestRoomNbr);
   strcat(pConn->Output, Buffer);
   DoLook();
 }
