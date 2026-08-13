@@ -93,10 +93,10 @@ long int              BytesRead;                         // Number of bytes read
 size_t                CmdDoCount;                        // Count of function pointers in the DoCommand array
 size_t                CmdTableCount;                     // Count of entries in the CommandTable array
 int                   CommandNbr;                        // Command number zero based
-time_t                CurrentTime;                       // Current time for played calculation
+time_t                CurrentTime;                       // Current time for player age calculation
 time_t                CurrentTimeSec;                    // Current time in seconds
 time_t                NextPlayerAutosave;                // Time of the next dirty player save
-int                   Days;                              // Played time in days
+int                   Days;                              // Player age in days
 int                   DestRoomNbr;                       // Room number player is moving into
 int                   DirectionNbr;                      // The DirectionTable index of the direction
 int                   DestroyCount;                      // Number of objects to destroy
@@ -108,12 +108,12 @@ int                   ExpCalcLevel;                      // Player level used fo
 int                   ExpLevelDiff;                      // Player and mobile level difference for experience calculation
 int                   ExpPercent;                        // Percentage of base mobile experience awarded
 long long             ExpRequired;                       // Total experience required for a player level
-int                   Hours;                             // Played time in hours
+int                   Hours;                             // Player age in hours
 socklen_t             LingerSize;                        // Size of Linger stucture
 int                   LineNbr;                           // Line number
 int                   Listen;                            // Listening socket
 int                   MaxSocket;                         // Maximum socket value
-int                   Minutes;                           // Played time in minutes
+int                   Minutes;                           // Player age in minutes
 int                   MobileMoveRoomCount;               // Number of eligible rooms for mobile movement
 int                   MobileMoveTick;                    // Heartbeat ticks since the last mobile movement check
 int                   MobileRespawnTick;                 // Heartbeat ticks since the last mobile respawn check
@@ -124,7 +124,7 @@ int                   PlayerRcdNbr;                      // Player record number
 int                   ReturnValue1;                      // Return value
 size_t                ReturnValue2;                      // Return value
 long int              SendResult;                        // Number of bytes sent to player
-int                   Seconds;                           // Played time in seconds
+int                   Seconds;                           // Player age in seconds
 int                   Socket;                            // Socket value
 socklen_t             SocketAddrSize;                    // Size of Socket structure
 size_t                StrLen;                            // String length
@@ -512,6 +512,7 @@ void           Color();
 void           DelFromConnList();
 int            DirectionLookUp(char *Direction);
 void           DoAdvance();
+void           DoBorn();
 void           DoBuy();
 void           DoColor();
 void           DoDestroy();
@@ -528,13 +529,13 @@ void           DoList();
 void           DoLoad();
 void           DoLook();
 void           DoMoney();
-void           DoPlayed();
 void           DoPlayerfile();
 void           DoQuit();
 void           DoRemove();
 void           DoSell();
 void           DoShutdown();
 void           DoStatus();
+void           DoTime();
 void           DoWear();
 void           DoWield();
 void           DoWho();
@@ -764,6 +765,7 @@ char *CommandTable[][9] =
   //                                                   MIN  MAX
   // Name          Admin Level Position  Social Fight Words Words Message
     {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
+    {"born",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
@@ -780,13 +782,13 @@ char *CommandTable[][9] =
     {"load",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Load what?"},
     {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"money",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"played",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"remove",     "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Remove what?"},
     {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"time",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
     {"wield",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wield what?"},
     {"who",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -798,6 +800,7 @@ char *CommandTable[][9] =
 void (*DoCommand[])(void) =
 { // This list and the CommandTable MUST BE in the same order
   DoAdvance,
+  DoBorn,
   DoBuy,
   DoColor,
   DoDestroy,
@@ -814,13 +817,13 @@ void (*DoCommand[])(void) =
   DoLoad,
   DoLook,
   DoMoney,
-  DoPlayed,
   DoPlayerfile,
   DoQuit,
   DoRemove,
   DoSell,
   DoShutdown,
   DoStatus,
+  DoTime,
   DoWear,
   DoWield,
   DoWho
@@ -1164,6 +1167,25 @@ void DoAdvance()
   pConn = pTarget;
   PlayerWriteFile();
   pConn = pActor;
+}
+
+// Display the current player's birthdate and age.
+void DoBorn()
+{
+  DEBUGIT(1)
+  CurrentTime = time(NULL);
+  ElapsedTime = difftime(CurrentTime, pConn->pPlayer->Born);
+  Days        = (int)(ElapsedTime / (24 * 3600));
+  ElapsedTime = fmod(ElapsedTime, (24 * 3600));
+  Hours       = (int)(ElapsedTime / 3600);
+  ElapsedTime = fmod(ElapsedTime, 3600);
+  Minutes     = (int)(ElapsedTime / 60);
+  Seconds     = (int)fmod(ElapsedTime, 60);
+  strcpy(TmpStr, ctime(&pConn->pPlayer->Born));
+  TrimRight(TmpStr);
+  sprintf(Buffer, "Your birthdate is: %s\r\nYour age is: %d days, %d hours, %d minutes, %d seconds\r\n\r\n", TmpStr, Days, Hours, Minutes, Seconds);
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
 }
 
 // Buy one object from the shop in the player's current room.
@@ -1790,27 +1812,6 @@ void DoMoney()
   Prompt(pConn);
 }
 
-// Calculate the elapsed time since a player's birth in days, hours, minutes,
-// and seconds. Format this information into a string and append it to the
-// player's output.
-void DoPlayed()
-{
-  DEBUGIT(1)
-  CurrentTime = time(NULL);
-  ElapsedTime = difftime(CurrentTime, pConn->pPlayer->Born);
-  // Calculate days, hours, minutes, and seconds
-  Days        = (int)(ElapsedTime / (24 * 3600));
-  ElapsedTime = fmod(ElapsedTime, (24 * 3600));
-  Hours       = (int)(ElapsedTime / 3600);
-  ElapsedTime = fmod(ElapsedTime, 3600);
-  Minutes     = (int)(ElapsedTime / 60);
-  Seconds     = (int)fmod(ElapsedTime, 60);
-  sprintf(Buffer, "Your age is : %d days, %d hours, %d minutes, %d seconds\n", Days, Hours, Minutes, Seconds);
-  strcat(pConn->Output, Buffer);
-  strcat(pConn->Output, "\r\n");
-  Prompt(pConn);
-}
-
 // Generate a formatted player file listing by reading player data from the
 // player file.
 void DoPlayerfile()
@@ -1944,6 +1945,16 @@ void DoStatus()
     strcat(pConn->Output, "Your are an Admin!\r\n");
   }
   strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
+}
+
+// Display the current time on the server.
+void DoTime()
+{
+  DEBUGIT(1)
+  GetTime();
+  sprintf(Buffer, "Server time: %s\r\n\r\n", CurrentTimeTxt);
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 

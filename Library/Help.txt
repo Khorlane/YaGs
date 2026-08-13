@@ -10,7 +10,7 @@ Help:
 * &CCombat&N            &CInformation&N        *
 * Kill Flee Train   Look Show Status   *
 * Wield Consider    Who Afk Color Time *
-*                   Played             *
+*                   Born               *
 * &CObjects&N                              *
 * Get Drop Give Wear Eat Drink         *
 * Remove Inventory Equipment           *
@@ -48,6 +48,15 @@ armor class value. Armor class ranges from 0, no protection
 to 300, maximum protection.
 
 Related help: Wear Remove Equipment
+
+Help:Born
+&C
+*************
+* Help Born *
+*************&N
+Shows your age and your birthdate.
+
+Related help: Time
 
 Help:Buy
 &C
@@ -754,16 +763,6 @@ Example: &Ypassword myoldpass anewpass anewpass&N
 
 Related help: None
 
-Help:Played
-&C
-***************
-* Help Played *
-***************&N
-Shows your age, total hours you have been logged on to
-MyCoolMud, and your birthdate.
-
-Related help: Time
-
 Help:Put
 &C
 ************
@@ -941,8 +940,8 @@ Help:Time
 *************
 * Help Time *
 *************&N
-Displays the current time on the server where the game is
-running and the current game time.
+Displays the current time on the server where the game
+is running.
 
 Usage: Time
 Example: &Ytime&N
