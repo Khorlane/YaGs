@@ -593,6 +593,7 @@ void           GetTime();
 void           HeartBeat();
 void           InitalizeNewPlayer();
 void           Initialization();
+bool           IdMatch(char *PartialId, char *FullId);
 void           LogIt(char *LogMsg);
 void           LowerCase(char *Str);
 void           MobileInstanceAdd();
@@ -3392,14 +3393,14 @@ void PlayerEquAdd(Object *pObject, char *Slot)
   }
 }
 
-// Find an equipped object on the connection's equipment list by object Id.
+// Find the first equipped object containing the partial object Id.
 void PlayerEquLookUp(char *Id)
 {
   DEBUGIT(1)
   pPlayerEquListCurr = pConn->pPlayerEquHead;
   while (pPlayerEquListCurr != NULL)
   {
-    if (strcasecmp(Id, pPlayerEquListCurr->pObject->Id) == 0)
+    if (IdMatch(Id, pPlayerEquListCurr->pObject->Id))
     {
       pPlayerEquList = pPlayerEquListCurr;
       return;
@@ -3563,14 +3564,14 @@ void PlayerInvAdd(Object *pObject)
   }
 }
 
-// Find an object on the connection's inventory list by object Id.
+// Find the first inventory object containing the partial object Id.
 void PlayerInvLookUp(char *Id)
 {
   DEBUGIT(1)
   pPlayerInvListCurr = pConn->pPlayerInvHead;
   while (pPlayerInvListCurr != NULL)
   {
-    if (strcasecmp(Id, pPlayerInvListCurr->pObject->Id) == 0)
+    if (IdMatch(Id, pPlayerInvListCurr->pObject->Id))
     {
       pPlayerInvList = pPlayerInvListCurr;
       return;
@@ -3997,6 +3998,25 @@ bool Equal(char *Str1, char *Str2)
   return (!strcmp(Str1, Str2));
 }
 
+// Return true when FullId contains PartialId, ignoring case.
+bool IdMatch(char *PartialId, char *FullId)
+{
+  DEBUGIT(2)
+  if (PartialId[0] == '\0')
+  {
+    return false;
+  }
+  while (FullId[0] != '\0')
+  {
+    if (strncasecmp(PartialId, FullId, strlen(PartialId)) == 0)
+    {
+      return true;
+    }
+    FullId++;
+  }
+  return false;
+}
+
 // Convert all characters in the input C-style string Str to lowercase.
 void LowerCase(char *Str)
 {
@@ -4311,14 +4331,14 @@ void MobileInstanceFreeList()
   pMobileInstanceTail = NULL;
 }
 
-// Find a runtime mobile in the current room by mobile Id.
+// Find the first runtime mobile containing the partial mobile Id in the current room.
 void MobileInstanceLookUp(char *Id)
 {
   DEBUGIT(1)
   pMobileInstanceCurr = pRoom->pMobileInstanceHead;
   while (pMobileInstanceCurr != NULL)
   {
-    if (strcasecmp(Id, pMobileInstanceCurr->pMobile->Id) == 0)
+    if (IdMatch(Id, pMobileInstanceCurr->pMobile->Id))
     {
       pMobileInstance = pMobileInstanceCurr;
       return;
@@ -4983,14 +5003,14 @@ void RoomObjectAdd(Object *pObject)
   }
 }
 
-// Find an object on the ground in the current room by object Id.
+// Find the first room object containing the partial object Id.
 void RoomObjectLookUp(char *Id)
 {
   DEBUGIT(1)
   pRoomObjectListCurr = pRoom->pRoomObjectHead;
   while (pRoomObjectListCurr != NULL)
   {
-    if (strcasecmp(Id, pRoomObjectListCurr->pObject->Id) == 0)
+    if (IdMatch(Id, pRoomObjectListCurr->pObject->Id))
     {
       pRoomObjectList = pRoomObjectListCurr;
       return;
@@ -5174,14 +5194,14 @@ void ShopLookUp(int RoomNbr)
   pShop = NULL;
 }
 
-// Find an object sold by the current shop using its object Id.
+// Find the first shop object containing the partial object Id.
 void ShopObjectLookUp(char *Id)
 {
   DEBUGIT(1)
   pShopObjectListCurr = pShop->pShopObjectHead;
   while (pShopObjectListCurr != NULL)
   {
-    if (strcasecmp(Id, pShopObjectListCurr->pObject->Id) == 0)
+    if (IdMatch(Id, pShopObjectListCurr->pObject->Id))
     {
       pShopObjectList = pShopObjectListCurr;
       return;
