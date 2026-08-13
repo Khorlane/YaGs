@@ -24,8 +24,8 @@ Exp:    15
 Loot:   SmallDagger RatFoot
 
 Id:     PersonalGuard
-Desc1:  a palace guard
-Desc2:  a palace guard is standing at attention, guarding the palace entrance!
+Desc1:  a personal guard
+Desc2:  a personal guard is standing at attention, guarding the front door.
 Desc3:
   This guard is wearing a shining suit of armor, and carries a large sword.
 Flags:  NoMove
