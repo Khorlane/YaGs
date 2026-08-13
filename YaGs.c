@@ -230,6 +230,7 @@ typedef enum PlayerStates
 
 // Player and World structure typedefs
 typedef struct Mobile         Mobile;
+typedef struct MobileInstance MobileInstance;
 typedef struct MobileList     MobileList;
 typedef struct Object         Object;
 typedef struct ObjectList     ObjectList;
@@ -332,6 +333,22 @@ struct MobileList
   MobileList         *pNextMobile;                    // Pointer to the next node in the list
 };
 
+struct MobileInstance
+{
+  Mobile             *pMobile;                        // Pointer to the permanent mobile definition
+  Spawn              *pSpawn;                         // Pointer to the spawn rule that created the mobile
+  Room               *pRoom;                          // Pointer to the mobile's current room
+  int                 Hit;                            // Current mobile hit value
+  MobileInstance     *pNextMobileInstance;            // Pointer to the next mobile in the world
+  MobileInstance     *pNextRoomMobile;                // Pointer to the next mobile in the room
+};
+
+MobileInstance        *pMobileInstance     = NULL;     // Pointer to a found mobile instance
+MobileInstance        *pMobileInstanceCurr = NULL;     // Pointer to the current mobile instance
+MobileInstance        *pMobileInstanceHead = NULL;     // Pointer to the head of the world mobile list
+MobileInstance        *pMobileInstanceNew  = NULL;     // Pointer to a new mobile instance
+MobileInstance        *pMobileInstanceNext = NULL;     // Pointer to the next mobile instance
+MobileInstance        *pMobileInstanceTail = NULL;     // Pointer to the tail of the world mobile list
 MobileList            *pMobileListCurr = NULL;        // Pointer to the current mobile list node
 MobileList            *pMobileListHead = NULL;        // Pointer to the head of the mobile list
 MobileList            *pMobileListTail = NULL;        // Pointer to the tail of the mobile list
@@ -371,6 +388,8 @@ struct Room
   char               *Terrain;                        // Terrain type (e.g., "Concrete", "Indoor")
   char               *Flags;                          // Flags (e.g., "None", "NoFight")
   char               *Exits;                          // Exits as a single string (e.g., "xxxxx xxxxx 00106 xxxxx xxxxx")
+  MobileInstance     *pMobileInstanceHead;             // Pointer to the head of the room mobile list
+  MobileInstance     *pMobileInstanceTail;             // Pointer to the tail of the room mobile list
   RoomObjectList     *pRoomObjectHead;                 // Pointer to the head of the room object list
   RoomObjectList     *pRoomObjectTail;                 // Pointer to the tail of the room object list
 };
@@ -412,6 +431,7 @@ struct Spawn
 {
   Mobile             *pMobile;                        // Pointer to the mobile definition
   int                 MaxInWorld;                     // Maximum number of this mobile in the world
+  int                 CurrentInWorld;                 // Current number of this mobile in the world
   Room               *pRoom;                          // Pointer to the room where the mobile spawns
   int                 Seconds;                        // Respawn interval seconds
   int                 Minutes;                        // Respawn interval minutes
@@ -504,6 +524,9 @@ void           InitalizeNewPlayer();
 void           Initialization();
 void           LogIt(char *LogMsg);
 void           LowerCase(char *Str);
+void           MobileInstanceAdd();
+void           MobileInstanceFreeList();
+void           MobileInstanceLookUp(char *Id);
 Mobile        *MobileLookUp(char *Id);
 void           MobileReadFile();
 void           NormalizePlayerName(char *Name);
@@ -556,6 +579,7 @@ void           SocketGetPlayerInput();
 void           SocketDisconnectPlayers();
 void           SocketListen();
 void           SocketSendPlayerOutput();
+void           SpawnMobiles();
 void           SpawnReadFile();
 void           StartItUp();
 void           StrAppend(char *Str1, char *Str2);
@@ -1271,12 +1295,13 @@ void DoEquipment()
   Prompt(pConn);
 }
 
-// Display the detailed description of a visible object.
+// Display the detailed description of a visible object or mobile.
 void DoExamine()
 {
   DEBUGIT(1)
   Word(2, Command, CmdParm1);
   pExamineObject = NULL;
+  pMobileInstance = NULL;
   PlayerInvLookUp(CmdParm1);
   if (pPlayerInvList != NULL)
   {
@@ -1313,12 +1338,23 @@ void DoExamine()
   }
   if (pExamineObject == NULL)
   {
+    MobileInstanceLookUp(CmdParm1);
+  }
+  if (pExamineObject == NULL && pMobileInstance == NULL)
+  {
     strcat(pConn->Output, "You don't see that here.\r\n\r\n");
     Prompt(pConn);
     return;
   }
   strcat(pConn->Output, "\r\n");
-  strcat(pConn->Output, pExamineObject->Desc3);
+  if (pExamineObject != NULL)
+  {
+    strcat(pConn->Output, pExamineObject->Desc3);
+  }
+  else
+  {
+    strcat(pConn->Output, pMobileInstance->pMobile->Desc3);
+  }
   strcat(pConn->Output, "\r\n");
   Prompt(pConn);
 }
@@ -1631,6 +1667,13 @@ void DoLook()
     pConnCurr = pConnCurr->pConnNext;
   }
   pConnCurr = pConnCurrSave;
+  pMobileInstanceCurr = pRoom->pMobileInstanceHead;
+  while (pMobileInstanceCurr != NULL)
+  {
+    sprintf(Buffer, "%s\r\n", pMobileInstanceCurr->pMobile->Desc2);
+    strcat(pConn->Output, Buffer);
+    pMobileInstanceCurr = pMobileInstanceCurr->pNextRoomMobile;
+  }
   pRoomObjectListCurr = pRoom->pRoomObjectHead;
   while (pRoomObjectListCurr != NULL)
   {
@@ -2486,6 +2529,7 @@ void StartItUp()
   RoomReadFile();
   ShopReadFile();
   SpawnReadFile();
+  SpawnMobiles();
 }
 
 // Set up the initial state of a game by resetting various player-related
@@ -2505,6 +2549,7 @@ void ShutItDown()
 {
   DEBUGIT(1)
   PlayerAutoSave();
+  MobileInstanceFreeList();
   RoomFreeList();
   PlayerCloseFile();
   CloseLog();
@@ -3389,6 +3434,78 @@ void ValidateCommandTable()
 // Mobiles
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// Add one runtime mobile instance to the world and its spawn room.
+void MobileInstanceAdd()
+{
+  DEBUGIT(1)
+  pMobileInstanceNew = (MobileInstance *)calloc(1, sizeof(MobileInstance));
+  if (pMobileInstanceNew == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Memory allocation failed for MobileInstance");
+    AbortIt();
+  }
+  pMobileInstanceNew->pMobile = pSpawn->pMobile;
+  pMobileInstanceNew->pSpawn = pSpawn;
+  pMobileInstanceNew->pRoom = pSpawn->pRoom;
+  pMobileInstanceNew->Hit = pSpawn->pMobile->Hit;
+  if (pMobileInstanceHead == NULL)
+  {
+    pMobileInstanceHead = pMobileInstanceNew;
+    pMobileInstanceTail = pMobileInstanceNew;
+  }
+  else
+  {
+    pMobileInstanceTail->pNextMobileInstance = pMobileInstanceNew;
+    pMobileInstanceTail = pMobileInstanceNew;
+  }
+  if (pSpawn->pRoom->pMobileInstanceHead == NULL)
+  {
+    pSpawn->pRoom->pMobileInstanceHead = pMobileInstanceNew;
+    pSpawn->pRoom->pMobileInstanceTail = pMobileInstanceNew;
+  }
+  else
+  {
+    pSpawn->pRoom->pMobileInstanceTail->pNextRoomMobile = pMobileInstanceNew;
+    pSpawn->pRoom->pMobileInstanceTail = pMobileInstanceNew;
+  }
+  pSpawn->CurrentInWorld++;
+}
+
+// Free every runtime mobile instance.
+void MobileInstanceFreeList()
+{
+  DEBUGIT(1)
+  pMobileInstanceCurr = pMobileInstanceHead;
+  while (pMobileInstanceCurr != NULL)
+  {
+    pMobileInstanceNext = pMobileInstanceCurr->pNextMobileInstance;
+    free(pMobileInstanceCurr);
+    pMobileInstanceCurr = pMobileInstanceNext;
+  }
+  pMobileInstance     = NULL;
+  pMobileInstanceCurr = NULL;
+  pMobileInstanceHead = NULL;
+  pMobileInstanceNext = NULL;
+  pMobileInstanceTail = NULL;
+}
+
+// Find a runtime mobile in the current room by mobile Id.
+void MobileInstanceLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pMobileInstanceCurr = pRoom->pMobileInstanceHead;
+  while (pMobileInstanceCurr != NULL)
+  {
+    if (strcasecmp(Id, pMobileInstanceCurr->pMobile->Id) == 0)
+    {
+      pMobileInstance = pMobileInstanceCurr;
+      return;
+    }
+    pMobileInstanceCurr = pMobileInstanceCurr->pNextRoomMobile;
+  }
+  pMobileInstance = NULL;
+}
+
 // Search the permanent mobile list for a case-insensitive Id match.
 Mobile *MobileLookUp(char *Id)
 {
@@ -3749,6 +3866,8 @@ Room *RoomAllocateAndCopy(const Room *SourceRoom)
   {
     pNewRoom->Exits = NULL;
   }
+  pNewRoom->pMobileInstanceHead = NULL;
+  pNewRoom->pMobileInstanceTail = NULL;
   pNewRoom->pRoomObjectHead = NULL;
   pNewRoom->pRoomObjectTail = NULL;
   return pNewRoom;
@@ -4147,6 +4266,22 @@ void ShopReadFile()
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Spawns
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Fill every spawn rule to its maximum runtime mobile population.
+void SpawnMobiles()
+{
+  DEBUGIT(1)
+  pSpawnListCurr = pSpawnListHead;
+  while (pSpawnListCurr != NULL)
+  {
+    pSpawn = pSpawnListCurr->pSpawn;
+    while (pSpawn->CurrentInWorld < pSpawn->MaxInWorld)
+    {
+      MobileInstanceAdd();
+    }
+    pSpawnListCurr = pSpawnListCurr->pNextSpawn;
+  }
+}
 
 // Read spawn definitions and build the permanent spawn list.
 void SpawnReadFile()
