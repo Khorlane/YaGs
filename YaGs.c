@@ -25,7 +25,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #include <math.h>                                        // fmod()
 #include <stdbool.h>                                     // bool, true, false
 #include <stdio.h>                                       // a whole bunch of i/o functions
-#include <stdlib.h>                                      // atoi(), exit(), free(), malloc()
+#include <stdlib.h>                                      // atoi(), calloc(), exit(), free(), malloc(), rand(), srand()
 #include <string.h>                                      // a whole bunch of string functions
 #include <strings.h>                                     // strcasecmp()
 #include <sys/socket.h>                                  // This and arpa/inet - a whole plethora of socket related stuff
@@ -70,6 +70,8 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 // Timer events
 #define NO_INPUT_TICK           500                      // Ticks before checking if player is still there
 #define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
+#define MOBILE_MOVE_CHANCE      25                       // Percent chance a movable mobile changes rooms
+#define MOBILE_MOVE_TICKS       10                       // Heartbeat ticks between mobile movement checks
 #define PLAYER_AUTOSAVE_SECONDS 60                       // Seconds between dirty player saves
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -102,6 +104,8 @@ int                   LineNbr;                           // Line number
 int                   Listen;                            // Listening socket
 int                   MaxSocket;                         // Maximum socket value
 int                   Minutes;                           // Played time in minutes
+int                   MobileMoveRoomCount;               // Number of eligible rooms for mobile movement
+int                   MobileMoveTick;                    // Heartbeat ticks since the last mobile movement check
 long                  Offset;                            // Offset for fseek()
 int                   OptVal;                            // Set socket option value
 socklen_t             OptValSize;                        // Size of socket option value
@@ -139,6 +143,7 @@ struct ConnList      *pConnCurrSave;                     // Pointer to current c
 struct ConnList      *pConnHead;                         // Pointer to the head of connection list
 struct ConnList      *pConnTail;                         // Pointer to the tail of connection list
 struct ConnList      *pTarget;                           // Pointer to target player in the connection list
+struct Room          *pMobileMoveRooms[10];             // Eligible destination rooms for mobile movement
 
 // Strings
 char                  aTmpStr[STRING_LIMIT];             // Temp string
@@ -348,6 +353,7 @@ MobileInstance        *pMobileInstanceCurr = NULL;     // Pointer to the current
 MobileInstance        *pMobileInstanceHead = NULL;     // Pointer to the head of the world mobile list
 MobileInstance        *pMobileInstanceNew  = NULL;     // Pointer to a new mobile instance
 MobileInstance        *pMobileInstanceNext = NULL;     // Pointer to the next mobile instance
+MobileInstance        *pMobileInstancePrev = NULL;     // Pointer to the previous mobile instance
 MobileInstance        *pMobileInstanceTail = NULL;     // Pointer to the tail of the world mobile list
 MobileList            *pMobileListCurr = NULL;        // Pointer to the current mobile list node
 MobileList            *pMobileListHead = NULL;        // Pointer to the head of the mobile list
@@ -454,6 +460,7 @@ Room                 *pCurrentRoom;
 Room                 *pDestinationRoom;
 Room                 *pNewRoom;
 Room                 *pRoom;
+Room                 *pMobileMoveRoom;
 RoomList             *pNewRoomListNode;
 RoomList             *pRoomListCurr       = NULL;
 RoomList             *pRoomListHead       = NULL;
@@ -527,7 +534,9 @@ void           LowerCase(char *Str);
 void           MobileInstanceAdd();
 void           MobileInstanceFreeList();
 void           MobileInstanceLookUp(char *Id);
+void           MobileInstanceMove();
 Mobile        *MobileLookUp(char *Id);
+void           MobileMove();
 void           MobileReadFile();
 void           NormalizePlayerName(char *Name);
 bool           MudCmdOk();
@@ -830,6 +839,12 @@ void HeartBeat()
 {
   DEBUGIT(2)
   CurrentTimeSec = time(NULL);
+  MobileMoveTick++;
+  if (MobileMoveTick >= MOBILE_MOVE_TICKS)
+  {
+    MobileMoveTick = 0;
+    MobileMove();
+  }
   if (CurrentTimeSec >= NextPlayerAutosave)
   {
     PlayerAutoSave();
@@ -2537,11 +2552,13 @@ void StartItUp()
 void Initialization()
 { // Do not add DEBUGIT
   GameShutDown       = false;
+  MobileMoveTick     = 0;
   NoPlayers          = true;
   NextPlayerAutosave = time(NULL) + PLAYER_AUTOSAVE_SECONDS;
   pConnHead          = NULL;
   pConnTail          = NULL;
   pConnCurr          = NULL;
+  srand((unsigned int)time(NULL));
 }
 
 // Gracefully shut down the game by closing files and logs.
@@ -3504,6 +3521,79 @@ void MobileInstanceLookUp(char *Id)
     pMobileInstanceCurr = pMobileInstanceCurr->pNextRoomMobile;
   }
   pMobileInstance = NULL;
+}
+
+// Move the current runtime mobile to a random eligible connected room.
+void MobileInstanceMove()
+{
+  DEBUGIT(1)
+  MobileMoveRoomCount = 0;
+  for (k = 0; k < 10; k++)
+  {
+    Word(k + 1, pMobileInstanceCurr->pRoom->Exits, TmpStr1);
+    if (Equal(TmpStr1, "xxxxx"))
+    {
+      continue;
+    }
+    pMobileMoveRoom = RoomLookUp(atoi(TmpStr1));
+    if (pMobileMoveRoom == NULL || strstr(pMobileMoveRoom->Flags, "NoNPC") != NULL)
+    {
+      continue;
+    }
+    pMobileMoveRooms[MobileMoveRoomCount] = pMobileMoveRoom;
+    MobileMoveRoomCount++;
+  }
+  if (MobileMoveRoomCount == 0)
+  {
+    return;
+  }
+  pMobileMoveRoom = pMobileMoveRooms[rand() % MobileMoveRoomCount];
+  pMobileInstance = pMobileInstanceCurr->pRoom->pMobileInstanceHead;
+  pMobileInstancePrev = NULL;
+  while (pMobileInstance != pMobileInstanceCurr)
+  {
+    pMobileInstancePrev = pMobileInstance;
+    pMobileInstance = pMobileInstance->pNextRoomMobile;
+  }
+  if (pMobileInstancePrev == NULL)
+  {
+    pMobileInstanceCurr->pRoom->pMobileInstanceHead = pMobileInstanceCurr->pNextRoomMobile;
+  }
+  else
+  {
+    pMobileInstancePrev->pNextRoomMobile = pMobileInstanceCurr->pNextRoomMobile;
+  }
+  if (pMobileInstanceCurr->pRoom->pMobileInstanceTail == pMobileInstanceCurr)
+  {
+    pMobileInstanceCurr->pRoom->pMobileInstanceTail = pMobileInstancePrev;
+  }
+  pMobileInstanceCurr->pNextRoomMobile = NULL;
+  pMobileInstanceCurr->pRoom = pMobileMoveRoom;
+  if (pMobileMoveRoom->pMobileInstanceHead == NULL)
+  {
+    pMobileMoveRoom->pMobileInstanceHead = pMobileInstanceCurr;
+    pMobileMoveRoom->pMobileInstanceTail = pMobileInstanceCurr;
+  }
+  else
+  {
+    pMobileMoveRoom->pMobileInstanceTail->pNextRoomMobile = pMobileInstanceCurr;
+    pMobileMoveRoom->pMobileInstanceTail = pMobileInstanceCurr;
+  }
+}
+
+// Give every movable runtime mobile a chance to change rooms.
+void MobileMove()
+{
+  DEBUGIT(1)
+  pMobileInstanceCurr = pMobileInstanceHead;
+  while (pMobileInstanceCurr != NULL)
+  {
+    if (strstr(pMobileInstanceCurr->pMobile->Flags, "NoMove") == NULL && rand() % 100 < MOBILE_MOVE_CHANCE)
+    {
+      MobileInstanceMove();
+    }
+    pMobileInstanceCurr = pMobileInstanceCurr->pNextMobileInstance;
+  }
 }
 
 // Search the permanent mobile list for a case-insensitive Id match.
