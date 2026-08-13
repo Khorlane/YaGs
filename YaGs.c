@@ -1658,19 +1658,24 @@ void DoKill()
   }
   pMobile = pMobileInstance->pMobile;
   MobileExpCalc();
-  sprintf(Buffer, "You kill %s.\r\nYou gain %d experience.\r\n\r\n", pMobile->Desc1, ExpAward);
+  sprintf(Buffer, "You kill %s.\r\nYou gain %d experience.\r\n", pMobile->Desc1, ExpAward);
+  strcat(pConn->Output, Buffer);
   MobileInstanceRemove();
   if (!Equal(pMobile->Loot, "None"))
   {
+    strcat(pConn->Output, "You loot:\r\n");
     for (k = 1; k <= Words(pMobile->Loot); k++)
     {
       Word(k, pMobile->Loot, TmpStr1);
       ObjectLookUp(TmpStr1);
-      RoomObjectAdd(pObject);
+      PlayerInvAdd(pObject);
+      sprintf(Buffer, "%s\r\n", pObject->Desc1);
+      strcat(pConn->Output, Buffer);
     }
+    PlayerInvWriteFile();
   }
+  strcat(pConn->Output, "\r\n");
   pConn->pPlayer->Experience += ExpAward;
-  strcat(pConn->Output, Buffer);
   PlayerLevelUp();
   PlayerWriteFile();
   Prompt(pConn);
