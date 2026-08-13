@@ -582,6 +582,7 @@ void           DoSit();
 void           DoSleep();
 void           DoStand();
 void           DoStatus();
+void           DoTell();
 void           DoTime();
 void           DoWake();
 void           DoWear();
@@ -850,6 +851,7 @@ char *CommandTable[][9] =
     {"sleep",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"stand",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
+    {"tell",       "N",  "1",  "sleep",  "N",   "Y",  "3",  "999", "Tell whom what?"},
     {"time",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"wake",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
@@ -895,6 +897,7 @@ void (*DoCommand[])(void) =
   DoSleep,
   DoStand,
   DoStatus,
+  DoTell,
   DoTime,
   DoWake,
   DoWear,
@@ -2353,6 +2356,59 @@ void DoStatus()
     strcat(pConn->Output, "Your are an Admin!\r\n");
   }
   strcat(pConn->Output, "\r\n");
+  Prompt(pConn);
+}
+
+// Send a private message to another online player.
+void DoTell()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  NormalizePlayerName(CmdParm1);
+  pTarget       = NULL;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr->State == Online && Equal(pConnCurr->pPlayer->Name, CmdParm1))
+    {
+      pTarget = pConnCurr;
+      break;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConnCurr = pConnCurrSave;
+  if (pTarget == NULL)
+  {
+    sprintf(Buffer, "%s is not online.\r\n\r\n", CmdParm1);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget == pConn)
+  {
+    strcat(pConn->Output, "You can't tell yourself.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  Parameters = strchr(Command, ' ');
+  while (Parameters[0] == ' ')
+  {
+    Parameters++;
+  }
+  while (Parameters[0] != ' ' && Parameters[0] != '\0')
+  {
+    Parameters++;
+  }
+  while (Parameters[0] == ' ')
+  {
+    Parameters++;
+  }
+  sprintf(Buffer, "\r\n%s tells you, \"%s\"\r\n\r\n", pConn->pPlayer->Name, Parameters);
+  strcat(pTarget->Output, Buffer);
+  Prompt(pTarget);
+  sprintf(Buffer, "You tell %s, \"%s\"\r\n\r\n", pTarget->pPlayer->Name, Parameters);
+  strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
 

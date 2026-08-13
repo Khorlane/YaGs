@@ -952,8 +952,6 @@ another player.
 Usage: Tell <player> <private message goes here>
 Example: &Ytell Joab Where did you get that sword?&N
 
-&YNot Implemented Yet&N
-
 Related help: Say Gsay Social Tell Emote Chat
 
 Help:Time
