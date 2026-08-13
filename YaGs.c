@@ -180,6 +180,7 @@ char                 *TmpStr3  = aTmpStr3;               // Temp string 3 too
 char                 *CmdParm3 = aTmpStr3;               // Command Parameter 3
 char                  Buffer[BUFFER_LIMIT];              // Just a buffer
 char                  Command[STRING_LIMIT];             // The command from the player
+char                  HealthPct[20];                     // Color-coded remaining health percentage
 char                  LogMsg[100];                       // Log message
 char                  MsgTxt[100];                       // Message text
 char                  MudCmd[10];                        // Mud command
@@ -518,6 +519,7 @@ SpawnList            *pSpawnListTail       = NULL;    // Pointer to the tail of 
 void           AbortIt();
 void           AddPlayerToFile();
 void           AddToConnList();
+void           CalcHealthPct(int HitPoints, int HitPointsMax);
 void           SocketCheckForNewPlayers();
 void           CloseLog();
 void           Color();
@@ -2119,6 +2121,36 @@ void Combat()
   pConnCurr = pConnCurrSave;
 }
 
+// Format a remaining health percentage using a color based on its range.
+void CalcHealthPct(int HitPoints, int HitPointsMax)
+{
+  DEBUGIT(1)
+  if (HitPoints < 1)
+  {
+    HitPercent = 0;
+  }
+  else
+  {
+    HitPercent = (int)(((long long)HitPoints * 100) / HitPointsMax);
+  }
+  if (HitPercent > 75)
+  {
+    sprintf(HealthPct, "&C%3d&N", HitPercent);
+    return;
+  }
+  if (HitPercent > 50)
+  {
+    sprintf(HealthPct, "&Y%3d&N", HitPercent);
+    return;
+  }
+  if (HitPercent > 25)
+  {
+    sprintf(HealthPct, "&M%3d&N", HitPercent);
+    return;
+  }
+  sprintf(HealthPct, "&R%3d&N", HitPercent);
+}
+
 // End combat when the player dies, restore them, and return them to the starting room.
 void CombatPlayerDeath()
 {
@@ -2150,8 +2182,8 @@ void CombatRound()
     return;
   }
   MaxHitPoints = (pMobile->Level * MOB_HPT_PER_LEVEL) + pMobile->Hit;
-  HitPercent = (pMobileInstance->HitPoints * 100) / MaxHitPoints;
-  sprintf(Buffer, "%3d You %s %s for %d points of damage.\r\n", HitPercent, TmpStr, pMobile->Desc1, Damage);
+  CalcHealthPct(pMobileInstance->HitPoints, MaxHitPoints);
+  sprintf(Buffer, "%s You %s %s for %d points of damage.\r\n", HealthPct, TmpStr, pMobile->Desc1, Damage);
   strcat(pConn->Output, Buffer);
   MobileAttackVerb();
   Damage = (rand() % (pMobile->Level * DAMAGE_PER_LEVEL)) + 1;
@@ -2162,10 +2194,10 @@ void CombatRound()
     return;
   }
   MaxHitPoints = pConn->pPlayer->Level * PLAYER_HPT_PER_LEVEL;
-  HitPercent = (pConn->HitPoints * 100) / MaxHitPoints;
+  CalcHealthPct(pConn->HitPoints, MaxHitPoints);
   strcpy(TmpStr1, pMobile->Desc1);
   Up1stChar(TmpStr1);
-  sprintf(Buffer, "%3d %s %s you for %d points of damage.\r\n\r\n", HitPercent, TmpStr1, TmpStr, Damage);
+  sprintf(Buffer, "%s %s %s you for %d points of damage.\r\n\r\n", HealthPct, TmpStr1, TmpStr, Damage);
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
