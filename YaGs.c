@@ -4335,7 +4335,7 @@ void MobileInstanceMove()
     return;
   }
   pMobileMoveRoom = pMobileMoveRooms[rand() % MobileMoveRoomCount];
-  sprintf(MsgTxt, "%s leaves.\r\n", pMobileInstanceCurr->pMobile->Desc1);
+  sprintf(MsgTxt, "%s leaves.\r\n\r\n", pMobileInstanceCurr->pMobile->Desc1);
   SendToRoom(pMobileInstanceCurr->pRoom->RoomNbr, NULL);
   pMobileInstance = pMobileInstanceCurr->pRoom->pMobileInstanceHead;
   pMobileInstancePrev = NULL;
@@ -4368,7 +4368,7 @@ void MobileInstanceMove()
     pMobileMoveRoom->pMobileInstanceTail->pNextRoomMobile = pMobileInstanceCurr;
     pMobileMoveRoom->pMobileInstanceTail = pMobileInstanceCurr;
   }
-  sprintf(MsgTxt, "%s arrives.\r\n", pMobileInstanceCurr->pMobile->Desc1);
+  sprintf(MsgTxt, "%s arrives.\r\n\r\n", pMobileInstanceCurr->pMobile->Desc1);
   SendToRoom(pMobileInstanceCurr->pRoom->RoomNbr, NULL);
 }
 
