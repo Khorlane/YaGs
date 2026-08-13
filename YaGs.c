@@ -588,7 +588,7 @@ void           RoomReadFile();
 void           SendGreeting();
 void           SendMotd();
 void           SendToAll();
-Shop          *ShopLookUp(int RoomNbr);
+void           ShopLookUp(int RoomNbr);
 void           ShopObjectLookUp(char *Id);
 void           ShopReadFile();
 void           ShutItDown();
@@ -1155,7 +1155,7 @@ void DoAdvance()
 void DoBuy()
 {
   DEBUGIT(1)
-  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  ShopLookUp(pConn->pPlayer->RoomNbr);
   if (pShop == NULL)
   {
     strcat(pConn->Output, "Find a shop.\r\n\r\n");
@@ -1358,7 +1358,7 @@ void DoExamine()
   }
   if (pExamineObject == NULL)
   {
-    pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+    ShopLookUp(pConn->pPlayer->RoomNbr);
     if (pShop != NULL)
     {
       ShopObjectLookUp(CmdParm1);
@@ -1659,7 +1659,7 @@ void DoKill()
 void DoList()
 {
   DEBUGIT(1)
-  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  ShopLookUp(pConn->pPlayer->RoomNbr);
   if (pShop == NULL)
   {
     strcat(pConn->Output, "Find a shop.\r\n\r\n");
@@ -1745,7 +1745,7 @@ void DoLook()
     strcat(pConn->Output, Buffer);
     pRoomObjectListCurr = pRoomObjectListCurr->pNextRoomObject;
   }
-  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  ShopLookUp(pConn->pPlayer->RoomNbr);
   if (pShop != NULL)
   {
     sprintf(Buffer, "%s\r\n", pShop->Message);
@@ -1848,7 +1848,7 @@ void DoRemove()
 void DoSell()
 {
   DEBUGIT(1)
-  pShop = ShopLookUp(pConn->pPlayer->RoomNbr);
+  ShopLookUp(pConn->pPlayer->RoomNbr);
   if (pShop == NULL)
   {
     strcat(pConn->Output, "Find a shop.\r\n\r\n");
@@ -4377,8 +4377,8 @@ void RoomReadFile()
 // Shops
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-// Search the permanent shop list for a shop in the specified room.
-Shop *ShopLookUp(int RoomNbr)
+// Search the permanent shop list for a shop in the specified room and store it in pShop.
+void ShopLookUp(int RoomNbr)
 {
   DEBUGIT(1)
   pShopListCurr = pShopListHead;
@@ -4386,11 +4386,12 @@ Shop *ShopLookUp(int RoomNbr)
   {
     if (pShopListCurr->pShop->pRoom->RoomNbr == RoomNbr)
     {
-      return pShopListCurr->pShop;
+      pShop = pShopListCurr->pShop;
+      return;
     }
     pShopListCurr = pShopListCurr->pNextShop;
   }
-  return NULL;
+  pShop = NULL;
 }
 
 // Find an object sold by the current shop using its object Id.
