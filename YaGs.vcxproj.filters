@@ -58,4 +58,9 @@
   <ItemGroup>
     <ClCompile Include="YaGs.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Doc\ExpCalc.md">
+      <Filter>Doc</Filter>
+    </None>
+  </ItemGroup>
 </Project>

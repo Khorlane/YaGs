@@ -93,6 +93,9 @@
     <Text Include="World\Shops.txt" />
     <Text Include="World\Spawn.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Doc\ExpCalc.md" />
+  </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
