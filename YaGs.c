@@ -64,6 +64,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define OBJECTS_FILE            "Objects.txt"            // Objects file
 #define ROOMS_FILE              "Rooms.txt"              // Rooms file
 #define SHOPS_FILE              "Shops.txt"              // Shops file
+#define SPAWN_FILE              "Spawn.txt"              // Spawn file
 #define PLAYER_FILE             "Player.yags"            // Player file
 #define PLAYER_START_ROOM       120                      // Player start room
 // Timer events
@@ -179,6 +180,7 @@ FILE                 *PlayerFile;                        // Player file
 FILE                 *PlayerInvFile;                     // Player inventory file
 FILE                 *RoomFile;                          // Room file
 FILE                 *ShopFile;                          // Shop file
+FILE                 *SpawnFile;                         // Spawn file
 FILE                 *ValidNamesFile;                    // Valid names file
 
 // Structures
@@ -241,6 +243,8 @@ typedef struct RoomObjectList RoomObjectList;
 typedef struct Shop           Shop;
 typedef struct ShopList       ShopList;
 typedef struct ShopObjectList ShopObjectList;
+typedef struct Spawn          Spawn;
+typedef struct SpawnList      SpawnList;
 
 // The ConnList struct represents a connected player session, including socket state,
 // input and output buffers, player data, and connection list pointers.
@@ -328,6 +332,7 @@ struct MobileList
   MobileList         *pNextMobile;                    // Pointer to the next node in the list
 };
 
+MobileList            *pMobileListCurr = NULL;        // Pointer to the current mobile list node
 MobileList            *pMobileListHead = NULL;        // Pointer to the head of the mobile list
 MobileList            *pMobileListTail = NULL;        // Pointer to the tail of the mobile list
 
@@ -403,6 +408,26 @@ struct ShopObjectList
   ShopObjectList     *pNextShopObject;                // Pointer to the next shop object list node
 };
 
+struct Spawn
+{
+  Mobile             *pMobile;                        // Pointer to the mobile definition
+  int                 MaxInWorld;                     // Maximum number of this mobile in the world
+  Room               *pRoom;                          // Pointer to the room where the mobile spawns
+  int                 Seconds;                        // Respawn interval seconds
+  int                 Minutes;                        // Respawn interval minutes
+  int                 Hours;                          // Respawn interval hours
+  int                 Days;                           // Respawn interval days
+  int                 Weeks;                          // Respawn interval weeks
+  int                 Months;                         // Respawn interval months
+  int                 Years;                          // Respawn interval years
+};
+
+struct SpawnList
+{
+  Spawn              *pSpawn;                         // Pointer to a Spawn struct
+  SpawnList          *pNextSpawn;                     // Pointer to the next spawn list node
+};
+
 Player                PlayerRcd;                      // Player record used for player file reads
 Room                  SingleRoom;
 Room                 *pCurrentRoom;
@@ -425,6 +450,10 @@ ShopList             *pShopListHead       = NULL;     // Pointer to the head of 
 ShopList             *pShopListTail       = NULL;     // Pointer to the tail of the shop list
 ShopObjectList       *pShopObjectList     = NULL;     // Pointer to found shop object list node
 ShopObjectList       *pShopObjectListCurr = NULL;     // Pointer to the current shop object list node
+Spawn                *pSpawn              = NULL;     // Pointer to the current spawn definition
+SpawnList            *pSpawnListCurr      = NULL;     // Pointer to the current spawn list node
+SpawnList            *pSpawnListHead      = NULL;     // Pointer to the head of the spawn list
+SpawnList            *pSpawnListTail      = NULL;     // Pointer to the tail of the spawn list
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Functions
@@ -475,6 +504,7 @@ void           InitalizeNewPlayer();
 void           Initialization();
 void           LogIt(char *LogMsg);
 void           LowerCase(char *Str);
+Mobile        *MobileLookUp(char *Id);
 void           MobileReadFile();
 void           NormalizePlayerName(char *Name);
 bool           MudCmdOk();
@@ -526,6 +556,7 @@ void           SocketGetPlayerInput();
 void           SocketDisconnectPlayers();
 void           SocketListen();
 void           SocketSendPlayerOutput();
+void           SpawnReadFile();
 void           StartItUp();
 void           StrAppend(char *Str1, char *Str2);
 void           Trim(char *Str);
@@ -2454,6 +2485,7 @@ void StartItUp()
   ObjectReadFile();
   RoomReadFile();
   ShopReadFile();
+  SpawnReadFile();
 }
 
 // Set up the initial state of a game by resetting various player-related
@@ -3357,6 +3389,22 @@ void ValidateCommandTable()
 // Mobiles
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+// Search the permanent mobile list for a case-insensitive Id match.
+Mobile *MobileLookUp(char *Id)
+{
+  DEBUGIT(1)
+  pMobileListCurr = pMobileListHead;
+  while (pMobileListCurr != NULL)
+  {
+    if (strcasecmp(Id, pMobileListCurr->pMobile->Id) == 0)
+    {
+      return pMobileListCurr->pMobile;
+    }
+    pMobileListCurr = pMobileListCurr->pNextMobile;
+  }
+  return NULL;
+}
+
 // Read mobile definitions from Mobiles.txt and build the permanent mobile list.
 void MobileReadFile()
 {
@@ -4094,6 +4142,85 @@ void ShopReadFile()
     }
   }
   fclose(ShopFile);
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Spawns
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Read spawn definitions and build the permanent spawn list.
+void SpawnReadFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s", YAGS_DIR, WORLD_DIR, SPAWN_FILE);
+  SpawnFile = fopen(TmpStr, "r");
+  if (SpawnFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open %s failed: %s", SPAWN_FILE, strerror(errno));
+    AbortIt();
+  }
+  while (fgets(Buffer, sizeof(Buffer), SpawnFile) != NULL)
+  {
+    TrimRight(Buffer);
+    if (Buffer[0] == '\0')
+    {
+      continue;
+    }
+    if (pSpawnListHead == NULL)
+    {
+      pSpawnListHead = (SpawnList *)calloc(1, sizeof(SpawnList));
+      pSpawnListTail = pSpawnListHead;
+    }
+    else
+    {
+      pSpawnListTail->pNextSpawn = (SpawnList *)calloc(1, sizeof(SpawnList));
+      pSpawnListTail = pSpawnListTail->pNextSpawn;
+    }
+    if (pSpawnListTail == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for SpawnList node");
+      AbortIt();
+    }
+    pSpawnListTail->pSpawn = (Spawn *)calloc(1, sizeof(Spawn));
+    if (pSpawnListTail->pSpawn == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Memory allocation failed for Spawn");
+      AbortIt();
+    }
+    pSpawn = pSpawnListTail->pSpawn;
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pSpawn->pMobile = MobileLookUp(TmpStr);
+    fgets(Buffer, sizeof(Buffer), SpawnFile);
+    TrimRight(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pSpawn->MaxInWorld = atoi(TmpStr);
+    fgets(Buffer, sizeof(Buffer), SpawnFile);
+    TrimRight(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pSpawn->pRoom = RoomLookUp(atoi(TmpStr));
+    fgets(Buffer, sizeof(Buffer), SpawnFile);
+    TrimRight(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    Word(1, TmpStr, TmpStr1);
+    pSpawn->Seconds = atoi(TmpStr1);
+    Word(2, TmpStr, TmpStr1);
+    pSpawn->Minutes = atoi(TmpStr1);
+    Word(3, TmpStr, TmpStr1);
+    pSpawn->Hours = atoi(TmpStr1);
+    Word(4, TmpStr, TmpStr1);
+    pSpawn->Days = atoi(TmpStr1);
+    Word(5, TmpStr, TmpStr1);
+    pSpawn->Weeks = atoi(TmpStr1);
+    Word(6, TmpStr, TmpStr1);
+    pSpawn->Months = atoi(TmpStr1);
+    Word(7, TmpStr, TmpStr1);
+    pSpawn->Years = atoi(TmpStr1);
+  }
+  fclose(SpawnFile);
 }
 
 /*
