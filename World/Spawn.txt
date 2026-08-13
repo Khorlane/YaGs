@@ -1,0 +1,19 @@
+MobileId:   WeaponSmith
+MaxInWorld: 1
+RoomId:     111
+Interval:   0 0 0 0 0 0 0
+
+MobileId:   SmallRat
+MaxInWorld: 3
+RoomId:     113
+Interval:   15 0 0 0 0 0 0
+
+MobileId:   SneakyThief
+MaxInWorld: 1
+RoomId:     101
+Interval:   30 0 0 0 0 0 0
+
+MobileId:   PalaceGuard
+MaxInWorld: 1
+RoomId:     120
+Interval:   0 0 0 0 0 0 0

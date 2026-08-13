@@ -1,5 +1,5 @@
 00101 Back Porch
-You stand on the back porch, before you is vast 
+You stand on the back porch, before you is vast
 carpet of green grass. Some horses can be seen
 in the distance, grazing peacefully.
 Terrain: Concrete
@@ -16,7 +16,7 @@ xxxxx xxxxx xxxxx xxxxx 00108 xxxxx xxxxx xxxxx xxxxx xxxxx
 
 00103 Office
 This is a well furnished office. There is an L-shaped desk
-with several computers on it and a glass topped credenza 
+with several computers on it and a glass topped credenza
 with a nice TV on top.
 Terrain: Indoor
 Flags:   None
@@ -70,7 +70,7 @@ xxxxx xxxxx 00110 xxxxx 00114 00113 xxxxx 00103 xxxxx xxxxx
 00110 Hallway
 This hallway leads to the bedroom and the kitchen.
 Terrain: Indoor
-Flags:   None
+Flags:   NoNPC
 N     NE    E     SE    S     SW    W     NW    Up    Down
 00105 xxxxx 00111 xxxxx 00115 xxxxx 00109 xxxxx xxxxx xxxxx
 
@@ -108,7 +108,7 @@ N     NE    E     SE    S     SW    W     NW    Up    Down
 00115 Hallway
 This is the central hallway with the Dining adjoining.
 Terrain: Indoor
-Flags:   NoNPC
+Flags:   None
 N     NE    E     SE    S     SW    W     NW    Up    Down
 00110 xxxxx 00116 xxxxx 00118 xxxxx xxxxx xxxxx xxxxx xxxxx
 
@@ -143,7 +143,7 @@ N     NE    E     SE    S     SW    W     NW    Up    Down
 00116 xxxxx xxxxx xxxxx xxxxx xxxxx 00118 xxxxx xxxxx xxxxx
 
 00120 Front Porch
-You stand on the front porch, there is a dark red wooden 
+You stand on the front porch, there is a dark red wooden
 wooden door. In the center of the door is a large heavy
 iron knocker with an engraved snake encircling it.
 Terrain: Concrete

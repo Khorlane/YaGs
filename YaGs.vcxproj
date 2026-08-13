@@ -90,6 +90,8 @@
     <Text Include="World\Mobiles.txt" />
     <Text Include="World\Objects.txt" />
     <Text Include="World\Rooms.txt" />
+    <Text Include="World\Shops.txt" />
+    <Text Include="World\Spawn.txt" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

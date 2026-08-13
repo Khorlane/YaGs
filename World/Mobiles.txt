@@ -1,9 +1,10 @@
 Id:     SmallRat
 Desc1:  a small rat
 Desc2:  a small rat is looking for a snack amongst the garbage.
-Desc3:  
+Desc3:
   This rat has dark gray fur, beady red eyes, and very sharp
 yellow teeth which will definitely hurt!
+Flags:  None
 Attack: Bites
 Level:  1
 Hit:    0
@@ -13,8 +14,9 @@ Loot:   RatFoot
 Id:     SneakyThief
 Desc1:  a sneaky thief
 Desc2:  a sneaky thief is hiding in the bushes. He will pick your pocket for sure!
-Desc3:  
+Desc3:
   This thief is wearing a dark hooded cloak, and has a wicked looking dagger.
+Flags:  None
 Attack: Stab
 Level:  5
 Hit:    10
@@ -24,8 +26,21 @@ Loot:   SmallDagger RatFoot
 Id:     PalaceGuard
 Desc1:  a palace guard
 Desc2:  a palace guard is standing at attention, guarding the palace entrance!
-Desc3:  
+Desc3:
   This guard is wearing a shining suit of armor, and carries a large sword.
+Flags:  NoMove
+Attack: Slash
+Level:  99
+Hit:    1000
+Exp:    -500
+Loot:   None
+
+Id:     WeaponSmith
+Desc1:  a weapon smith
+Desc2:  a weapon smith is standing by a weapon rack, ready to serve customers.
+Desc3:
+  This weapon smith is wearing a thick leather apron with large pockets.
+Flags:  NoMove
 Attack: Slash
 Level:  99
 Hit:    1000

@@ -48,5 +48,14 @@
     <Text Include="World\Rooms.txt">
       <Filter>World</Filter>
     </Text>
+    <Text Include="World\Spawn.txt">
+      <Filter>World</Filter>
+    </Text>
+    <Text Include="World\Shops.txt">
+      <Filter>World</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="YaGs.c" />
   </ItemGroup>
 </Project>

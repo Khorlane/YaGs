@@ -314,6 +314,7 @@ struct Mobile
   char               *Desc1;                          // Short mobile description
   char               *Desc2;                          // Description shown in a room
   char               *Desc3;                          // Detailed mobile description
+  char               *Flags;                          // Mobile behavior flags
   char               *Attack;                         // Mobile attack description
   int                 Level;                          // Mobile level
   int                 Hit;                            // Mobile hit value
@@ -3419,7 +3420,7 @@ void MobileReadFile()
     while (fgets(Buffer, sizeof(Buffer), MobileFile) != NULL)
     {
       TrimRight(Buffer);
-      if (strncmp(Buffer, "Attack:", 7) == 0)
+      if (strncmp(Buffer, "Flags:", 6) == 0)
       {
         break;
       }
@@ -3427,7 +3428,13 @@ void MobileReadFile()
       StrAppend(TmpStr, "\n");
     }
     pMobileListTail->pMobile->Desc3 = strdup(TmpStr);
+    // Flags
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pMobileListTail->pMobile->Flags = strdup(TmpStr);
     // Attack
+    fgets(Buffer, sizeof(Buffer), MobileFile);
+    TrimRight(Buffer);
     strcpy(TmpStr, strchr(Buffer, ':') + 1);
     Trim(TmpStr);
     pMobileListTail->pMobile->Attack = strdup(TmpStr);
