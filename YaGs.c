@@ -73,7 +73,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define NO_INPUT_TICK           500                      // Ticks before checking if player is still there
 #define NO_INPUT_COUNT_LIMIT    3                        // Triggers player disconnect after this limit is hit
 #define MOBILE_MOVE_CHANCE      25                       // Percent chance a movable mobile changes rooms
-#define MOBILE_MOVE_TICKS       10                       // Heartbeat ticks between mobile movement checks
+#define MOBILE_MOVE_TICKS       50                       // Heartbeat ticks between mobile movement checks
 #define MOBILE_RESPAWN_TICKS    10                       // Heartbeat ticks between mobile respawn checks
 #define PLAYER_AUTOSAVE_SECONDS 60                       // Seconds between dirty player saves
 
