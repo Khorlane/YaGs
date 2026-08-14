@@ -1,0 +1,40 @@
+Social : bow
+MinPos : stand
+Lines  : 7
+You bow respectfully.
+$P bows respectfully.
+You can't bow before yourself.
+The person you wish to bow before is not here.
+You bow before $T.
+$P bows before you.
+$P bows before $T.
+
+Social : dance
+MinPos : stand
+Lines  : 7
+You dance for joy!
+$P dances for joy!
+Dancing with yourself, very peculiar.
+Your dance partner doesn't seem to be here.
+You clasp $T and begin to dance with $tHimHer.
+$P clasps you. You and $pHeShe begin to dance.
+$P clasps $T and begins to dance with $tHimHer.
+
+Social : grin
+MinPos : sit
+Lines  : 2
+A broad grin spreads across your face.
+$P grins broadly.
+
+Social : smile
+MinPos : sit
+Lines  : 7
+You smile.
+$P smiles.
+Smiling at yourself??
+The recipient of your pleasantry is nowhere in sight.
+You smile at $T.
+$P smiles at you.
+$P smiles at $T.
+
+End of Socials
