@@ -4,32 +4,6 @@ This guide provides information on how to build and manage the game world in YaG
 It covers the structure of the game world, how to create and modify areas, and how
 to manage game objects and NPCs (non-player characters).
 
-Contents
---------
-1 Introduction
-  1.1 Game World Structure
-  1.2 Rooms
-  1.3 Mobiles
-  1.4 Objects
-  1.5 Relationships
-
-2 Building a World
-  2.1 Start with a map
-  2.2 Designing Areas
-
-3 Rooms and Exits
-  3.1 Creating Rooms
-  3.2 Adding Exits
-
-4 Mobiles and Objects
-  4.1 Creating Mobiles
-  4.2 Adding Objects
-
-5 World File Format
-  5.1 Room Format
-  5.2 Mobile Format
-  5.3 Object Format
-
 1 Introduction
 
 1.1 Game World Structure
@@ -43,20 +17,20 @@ various objects and NPCs, which players can interact with.
 
 Rooms are the basic building blocks of the game world. Each room has a unique
 identifier, a description, and a set of exits that connect it to other rooms. Rooms
-can have different terrain types, such as indoor, outdoor, or underwater, which
-affect how players interact with them.
+can have different terrain types, such as Indoor or Concrete, which
+describe the room's environment.
 
 1.3 Mobiles
 
-Mobiles are non-player characters that inhabit the game world. They can be friendly,
-hostile, or neutral, and can interact with players in various ways. Mobiles can have
-their own unique behaviors, abilities, and items.
+Mobiles are non-player characters that inhabit the game world. They can move between
+rooms, fight players, and award loot and experience when killed. Mobile flags control
+whether an individual type of mobile can move.
 
 1.4 Objects
 
 Objects are items that players can interact with in the game world. They can be
-found in rooms, carried by mobiles, or used by players. Objects can have various
-properties, such as weight, value, and usage instructions.
+found in rooms, carried or equipped by players, or assigned to mobile loot. Objects
+have properties such as weight, cost, type, subtype, and value.
 
 1.5 Relationships
 
@@ -68,21 +42,21 @@ Relationships between Rooms, Players, Mobiles, and Objects are:
 - a Player is always in 1 and only 1 Room
 - a Player has Inventory and Equipment
 - a Player may have 0 to n Objects in their Inventory
-- a Player may have 0 to n Objects Equiped
+- a Player may have 0 to n Objects equipped
 
 - a Mobile is always in 1 and only 1 Room
 - a Mobile has Loot which is actually Objects
-- a Mobile may have 0 to n Objects that drop as Loot when killed
+- a Mobile may have 0 to n Objects awarded to the killer as Loot when killed
 
-- an Object may be in 0 to n Rooms (laying on the ground)
+- an Object may be in 0 to n Rooms (lying on the ground)
 - an Object may be in 0 to n Player Inventories
 - an Object may be in 0 to n Player Equipments
 - an Object may be assigned to 0 to n Mobiles as Loot
+- an Object may be sold by 0 to n Shops
 
 - a Room may be a Shop
 - a Shop must be a Room
 - a Shop sells 1 to n Objects
-- a Shop has 1 and only 1 Mobile (the Shopkeeper)
 
 These relationships are dynamic and change as the game is played.
 
@@ -102,9 +76,7 @@ designing an area, consider the theme, environment, and purpose of the area. Are
 can be urban, rural, or wilderness, and can include various features such as buildings,
 natural formations, and landmarks.
 
-3 Rooms and Exits
-
-3.1 Creating Rooms
+2.3 Creating Rooms
 
 To create a room in YaGs, you need to define its unique identifier, description,
 terrain type, and exits. The room identifier is a numeric code that uniquely identifies
@@ -112,24 +84,19 @@ the room in the game world. The description should provide players with a vivid
 picture of the room's appearance and atmosphere. The terrain type indicates the
 environment of the room, such as indoor or outdoor.
 
-3.2 Adding Exits
+2.4 Adding Exits
 
 Exits connect rooms to each other and allow players to navigate the game world.
 Each exit should be defined with a direction (N, NE, E, SE, S, SW, W, NW, Up, Down)
-and the identifier of the room it leads to. Exits can also have additional properties,
-such as whether they are locked or require a key to open.
+and the identifier of the room it leads to.
 
-4 Mobiles and Objects
+2.5 Creating Mobiles
 
-4.1 Creating Mobiles
+Mobiles can be created by defining their unique Id, descriptions, flags, attack,
+level, hit point adjustment, experience adjustment, and loot. The Id is a string
+such as SmallRat that uniquely identifies the mobile in the game world.
 
-Mobiles can be created by defining their unique identifier, description, behavior,
-and any items they carry. The identifier is a numeric code that uniquely identifies
-the mobile in the game world. The description should provide players with information
-about the mobile's appearance and personality. Behavior can include actions such
-as attacking, fleeing, or interacting with players.
-
-4.2 Adding Objects
+2.6 Creating Objects
 
 Objects are defined by providing a unique Id such as RatFoot. Objects can be in a
 player's inventory, or in their equipment as armor and weapons. There are several types
@@ -138,43 +105,9 @@ whose meaning is defined by the type/subtype combination. For example, a ShortSw
 Type: Weapon and Subtype: Sword. For Weapons the Value is amount of damage assigned
 to the weapon.
 
-Id:      <ObjectId>
-Desc1:   <Desc1>
-Desc2:   <Desc2>
-Desc3:
-  <Desc3>
-Weight:  <Weight>
-Cost:    <Cost>
-Type:    <Type>
-Subtype: <Subtype>
-Value:   <value>
+3 World File Formats
 
-Type: Armor
-Valid Subtypes:
-Head
-Ear
-Neck
-Shoulders
-Chest
-Back
-Arms 
-Wrist
-Hands 
-Finger
-Shield
-Waist
-Legs
-Ankle
-Feet
-Note: The player may also specify 'left' or 'right' when 'wearing' one of these objects.
-Ear
-Wrist
-Finger
-Ankle
-
-5 World File Format
-
-5.1 Room Format
+3.1 Room Format
 
 Each room in the world is defined in a specific format. The format includes the
 room identifier, description, terrain type, flags, and exits. The exits are defined
@@ -191,65 +124,155 @@ Where:
 <RoomNbr>     is the unique identifier for the room.
 <RoomName>    is the name of the room.
 <Description> is a detailed description of the room.
-<Terrain>     is the type of terrain (e.g., indoor, outdoor, underwater).
-<Flags>       are any special properties of the room (e.g., lit, dark, locked).
+<Terrain>     is the type of terrain (e.g., Indoor or Concrete).
+<Flags>       is None, NoFight, or NoNPC.
 <RmN>         are the identifiers of the rooms connected by exits in the specified directions.
 Directions are represented as N (North), NE (Northeast), E (East), SE (Southeast),
   S (South), SW (Southwest), W (West), NW (Northwest), Up, and Down.
+Use xxxxx when a room does not have an exit in a direction. NoFight prevents combat
+in the room. NoNPC prevents mobiles from moving into the room.
 
-5.2 Mobile Format
+3.2 Mobile Format
 
-Each mobile in the world is defined with a unique identifier, description, behavior,
-and any items they carry. The format is as follows:
+Each mobile in the world is defined with a unique identifier, descriptions, flags,
+combat values, and loot. The format is as follows:
 
-<MobileID>
-<Desc1>
-<Desc2>
-Attack:    <Attack>
-Level:     <Level>
-HitPoints: <HitPoints>
-ExpPoints: <ExpPoints>
-Loot:      <Loot>
+Id:     <MobileId>
+Desc1:  <Desc1>
+Desc2:  <Desc2>
+Desc3:
+  <Desc3>
+Flags:  <Flags>
+Attack: <Attack>
+Level:  <Level>
+Hit:    <Hit>
+Exp:    <Exp>
+Loot:   <Loot>
 
 Where:
-<MobileID>  is the unique identifier for the mobile.
-<Desc1>     is a very short one-line description.
-<Desc2>     is a longer one-line description.
-<Desc3>     is an optional mulit-line description.
-<Attack>    is the type of attack the mobile uses. e.g., "claw", "bite", "stab".
-<Level>     is the level of the mobile, which affects its strength and abilities.
-<HitPoints> is the number of hit points the mobile has.
-<ExpPoints> is the amount of experience points awarded for defeating the mobile.
-<Loot>      is a list of items that the mobile can drop when defeated.
+<MobileId> is the unique string identifier for the mobile.
+<Desc1>    is a very short one-line description.
+<Desc2>    is the one-line description shown in a room.
+<Desc3>    is an optional multi-line detailed description.
+<Flags>    is None or NoMove. NoMove prevents the mobile from moving between rooms.
+<Attack>   is the attack verb used by the mobile, e.g., Bites, Stab, or Slash.
+<Level>    is the level of the mobile, which affects hit points, damage, and experience.
+<Hit>      is an adjustment added to the base hit points computed from the mobile's level.
+<Exp>      is an adjustment added to the experience computed from the mobile's level.
+<Loot>     is a space-separated list of ObjectIds awarded to the killer.
 
-Note: HitPoints and ExpPoints are ADDITIONAL to the base values which are computed 
-based on the mobile's level. Therefore, most mobiles will have a value of 0 for these fields.
+Most mobiles will have a value of 0 for Hit and Exp. Every ObjectId listed as Loot
+must exist in Objects.txt.
 
-5.3 Object Format
+3.3 Object Format
 
-Each object in the world is defined with a unique identifier, description, properties,
-and any actions they can perform. The format is as follows:
+Each object in the world is defined with a unique identifier, descriptions, and
+type-specific properties. The format is as follows:
 
-<ObjectID>
-<Desc1>
-<Desc2>
-<Desc3>
+Id:      <ObjectId>
+Desc1:   <Desc1>
+Desc2:   <Desc2>
+Desc3:
+  <Desc3>
 Weight:  <Weight>
 Cost:    <Cost>
 Type:    <Type>
-Subtype: <SubType>
+Subtype: <Subtype>
 Value:   <Value>
 
 Where:
 <ObjectID>  is the unique identifier for the object.
 <Desc1>     is a very short one-line description.
 <Desc2>     is a longer one-line description.
-<Desc3>     is an optional mulit-line description.
+<Desc3>     is a multi-line description.
 <Weight>    is the weight of the object.
-<Cost>      is the value of the object in the game world.
-<Type>      is the type of object (e.g., weapon, armor, junk).
-<SubType>   is used to further define the object, specifying its specific type (e.g., sword, helmet).
-<Value>     is used to define the object's effectiveness or power.
+<Cost>      is the number of coins paid when buying or received when selling the object.
+<Type>      is Armor, Drink, Food, Junk, or Weapon.
+<Subtype>   further defines how an object of its Type is used.
+<Value>     has a meaning determined by the Type and Subtype.
 
+3.3.1 Object Types and Subtypes
 
-6.0
+Type: Armor
+Valid Subtypes:
+Head
+Ear
+Neck
+Shoulders
+Chest
+Back
+Arms
+Wrist
+Hands
+Finger
+Shield
+Waist
+Legs
+Ankle
+Feet
+Ear, Wrist, Finger, and Ankle armor uses the first available left or right slot.
+Value currently has no effect for Armor.
+
+Type: Drink
+Valid Subtypes:
+Water
+Value is the percentage of Thirst restored when consumed.
+
+Type: Food
+Valid Subtypes:
+Fruit
+Value is the percentage of Hunger restored when consumed.
+
+Type: Junk
+Valid Subtypes:
+None
+Value currently has no effect.
+
+Type: Weapon
+Valid Subtypes:
+Dagger
+Hammer
+Sword
+Value is the weapon's base damage.
+
+4.0 Shops
+
+A shop is a relationship between a room and a list of Objects. Shops have an
+unlimited supply of the Objects they sell, and they buy any Object from a player.
+Objects are bought and sold for the Cost defined in Objects.txt.
+
+The format in Shops.txt is as follows:
+
+<RoomNbr>
+<Message>
+<ObjectId>
+<ObjectId>
+
+Where:
+<RoomNbr>  is the room containing the shop and must exist in Rooms.txt.
+<Message>  is displayed after the room's exits whenever the room is shown.
+<ObjectId> is an Object sold by the shop and must exist in Objects.txt.
+
+List each ObjectId on a separate line. Separate shops with a blank line.
+
+5.0 Spawns
+
+Spawn.txt controls which mobiles exist in the world, where they initially appear,
+their maximum population, and how quickly replacements appear after they are killed.
+The format is as follows:
+
+MobileId:   <MobileId>
+MaxInWorld: <MaxInWorld>
+RoomId:     <RoomId>
+Interval:   <Seconds> <Minutes> <Hours> <Days> <Weeks> <Months> <Years>
+
+Where:
+<MobileId>   is a mobile that must exist in Mobiles.txt.
+<MaxInWorld> is the maximum number of this mobile allowed in the world.
+<RoomId>     is the room where the mobile spawns and must exist in Rooms.txt.
+<Interval>   is the real-time delay before one replacement mobile spawns.
+
+At startup, each spawn is filled to MaxInWorld. After a mobile is killed, one
+replacement appears after the Interval. If more replacements are needed, each one
+waits for another full Interval. An Interval containing all zeros causes a replacement
+at the next mobile respawn tick. Separate spawn definitions with a blank line.
