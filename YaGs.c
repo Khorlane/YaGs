@@ -2404,10 +2404,10 @@ void DoTell()
   {
     Parameters++;
   }
-  sprintf(Buffer, "\r\n%s tells you, \"%s\"\r\n\r\n", pConn->pPlayer->Name, Parameters);
+  sprintf(Buffer, "\r\n&M%s tells you, \"%s\"&N\r\n\r\n", pConn->pPlayer->Name, Parameters);
   strcat(pTarget->Output, Buffer);
   Prompt(pTarget);
-  sprintf(Buffer, "You tell %s, \"%s\"\r\n\r\n", pTarget->pPlayer->Name, Parameters);
+  sprintf(Buffer, "&MYou tell %s, \"%s\"&N\r\n\r\n", pTarget->pPlayer->Name, Parameters);
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
