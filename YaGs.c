@@ -306,8 +306,10 @@ struct ConnList
   double              HitPointRecovery;                  // Fractional hit points accumulated during recovery
   PlayerPosition      Position;                          // Current player position
   char                Afk;                               // Away from keyboard flag (Y/N)
+  char                GroupOn;                           // Player accepts group invitations (Y/N)
   bool                PlayerDirty;                       // Player record has unsaved changes
   Player             *pPlayer;                           // Pointer to the connected player data
+  ConnList           *pGroupLeader;                      // Pointer to the player's group leader
   MobileInstance     *pFightingMobile;                   // Pointer to the mobile currently fighting the player
   PlayerEquList      *pPlayerEquHead;                    // Pointer to the head of the player equipment list
   PlayerEquList      *pPlayerEquTail;                    // Pointer to the tail of the player equipment list
@@ -565,6 +567,7 @@ void           DoGet();
 void           DoGive();
 void           DoGo();
 void           DoGoto();
+void           DoGroup();
 void           DoHelp();
 void           DoInventory();
 void           DoKill();
@@ -594,6 +597,7 @@ void           GetNextPlayerRcdNbr();
 long           GetPlayerFileOffset();
 void           GetPlayerOnline();
 void           GetTime();
+void           GroupLeave();
 void           HeartBeat();
 void           InitalizeNewPlayer();
 void           Initialization();
@@ -835,6 +839,7 @@ char *CommandTable[][9] =
     {"give",        "N",  "1",  "sit",    "N",   "N",  "3",  "3",  "Give what to whom?"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"goto",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Goto which room?"},
+    {"group",      "N",  "1",  "sleep",  "N",   "Y",  "2",  "2",  "Group what?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"kill",       "N",  "1",  "stand",  "N",   "Y",  "2",  "2",  "Kill what?"},
@@ -882,6 +887,7 @@ void (*DoCommand[])(void) =
   DoGive,
   DoGo,
   DoGoto,
+  DoGroup,
   DoHelp,
   DoInventory,
   DoKill,
@@ -1835,7 +1841,7 @@ void DoGo()
     Prompt(pConn);
     return;
   }
-  sprintf(MsgTxt, "%s leaves.\r\n", pConn->pPlayer->Name);
+  sprintf(MsgTxt, "%s leaves.\r\n\r\n", pConn->pPlayer->Name);
   SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   pConn->pPlayer->RoomNbr = DestRoomNbr;
   sprintf(MsgTxt, "%s arrives.\r\n\r\n", pConn->pPlayer->Name);
@@ -1880,6 +1886,187 @@ void DoGoto()
   sprintf(Buffer, "You magically transport to room %d.\r\n", DestRoomNbr);
   strcat(pConn->Output, Buffer);
   DoLook();
+}
+
+// Manage player group invitations, membership, and group listings.
+void DoGroup()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  LowerCase(CmdParm1);
+  if (Equal(CmdParm1, "on"))
+  {
+    pConn->GroupOn = 'Y';
+    strcat(pConn->Output, "You can now be invited into a group.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (Equal(CmdParm1, "off"))
+  {
+    pConn->GroupOn = 'N';
+    strcat(pConn->Output, "You can no longer be invited into a group.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (Equal(CmdParm1, "list"))
+  {
+    if (pConn->pGroupLeader == NULL)
+    {
+      strcat(pConn->Output, "You are not in a group.\r\n\r\n");
+      Prompt(pConn);
+      return;
+    }
+    strcat(pConn->Output, "\r\nGroup members\r\n-------------\r\n");
+    pConnCurrSave = pConnCurr;
+    pConnCurr = pConnHead;
+    while (pConnCurr != NULL)
+    {
+      if (pConnCurr->State == Online && pConnCurr->pGroupLeader == pConn->pGroupLeader)
+      {
+        if (pConnCurr == pConn->pGroupLeader)
+        {
+          sprintf(Buffer, "%s (Leader)\r\n", pConnCurr->pPlayer->Name);
+        }
+        else
+        {
+          sprintf(Buffer, "%s\r\n", pConnCurr->pPlayer->Name);
+        }
+        strcat(pConn->Output, Buffer);
+      }
+      pConnCurr = pConnCurr->pConnNext;
+    }
+    pConnCurr = pConnCurrSave;
+    strcat(pConn->Output, "\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (Equal(CmdParm1, "none"))
+  {
+    if (pConn->pGroupLeader == NULL)
+    {
+      strcat(pConn->Output, "You are not in a group.\r\n\r\n");
+      Prompt(pConn);
+      return;
+    }
+    if (pConn->pGroupLeader == pConn)
+    {
+      GroupLeave();
+      strcat(pConn->Output, "You dissolve the group.\r\n\r\n");
+    }
+    else
+    {
+      GroupLeave();
+      strcat(pConn->Output, "You leave the group.\r\n\r\n");
+    }
+    Prompt(pConn);
+    return;
+  }
+  NormalizePlayerName(CmdParm1);
+  pTarget       = NULL;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr->State == Online && Equal(pConnCurr->pPlayer->Name, CmdParm1))
+    {
+      pTarget = pConnCurr;
+      break;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConnCurr = pConnCurrSave;
+  if (pTarget == NULL)
+  {
+    sprintf(Buffer, "%s is not online.\r\n\r\n", CmdParm1);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget == pConn)
+  {
+    strcat(pConn->Output, "You can't invite yourself into a group.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->pGroupLeader != NULL && pConn->pGroupLeader != pConn)
+  {
+    strcat(pConn->Output, "Only the group leader can invite players.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget->pPlayer->RoomNbr != pConn->pPlayer->RoomNbr)
+  {
+    sprintf(Buffer, "%s is not here.\r\n\r\n", pTarget->pPlayer->Name);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget->GroupOn != 'Y')
+  {
+    sprintf(Buffer, "%s is not accepting group invitations.\r\n\r\n", pTarget->pPlayer->Name);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  if (pTarget->pGroupLeader != NULL)
+  {
+    sprintf(Buffer, "%s is already in a group.\r\n\r\n", pTarget->pPlayer->Name);
+    strcat(pConn->Output, Buffer);
+    Prompt(pConn);
+    return;
+  }
+  if (pConn->pGroupLeader == NULL)
+  {
+    pConn->pGroupLeader = pConn;
+  }
+  pTarget->pGroupLeader = pConn;
+  sprintf(Buffer, "\r\n%s adds you to the group.\r\n\r\n", pConn->pPlayer->Name);
+  strcat(pTarget->Output, Buffer);
+  Prompt(pTarget);
+  sprintf(Buffer, "You add %s to the group.\r\n\r\n", pTarget->pPlayer->Name);
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Remove the current player from a group or dissolve the group they lead.
+void GroupLeave()
+{
+  DEBUGIT(1)
+  if (pConn->pGroupLeader == NULL)
+  {
+    return;
+  }
+  pActor       = pConn;
+  pTarget      = pConn->pGroupLeader;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr != pActor && pConnCurr->pGroupLeader == pTarget)
+    {
+      pConn = pConnCurr;
+      if (pTarget == pActor)
+      {
+        pConn->pGroupLeader = NULL;
+        sprintf(Buffer, "\r\n%s dissolves the group.\r\n\r\n", pActor->pPlayer->Name);
+      }
+      else
+      {
+        sprintf(Buffer, "\r\n%s leaves the group.\r\n\r\n", pActor->pPlayer->Name);
+      }
+      if (pConn->State == Online)
+      {
+        strcat(pConn->Output, Buffer);
+        Prompt(pConn);
+      }
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pActor->pGroupLeader = NULL;
+  pConn     = pActor;
+  pConnCurr = pConnCurrSave;
+  pActor    = NULL;
+  pTarget   = NULL;
 }
 
 // Retrieve and display help information from the help file.
@@ -3350,6 +3537,7 @@ void SocketDisconnectPlayers()
     if (pConn->State == Disconnect)
     {
       CombatStop();
+      GroupLeave();
       if (pConn->PlayerRcdNbr > 0 && pConn->PlayerDirty)
       {
         PlayerWriteFile();
@@ -3426,6 +3614,7 @@ void AddToConnList()
   pConn          = (ConnList *)calloc(1, sizeof(ConnList));
   pConn->pPlayer = (Player *)calloc(1, sizeof(Player));
   pConn->Afk     = 'N';
+  pConn->GroupOn = 'N';
   pConnCurr      = pConn;
   if (pConnHead != NULL)
   { // Not 1st Node
