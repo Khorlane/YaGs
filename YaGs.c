@@ -972,7 +972,6 @@ void (*DoCommand[])(void) =
 // checks for new players, processes player input, sends output to players, and handles game shutdown.
 int main(int argc, char **argv)
 {
-  //zTestStuff();
   StartItUp();
   while (!GameShutDown)
   {
@@ -6249,14 +6248,3 @@ void SpawnReadFile()
   }
   fclose(SpawnFile);
 }
-
-/*
-void zTestStuff()
-{
-  OpenLog();
-  RoomReadFile();
-  RoomFreeList();
-  CloseLog();
-  exit(0);
-}
-*/
