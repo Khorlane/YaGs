@@ -276,8 +276,6 @@ Usage: Emote <message>
 Example: &Yemote is very happy!&N
 Abbreviation: em
 
-&YNot Implemented Yet&N
-
 Related help: Say Gsay Social Tell Chat
 
 Help:Equipment

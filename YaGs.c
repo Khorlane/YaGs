@@ -564,6 +564,7 @@ void           DoDestroy();
 void           DoDrink();
 void           DoDrop();
 void           DoEat();
+void           DoEmote();
 void           DoEquipment();
 void           DoExamine();
 void           DoFlee();
@@ -721,6 +722,7 @@ struct sCommandAlias
 struct sCommandAlias CommandAliasTable[] =
 {
   {"con", "consider"},
+  {"em",  "emote"},
   {"l",  "look"},
   {"k",  "kill"},
   {"i",  "inventory"},
@@ -840,6 +842,7 @@ char *CommandTable[][9] =
     {"drink",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drink what?"},
     {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
     {"eat",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Eat what?"},
+    {"emote",      "N",  "1",  "sit",    "N",   "Y",  "2",  "999", "Emote what?"},
     {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"examine",    "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Examine what?"},
     {"flee",       "N",  "1",  "stand",  "N",   "Y",  "1",  "1",  "None"},
@@ -891,6 +894,7 @@ void (*DoCommand[])(void) =
   DoDrink,
   DoDrop,
   DoEat,
+  DoEmote,
   DoEquipment,
   DoExamine,
   DoFlee,
@@ -1696,6 +1700,19 @@ void DoEat()
   {
     strcat(pConn->Output, "You are extremely hungry!!!\r\n\r\n");
   }
+  Prompt(pConn);
+}
+
+// Send an action message to every player in the current room.
+void DoEmote()
+{
+  DEBUGIT(1)
+  Parameters = strchr(Command, ' ');
+  Parameters++;
+  Trim(Parameters);
+  sprintf(MsgTxt, "%s %s\r\n\r\n", pConn->pPlayer->Name, Parameters);
+  strcat(pConn->Output, MsgTxt);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
   Prompt(pConn);
 }
 
