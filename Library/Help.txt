@@ -471,8 +471,6 @@ Use this command to 'speak' to everyone in your group.
 Usage: Gsay <What you want to say goes here>
 Example: &Ygsay Hi all, thanks for inviting into the group!&N
 
-&YNot Implemented Yet&N
-
 Related help: Say Gsay Social Tell Emote Chat
 
 Help:Hail

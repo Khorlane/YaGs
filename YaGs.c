@@ -568,6 +568,7 @@ void           DoGive();
 void           DoGo();
 void           DoGoto();
 void           DoGroup();
+void           DoGsay();
 void           DoHelp();
 void           DoInventory();
 void           DoKill();
@@ -840,6 +841,7 @@ char *CommandTable[][9] =
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
     {"goto",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Goto which room?"},
     {"group",      "N",  "1",  "sleep",  "N",   "Y",  "2",  "2",  "Group what?"},
+    {"gsay",       "N",  "1",  "sleep",  "N",   "Y",  "2",  "999", "Gsay what?"},
     {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"kill",       "N",  "1",  "stand",  "N",   "Y",  "2",  "2",  "Kill what?"},
@@ -888,6 +890,7 @@ void (*DoCommand[])(void) =
   DoGo,
   DoGoto,
   DoGroup,
+  DoGsay,
   DoHelp,
   DoInventory,
   DoKill,
@@ -2024,6 +2027,51 @@ void DoGroup()
   strcat(pTarget->Output, Buffer);
   Prompt(pTarget);
   sprintf(Buffer, "You add %s to the group.\r\n\r\n", pTarget->pPlayer->Name);
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Send a message to every online member of the player's group.
+void DoGsay()
+{
+  DEBUGIT(1)
+  if (pConn->pGroupLeader == NULL)
+  {
+    strcat(pConn->Output, "You are not in a group.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  Parameters = strchr(Command, ' ');
+  Parameters++;
+  Trim(Parameters);
+  pActor       = pConn;
+  pTarget      = pConn->pGroupLeader;
+  Found        = false;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr != pActor && pConnCurr->State == Online && pConnCurr->pGroupLeader == pTarget)
+    {
+      Found = true;
+      pConn = pConnCurr;
+      sprintf(Buffer, "\r\n&C%s says to the group, \"%s\"&N\r\n\r\n", pActor->pPlayer->Name, Parameters);
+      strcat(pConn->Output, Buffer);
+      Prompt(pConn);
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn     = pActor;
+  pConnCurr = pConnCurrSave;
+  pActor    = NULL;
+  pTarget   = NULL;
+  if (!Found)
+  {
+    strcat(pConn->Output, "You address the group, but the group is just you.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  sprintf(Buffer, "&CYou say to the group, \"%s\"&N\r\n\r\n", Parameters);
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
