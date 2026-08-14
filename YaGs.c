@@ -615,6 +615,7 @@ void           DoRemove();
 void           DoRestore();
 void           DoSay();
 void           DoSell();
+void           DoShow();
 void           DoShutdown();
 void           DoSit();
 void           DoSleep();
@@ -898,6 +899,7 @@ char *CommandTable[][9] =
     {"restore",    "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Restore whom?"},
     {"say",        "N",  "1",  "sit",    "N",   "Y",  "2",  "999", "Say what?"},
     {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
+    {"show",       "N",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Show COMMANDS, HELP, or SOCIALS."},
     {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"sit",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"sleep",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
@@ -950,6 +952,7 @@ void (*DoCommand[])(void) =
   DoRestore,
   DoSay,
   DoSell,
+  DoShow,
   DoShutdown,
   DoSit,
   DoSleep,
@@ -2670,6 +2673,88 @@ void DoSell()
   PlayerWriteFile();
   PlayerInvWriteFile();
   strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Display available commands, help topics, or socials.
+void DoShow()
+{
+  DEBUGIT(1)
+  Word(2, Command, CmdParm1);
+  LowerCase(CmdParm1);
+  LineNbr = 0;
+  if (Equal(CmdParm1, "commands"))
+  {
+    strcat(pConn->Output, "\r\nCommands\r\n--------\r\n");
+    i = 0;
+    while (CommandTable[i][CMD_NAME] != NULL)
+    {
+      if (Equal((char *)CommandTable[i][CMD_ADMIN], "N") || pConn->pPlayer->Admin == 'Y')
+      {
+        sprintf(Buffer, "%-16s", CommandTable[i][CMD_NAME]);
+        strcat(pConn->Output, Buffer);
+        LineNbr++;
+        if (LineNbr % 4 == 0)
+        {
+          strcat(pConn->Output, "\r\n");
+        }
+      }
+      i++;
+    }
+  }
+  else if (Equal(CmdParm1, "help"))
+  {
+    strcat(pConn->Output, "\r\nHelp topics\r\n-----------\r\n");
+    sprintf(HelpFileName, "%s/%s/%s", YAGS_DIR, LIB_DIR, HELP_FILE);
+    HelpFile = fopen(HelpFileName, "r");
+    if (HelpFile == NULL)
+    {
+      sprintf(LogMsg, "ERROR: Open %s failed: %s", HELP_FILE, strerror(errno));
+      AbortIt();
+    }
+    while (fgets(Buffer, sizeof(Buffer), HelpFile) != NULL)
+    {
+      TrimRight(Buffer);
+      if (strncmp(Buffer, "Help:", 5) == 0 && Buffer[5] != '\0')
+      {
+        sprintf(TmpStr, "%-16s", Buffer + 5);
+        strcat(pConn->Output, TmpStr);
+        LineNbr++;
+        if (LineNbr % 4 == 0)
+        {
+          strcat(pConn->Output, "\r\n");
+        }
+      }
+    }
+    fclose(HelpFile);
+  }
+  else if (Equal(CmdParm1, "socials"))
+  {
+    strcat(pConn->Output, "\r\nSocials\r\n-------\r\n");
+    pSocialListCurr = pSocialListHead;
+    while (pSocialListCurr != NULL)
+    {
+      sprintf(Buffer, "%-16s", pSocialListCurr->pSocial->Name);
+      strcat(pConn->Output, Buffer);
+      LineNbr++;
+      if (LineNbr % 4 == 0)
+      {
+        strcat(pConn->Output, "\r\n");
+      }
+      pSocialListCurr = pSocialListCurr->pNextSocial;
+    }
+  }
+  else
+  {
+    strcat(pConn->Output, "Show COMMANDS, HELP, or SOCIALS.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  if (LineNbr % 4 != 0)
+  {
+    strcat(pConn->Output, "\r\n");
+  }
+  strcat(pConn->Output, "\r\n");
   Prompt(pConn);
 }
 

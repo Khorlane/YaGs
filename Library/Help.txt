@@ -870,8 +870,6 @@ Provides a list of commands, help topics, or socials.
 Usage: Show COMMANDS | HELP | SOCIALS
 Example: &Yshow commands&N
 
-&YNot Implemented Yet&N
-
 Related help: Commands Help Social
 
 Help:Sit
