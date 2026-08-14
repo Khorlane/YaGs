@@ -156,8 +156,7 @@ wish know what chance you have to win a fight with them.
 
 Usage: Consider <NPC>
 Example: &Yconsider smallrat&N
-
-&YNot Implemented Yet&N
+Abbreviation: con
 
 Related help: Kill Wield
 

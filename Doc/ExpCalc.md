@@ -95,7 +95,7 @@ The following descriptions and colors correspond to the difference between the m
 | -4 | Easy | Cyan |
 | -3 | No Problem | Cyan |
 | -2 | A Worthy Opponent | Cyan |
-| -1 | You Might Win | Yellow |
+| -1 | Close Fight | Yellow |
 | 0 | Tough Fight | Yellow |
 | 1 | Lots Of Luck | Yellow |
 | 2 | Bad Idea | Red |

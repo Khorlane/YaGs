@@ -559,6 +559,7 @@ void           DoBorn();
 void           DoBuy();
 void           DoChat();
 void           DoColor();
+void           DoConsider();
 void           DoDestroy();
 void           DoDrink();
 void           DoDrop();
@@ -719,6 +720,7 @@ struct sCommandAlias
 
 struct sCommandAlias CommandAliasTable[] =
 {
+  {"con", "consider"},
   {"l",  "look"},
   {"k",  "kill"},
   {"i",  "inventory"},
@@ -833,6 +835,7 @@ char *CommandTable[][9] =
     {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
     {"chat",       "N",  "1",  "sleep",  "N",   "Y",  "2",  "999", "Chat what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
+    {"consider",   "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Consider what?"},
     {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
     {"drink",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drink what?"},
     {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
@@ -883,6 +886,7 @@ void (*DoCommand[])(void) =
   DoBuy,
   DoChat,
   DoColor,
+  DoConsider,
   DoDestroy,
   DoDrink,
   DoDrop,
@@ -1431,6 +1435,69 @@ void DoColor()
     Prompt(pConn);
   }
   PlayerWriteFile();
+}
+
+// Compare a mobile's level with the player's level.
+void DoConsider()
+{
+  DEBUGIT(1)
+  RoomLookUp(pConn->pPlayer->RoomNbr);
+  Word(2, Command, CmdParm1);
+  MobileInstanceLookUp(CmdParm1);
+  if (pMobileInstance == NULL)
+  {
+    strcat(pConn->Output, "You don't see that here.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  ExpLevelDiff = pMobileInstance->pMobile->Level - pConn->pPlayer->Level;
+  if (ExpLevelDiff <= -7)
+  {
+    strcpy(TmpStr, "&GDon't Bother&N");
+  }
+  else if (ExpLevelDiff == -6)
+  {
+    strcpy(TmpStr, "&GWay Too Easy&N");
+  }
+  else if (ExpLevelDiff == -5)
+  {
+    strcpy(TmpStr, "&GVery Easy&N");
+  }
+  else if (ExpLevelDiff == -4)
+  {
+    strcpy(TmpStr, "&CEasy&N");
+  }
+  else if (ExpLevelDiff == -3)
+  {
+    strcpy(TmpStr, "&CNo Problem&N");
+  }
+  else if (ExpLevelDiff == -2)
+  {
+    strcpy(TmpStr, "&CA Worthy Opponent&N");
+  }
+  else if (ExpLevelDiff == -1)
+  {
+    strcpy(TmpStr, "&YClose Fight&N");
+  }
+  else if (ExpLevelDiff == 0)
+  {
+    strcpy(TmpStr, "&YTough Fight&N");
+  }
+  else if (ExpLevelDiff == 1)
+  {
+    strcpy(TmpStr, "&YLots Of Luck&N");
+  }
+  else if (ExpLevelDiff == 2)
+  {
+    strcpy(TmpStr, "&RBad Idea&N");
+  }
+  else
+  {
+    strcpy(TmpStr, "&RYou are Mad&N");
+  }
+  sprintf(Buffer, "%s\r\n\r\n", TmpStr);
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
 }
 
 // Permanently destroy one or more objects from the player's inventory.
