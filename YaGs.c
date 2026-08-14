@@ -118,6 +118,7 @@ int                   ExpCalcLevel;                      // Player level used fo
 int                   ExpLevelDiff;                      // Player and mobile level difference for experience calculation
 int                   ExpPercent;                        // Percentage of base mobile experience awarded
 long long             ExpRequired;                       // Total experience required for a player level
+int                   FleeRoomCount;                     // Number of rooms available when fleeing
 int                   Hours;                             // Player age in hours
 int                   HitPercent;                        // Remaining hit point percentage
 int                   HitPointsRecovered;                // Whole hit points recovered during a recovery event
@@ -171,6 +172,7 @@ struct ConnList      *pConnCurrSave;                     // Pointer to current c
 struct ConnList      *pConnHead;                         // Pointer to the head of connection list
 struct ConnList      *pConnTail;                         // Pointer to the tail of connection list
 struct ConnList      *pTarget;                           // Pointer to target player in the connection list
+struct Room          *pFleeRooms[10];                   // Eligible destination rooms when fleeing
 struct Room          *pMobileMoveRooms[10];              // Eligible destination rooms for mobile movement
 struct tm            *pSpawnTime;                        // Pointer to calendar time used for respawn scheduling
 
@@ -563,6 +565,7 @@ void           DoDrop();
 void           DoEat();
 void           DoEquipment();
 void           DoExamine();
+void           DoFlee();
 void           DoGet();
 void           DoGive();
 void           DoGo();
@@ -836,6 +839,7 @@ char *CommandTable[][9] =
     {"eat",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Eat what?"},
     {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
     {"examine",    "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Examine what?"},
+    {"flee",       "N",  "1",  "stand",  "N",   "Y",  "1",  "1",  "None"},
     {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
     {"give",        "N",  "1",  "sit",    "N",   "N",  "3",  "3",  "Give what to whom?"},
     {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
@@ -885,6 +889,7 @@ void (*DoCommand[])(void) =
   DoEat,
   DoEquipment,
   DoExamine,
+  DoFlee,
   DoGet,
   DoGive,
   DoGo,
@@ -1717,6 +1722,52 @@ void DoExamine()
   }
   strcat(pConn->Output, "\r\n");
   Prompt(pConn);
+}
+
+// Escape combat through a random valid exit while remaining wounded.
+void DoFlee()
+{
+  DEBUGIT(1)
+  if (pConn->pFightingMobile == NULL)
+  {
+    strcat(pConn->Output, "You flail dramatically, but there is nothing to flee from.\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  RoomLookUp(pConn->pPlayer->RoomNbr);
+  pCurrentRoom = pRoom;
+  FleeRoomCount = 0;
+  for (k = 0; k < 10; k++)
+  {
+    Word(k + 1, pCurrentRoom->Exits, CmdParm1);
+    if (Equal(CmdParm1, "xxxxx"))
+    {
+      continue;
+    }
+    RoomLookUp(atoi(CmdParm1));
+    if (pRoom == NULL)
+    {
+      continue;
+    }
+    pFleeRooms[FleeRoomCount] = pRoom;
+    FleeRoomCount++;
+  }
+  if (FleeRoomCount == 0)
+  {
+    strcat(pConn->Output, "You look for an escape, but there is nowhere to run!\r\n\r\n");
+    Prompt(pConn);
+    return;
+  }
+  pDestinationRoom = pFleeRooms[rand() % FleeRoomCount];
+  sprintf(MsgTxt, "%s flees, running wildly through the first exit they can find!\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  CombatStop();
+  pConn->pPlayer->RoomNbr = pDestinationRoom->RoomNbr;
+  pConn->PlayerDirty = true;
+  sprintf(MsgTxt, "%s bursts into the room, wide-eyed and out of breath.\r\n\r\n", pConn->pPlayer->Name);
+  SendToRoom(pConn->pPlayer->RoomNbr, pConn);
+  strcat(pConn->Output, "You flee for your life, dignity trailing somewhere behind you!\r\n");
+  DoLook();
 }
 
 // Get one object from the ground in the current room.

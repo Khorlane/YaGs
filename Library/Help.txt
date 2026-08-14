@@ -352,13 +352,12 @@ Help:Flee
 *************
 * Help Flee *
 *************&N
-You can flee from a fight, but you must know the direction
-in which you wish to flee. You CANNOT just flee.
+Flee ends your current fight and sends you running through
+a random exit. You remain wounded, but your opponent fully
+recovers.
 
-Usage: Flee <direction>
-Example: &Yflee n&N
-
-&YNot Implemented Yet&N
+Usage: Flee
+Example: &Yflee&N
 
 Related help: Exits
 
