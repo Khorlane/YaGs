@@ -2,7 +2,7 @@
 //* Yet another Game server *
 //***************************
 
-#define VERSION "Version 1.0.5"                          // Version number
+#define VERSION "Version 1.1.1"                          // Version number
 #define _DEFAULT_SOURCE                                  // Required for a bunch of BSD socket stuff
 #pragma GCC diagnostic push                              // Ignore warnings about sections
 #pragma GCC diagnostic ignored "-Wunreachable-code"      //   of unreachable code.
