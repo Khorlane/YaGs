@@ -85,8 +85,6 @@ I'm hungery, ordering some pizza now!
 Usage: Chat <some chatter>
 Example: &Ychat Hi everyone!&N
 
-&YNot Implemented Yet&N
-
 Related help: Say Gsay Social Tell Emote Chat
 
 Help:Combat

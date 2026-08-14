@@ -553,6 +553,7 @@ void           DoAdvance();
 void           DoAfk();
 void           DoBorn();
 void           DoBuy();
+void           DoChat();
 void           DoColor();
 void           DoDestroy();
 void           DoDrink();
@@ -822,6 +823,7 @@ char *CommandTable[][9] =
     {"afk",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"born",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
     {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
+    {"chat",       "N",  "1",  "sleep",  "N",   "Y",  "2",  "999", "Chat what?"},
     {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
     {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
     {"drink",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drink what?"},
@@ -868,6 +870,7 @@ void (*DoCommand[])(void) =
   DoAfk,
   DoBorn,
   DoBuy,
+  DoChat,
   DoColor,
   DoDestroy,
   DoDrink,
@@ -1347,6 +1350,34 @@ void DoBuy()
   PlayerInvAdd(pShopObjectList->pObject);
   PlayerWriteFile();
   PlayerInvWriteFile();
+  strcat(pConn->Output, Buffer);
+  Prompt(pConn);
+}
+
+// Send an out-of-character message to every online player.
+void DoChat()
+{
+  DEBUGIT(1)
+  Parameters = strchr(Command, ' ');
+  Parameters++;
+  Trim(Parameters);
+  pActor       = pConn;
+  pConnCurrSave = pConnCurr;
+  pConnCurr     = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr != pActor && pConnCurr->State == Online)
+    {
+      pConn = pConnCurr;
+      sprintf(Buffer, "\r\n&W%s chats, \"%s\"&N\r\n\r\n", pActor->pPlayer->Name, Parameters);
+      strcat(pConn->Output, Buffer);
+      Prompt(pConn);
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn     = pActor;
+  pConnCurr = pConnCurrSave;
+  sprintf(Buffer, "&WYou chat, \"%s\"&N\r\n\r\n", Parameters);
   strcat(pConn->Output, Buffer);
   Prompt(pConn);
 }
