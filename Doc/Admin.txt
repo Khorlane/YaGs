@@ -10,11 +10,16 @@ Contents
   1.1 Introduction
   1.2 Execution Environment
   1.3 Operating System
+  1.4 Before Compiling and Running
+  1.5 Files Required to Execute
 
 2 Admin Commands
 	2.1 Advance
-	2.2 Playerfile
-	2.3 Shutdown
+	2.2 Goto
+	2.3 Load
+	2.4 Playerfile
+	2.5 Restore
+	2.6 Shutdown
 
 1 Welcome to YaGs
 
@@ -33,8 +38,8 @@ administrative features available to you.
 YaGs is executed in a terminal environment. It requires a C compiler to build the game
 and a terminal to run it. The game is designed to be run on a server, allowing multiple
 players to connect and interact with each other in real-time. The game files are organized
-into several directories, including the World folder for game data, the Library folder for
-help files, and the Player folder for player data. The game uses a player file named
+into several directories, including the World folder for game and player data and the Library
+folder for help files. The game uses a player file named
 Player.yags, which contains information about all players in the game. This file is
 located in the World folder and is essential for managing player data. The game also
 uses a Help.txt file located in the Library folder, which provides players with information
@@ -42,33 +47,92 @@ about the game, including commands, rules, and other important details.
 
 1.3 Operating System
 
-YaGs is designed to run on Unix-like operating systems, including Linux and macOS.
-It is not compatible with Windows without modifications. The game relies on standard
-C libraries and terminal capabilities, making it suitable for environments that support
-text-based applications. The game can be compiled using a C compiler such as GCC or Clang,
-and it is recommended to run it in a terminal that supports ANSI escape codes for color
-and formatting. The game is designed to be lightweight and efficient, allowing it to run
-on a wide range of hardware, from low-end systems to more powerful servers. The game
-is also designed to be modular, allowing for easy updates and modifications to the game
+YaGs is designed to run on Linux, including Linux under Windows Subsystem for Linux (WSL).
+The game relies on standard C libraries and terminal capabilities, making it suitable for
+environments that support text-based applications. The game can be compiled using a C
+compiler such as GCC or Clang, and it is recommended to run it in a terminal that supports
+ANSI escape codes for color and formatting. The game is designed to be lightweight and
+efficient, allowing it to run on a wide range of hardware, from low-end systems to more
+powerful servers. The game is also designed to be modular, allowing for easy updates and
+modifications to the game
 world, player data, and other game settings. The game uses a simple file structure,
-making it easy to navigate and manage. The main game executable is located in the root
-directory of the YaGs project.
+making it easy to navigate and manage. The compiled game executable is currently located
+at bin/x64/Debug/YaGs.out.
+
+1.4 Before Compiling and Running
+
+Review these settings near the top of YaGs.c before compiling:
+
+YAGS_DIR
+  Absolute path to the YaGs runtime folder containing Library, Logs, and World.
+PORT
+  TCP port on which YaGs listens. Ensure the port is available and allowed through
+  any applicable firewall.
+USE_USLEEP and SLEEP_TIME
+  USE_USLEEP selects usleep() or the select()-based delay used by the main loop.
+  SLEEP_TIME is in microseconds and affects the rate of all heartbeat-based events.
+DEBUGIT_LVL
+  Logging detail from 0 through 5. Higher values produce more debug messages.
+PLAYER_START_ROOM
+  Room where new players begin. The room number must exist in World/Rooms.txt.
+
+1.5 Files Required to Execute
+
+Only the following subset of the YaGs folder is required to execute the game:
+
+bin/
+  x64/
+    Debug/
+      YaGs.out
+Library/
+  Greeting.txt
+  Help.txt
+  Motd.txt
+  Social.txt
+  ValidNames.txt
+Logs/
+World/
+  Mobiles.txt
+  Objects.txt
+  Player.yags
+  PlayerEqu/
+  PlayerInv/
+  Rooms.txt
+  Shops.txt
+  Spawn.txt
+
+The executable must be built with YAGS_DIR in YaGs.c identifying the folder containing
+the Library, Logs, and World folders. Player.yags must exist, but it may be empty. The
+Logs, PlayerEqu, and PlayerInv folders must be writable. Source, documentation, map,
+project, and intermediate build files are not required after YaGs.out has been built.
 
 2 Admin Commands
 
 Admin commands can be issued by players with Admin Flag set to 'Y'. The first
-player to log into the game is the admin.
+player added to an empty Player.yags file is made an admin.
 
-These commands are not in Help.txt(see Library folder).
+Some of these commands are also documented in Help.txt (see Library folder).
 
 2.1 Advance
 format: advance <player> <level>
-This command will advance or demote a player to the specified level.
+This command will advance or demote an online player to the specified level.
 
-2.2 Playerfile
+2.2 Goto
+format: goto <room number>
+Magically transports you to the specified room.
+
+2.3 Load
+format: load <object id>
+Loads an object into your inventory.
+
+2.4 Playerfile
 format: playerfile
 List all players in the Player.yags file (see World folder).
 
-2.3 Shutdown
+2.5 Restore
+format: restore <player>
+Restores an online player's hit points to maximum.
+
+2.6 Shutdown
 format: shutdown
 Disconnects all players and shuts down the game.
