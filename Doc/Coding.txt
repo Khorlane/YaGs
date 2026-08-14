@@ -1,52 +1,18 @@
 Coder's Guide
 =============
 This guide provides information about the YaGs code and how it is organized. 
-YaGs is written in C and follows a modular structure, allowing for easy expansion
-and modification. YaGs is designed to run on Unix-like operating systems, including
-Linux and macOS. It is not compatible with Windows OS without modifications, mainly
-due to its reliance on bsd sockets, which require different header files for Windows
-OS and some code changes.
+YaGs is written in C and is organized into sections, allowing for easy expansion
+and modification. YaGs is designed to run on Linux, including Linux under Windows
+Subsystem for Linux (WSL). It does not run as a native Windows application without
+socket and other platform-specific changes.
 
-YaGs is not complete, by any stretch of the imagination. There are MANY things that
-need to be added before considering it to be `ready for players`.
+YaGs supports the basic set of commands you'd expect to find in a mud.
 
-Contents
-1 Introduction
-  1.1 Code Structure
-  1.2 Sections
-  1.3 Functions and Variables
-2 Coding Standards
-  2.1 Naming Conventions
-  2.2 Code Formatting
-  2.3 Comments and Documentation
-3 Building and Compiling
-  3.1 Build System
-  3.2 Compiling the Code
-4 Debugging and Testing
-  4.1 Debugging Tools
-  4.2 Testing Procedures
-5 Code Explanation
-  5.1 Overview
-  5.2 Marcros
-  5.3 Globals
-      5.3.1 Strings
-  5.4 Players
-      5.4.1 Player file
-      5.4.2 Player list
-  5.5 Commands
-      5.5.1 Adding a new command
-  5.6 Sockets
-      5.6.1 Berkeley sockets
-      5.6.2 Listening
-      5.6.3 Non-Blocking
-  5.7 Strings
-      5.7.1 Quality of life
-  
 1 Introduction
 
 1.1 Code Structure
 
-The YaGs codebase is wholly contained in a single file, `yags.c`, which is organized
+The YaGs codebase is wholly contained in a single file, `YaGs.c`, which is organized
 into several sections. The code is structured to facilitate readability and maintainability.
 Each section is responsible for a specific aspect of the game, such as the main 
 game loop, event handling, and game state management. The code is written in C, 
@@ -54,25 +20,27 @@ following standard practices for clarity and efficiency.
 
 1.2 Sections
 
-YaGs is divided into section, with each section responsible for a specific aspect
-of the game. Key sections are:
+YaGs is divided into sections, with each section responsible for a specific aspect
+of the game. The sections, in the order they appear, are:
 
-Include   
-  Stardard library header files, there are no additional headers
+Includes
+  Standard C and Linux header files; there are no external library headers
 Macros
-  Simple 1:1 replacement macros, with the exception of DEBUGIT
+  Configuration constants and DEBUGIT
 Globals
   Contains global variables used throughout the game
 Player
   Player-related definitions
+World
+  Mobile, Object, Room, Shop, Social, and Spawn definitions
 Functions
-  Contains ALL functions used in the game
+  Contains declarations for all functions used in the game
 Commands
   Command-related definitions
 Main
   Contains the main game loop including startup, event handling, and shutdown
 All Do functions
-  Every command has a corresponding `Do` function that handles the command logic
+  Every CommandTable command has a corresponding `Do` function that handles its logic
 General player communication
   Functions for sending messages to players
 Get player online
@@ -81,16 +49,28 @@ Log
   Functions for logging player actions and game events
 Sockets
   Functions for handling network communication
-Startup and Shutdown
+Start up and shutdown
   Functions for initializing and cleaning up the game environment
-Player list
-  Functions for managing the list of players currently online
+Connection list
+  Functions for managing player connections, including players currently online
 Player file
-  Functions for loading and saving player data
+  Functions for player records, inventory, equipment, experience, and recovery
 Strings
   Functions for string manipulation and formatting
 Miscellaneous
   Miscellaneous utility functions that do not fit into other categories
+Mobiles
+  Functions for loading and managing mobile definitions and instances
+Objects
+  Functions for loading and looking up object definitions
+Rooms
+  Functions for loading and managing rooms and objects on the ground
+Shops
+  Functions for loading and looking up shops and their objects
+Socials
+  Functions for loading and executing data-driven socials
+Spawns
+  Functions for loading spawn definitions and spawning mobiles
 
 1.3 Functions and Variables
 
@@ -108,7 +88,7 @@ indicate their purpose. Use CamelCase for function names and variables, do not
 separate words by underscores. For example instead of `game_start_msg` use 
 `GameStartMsg`. 
 
-Constants should be defined in all uppercase and separate by underscore (e.g. `YAGS_DIR`).
+Constants should be defined in all uppercase and separated by underscores (e.g. `YAGS_DIR`).
 
 Enums should be named using Snake Case with the first letter of each word capitalized
 (e.g. `Wait_Player_Name`).
@@ -116,28 +96,27 @@ Enums should be named using Snake Case with the first letter of each word capita
 2.2 Code Formatting
 
 Code should be formatted consistently, with proper indentation and spacing. Use 2
-spaces for indentation and ensure that each line does not exceed 80 characters.
-Functions should be separated by a single blank line, and comments should be used
-to explain complex logic or important sections of code.
+spaces for indentation. Functions should be separated by a single blank line, and
+blank lines are not used inside function bodies. Comments should be used to explain
+complex logic or important sections of code.
 
 2.3 Comments and Documentation
 
 Comments should be used to explain the purpose of functions, variables, and complex
-logic. Each function should have a brief description of its purpose, parameters, 
-and return values.
+logic. Each function should have a brief description of its purpose.
 
 3 Building and Compiling
 
 3.1 Build System
 
-YaGs does not require complex a build system based on `Makefile` to manage the 
-compilation process. To build YaGs, run the command:
-gcc YaGs.c -o YaGs
+YaGs does not require a Makefile. The repository includes a Visual Studio Linux
+project configured for WSL. It may also be built from a Linux terminal with:
+gcc YaGs.c -o YaGs.out -lm
 
 3.2 Compiling the Code
 	
-To compile the code, ensure you have the necessary development tools installed, 
-such as a C compiler (e.g., GCC), you don't need make. The compilation process
+To compile the code, ensure you have the necessary development tools installed,
+such as a C compiler (e.g., GCC). Make is not required. The compilation process
 will generate an executable file that can be run to start the game. If there are
 any errors during compilation, they will be displayed in the terminal, and you
 should address them before proceeding.
@@ -153,9 +132,8 @@ and step through the code to identify issues.
 
 4.2 Testing Procedures
 
-Testing is an essential part of the development process. You should write unit 
-tests for critical functions and modules to ensure they work as expected. Most
-importantly, perform manual testing by playing the game and checking for bugs or
+Testing is an essential part of the development process. YaGs currently relies
+primarily on manual testing by playing the game and checking for bugs or
 inconsistencies in gameplay.
 
 5 Code Explanation
@@ -163,11 +141,11 @@ inconsistencies in gameplay.
 5.1 Overview
 
 YaGs code is intended to be, for the most part, self-explanatory. There are of
-course exceptions suh that, when reading through the code, one might scratch
+course exceptions such that, when reading through the code, one might scratch
 their head and wonder "what on earth is going on here?". Fortunately, we now
 have ChatGPT that can help understand the code. But there are still cases
 where the real meaning or intent of the code is still not clear. This section
-tries to anticipates areas of the code that might need that extra explanation.
+tries to anticipate areas of the code that might need that extra explanation.
 
 5.2 Macros
 
@@ -175,26 +153,25 @@ Most macros are simple x = y replacements, DEBUGIT(dl) is an exception. This
 macro relies on the Log being `open`, so DO NOT add it to functions like
 StartItUp() or any function that is executed before the log is available.
 
-The value of YAGS_DIR might look strange to you. If you are using a Linux
-system, you should of course change this. The `/mnt/c` part is specific
-to using Windows and WSL. At the time of this writting, Ubuntu-22.04.3-LTS
-is being used via WSL on Windows.
+The value of YAGS_DIR might look strange to you. The `/mnt/c` part is specific
+to using Windows and WSL. Change it when the YaGs folder is elsewhere. YAGS_DIR
+must identify the folder containing the Library, Logs, and World folders.
 
 5.3 Globals
 
-Almost all variables are global variables and almost all functions DO NOT
-take or return anything. The exception here is the string functions like
-Up1stChar(), Word(), and Words().
+Almost all variables are global variables and many functions take no parameters
+and return void. Helper and lookup functions take parameters where needed, and
+some return bool, int, long, size_t, or char pointers.
 
 5.3.1 Strings
 
 There are no strings in C, only arrays of characters with the last character
-being a `\0`, know as a null-terminated string. YaGs deals with string a lot,
-so there are a number of techniques employeed to make dealing with these strings
-less painful. Global variable `TmpStr` is a case in point, defined once, used
-throughout the code. The aTmpStr[1024]/*TmpStr variables (and others like them)
-is the chosen technique for YaGs. Variables like CmdParm1, CmdParm2, CmdParm3
-are intended to add clarity to the the code. You also might find that all the
+being a `\0`, known as a null-terminated string. YaGs deals with strings a lot,
+so there are a number of techniques employed to make dealing with these strings
+less painful. Global variable `TmpStr` is a case in point, defined once and used
+throughout the code. The aTmpStr/TmpStr variables (and others like them) are
+the chosen technique for YaGs. Variables like CmdParm1, CmdParm2, and CmdParm3
+are intended to add clarity to the code. You also might find that all the
 file name variables share aTmpStr. This is because no two of these are used at
 the same time and during each use, the value is set and used. The code never
 assumes anything about the contents of these variables.
@@ -204,83 +181,102 @@ assumes anything about the contents of these variables.
 5.4.1 Player file
 
 Persistent Player data is stored in Player.yags in the World folder. When a new
-player connects to YaGs and completes the log in steps, a player record is written
-to Player.yags. The player record is represented by struct sPlayer. In the event
-that fields are added or removed from sPlayer, then Player.yags needs to be wiped,
-as in delete it and re-create it empty. The first player to log into the game after
-a wipe is the implementor which means the Admin flag is set to `Y`.
+player connects to YaGs and completes the login steps, a player record is written
+to Player.yags. The player record is represented by struct Player. If fields are
+added to or removed from Player, Player.yags needs to be deleted and recreated
+empty. The first player added to an empty Player.yags file has Admin set to `Y`.
 
-5.4.2 Player list
+Player fields that must persist immediately are written with PlayerWriteFile(). Room
+movement marks the connection dirty and is saved by autosave or disconnect. Inventory
+and equipment are stored separately in World/PlayerInv and World/PlayerEqu text files.
 
-As players connect and disconnect to/from the game, the PlayerList is maintained
-and reflects, real-time, the state of each player. If the PlayerList empty (no
-players conncected), the game goes to sleep and wakes up periodically to see if
-there is player trying to connect.
+5.4.2 Connection list
 
-The player list is the main driver for the whole game. For each player in the
-player list, check for input, if there is input, process the command (all input
+As players connect and disconnect from the game, the ConnList is maintained and
+reflects the real-time state of each connection. If the connection list is empty,
+the game goes to sleep until a player tries to connect.
+
+The connection list is the main driver for the whole game. For each player in the
+connection list, check for input; if there is input, process the command (all input
 from players ARE commands). See ProcessPlayerInput(). The processing of commands
-results in some sort of output, so for each player in the player list, send the
-output to the player. See SendPlayerOutput().
+results in some sort of output, so for each player in the connection list, send the
+output to the player. See SocketSendPlayerOutput().
 
 5.5 Commands
 
 5.5.1 Adding a new command
 
-Using the look command as an example
-- Add `DoLook` in the Functions section
-- Add `look` to CommandTable
-- Add `DoLook` to DoCommand (`void (*DoCommand[])(void) =`
-- Add a very simple implementation of `DoLook` in `All Do functions` section
+Using a new command named example:
+- Add the `void DoExample();` prototype in alphabetical order in the Functions section
+- Add an eight-field `example` entry in alphabetical order in CommandTable
+- Add `DoExample` in the corresponding position in DoCommand
+- Add the `DoExample` implementation in the All Do functions section
+- Add a Help:Example entry to Library/Help.txt and remove any Not Implemented Yet marker
+- Add an entry to CommandAliasTable only if the command has an abbreviation
+
+CommandTable and DoCommand must remain in exactly the same order. ValidateCommandTable()
+checks that their entry counts match, but it cannot detect entries that are out of order.
 
 For example;
-void DoLook()
+void DoExample()
 {
   DEBUGIT(1)
-  sprintf(Buffer, "You are in room %d, looking around, you see nothing special.\r\n", pPlayer->RoomNbr);
-  strcat(pPlayer->Output, Buffer);
-  Prompt(pPlayer);
+  strcat(pConn->Output, "The example command works.\r\n\r\n");
+  Prompt(pConn);
 }
 
 Fire up the game and test your brand new command!
 
+Data-driven socials do not use this process. Add those to Library/Social.txt.
+
 5.5.2 Command table
 
-The command table, `CommandTable` defines each valid command with a number of attributes.
-These attributes are described by struct sCommands and are primarily intended to
-lessen the validating required by each Do<command> function, allowing some validation
-to be generalized and handled before the Do<command> get control. The is still a
-need for validation within each Do<command>, but avoids the need to check to see
-if the player's position (sleep, sit, stand) is valid in EVERY LAST SINGLE Do<command>.
-For example, the `look` command makes no sense if the player is sleeping.
-NOTE: at the time of this writting, player position is not in the game, but it will be.
+The command table, `CommandTable`, defines each built-in command with a number of
+attributes. These attributes are described by struct sCommands and allow MudCmdOk()
+to perform common validation before the Do<command> function gets control. It checks:
+- Admin access
+- Minimum and maximum word counts
+- Whether the command is allowed during combat
+- The player's required position
+
+MinWords and MaxWords include the command name itself. Message supplies the word-count
+error; a value of None produces the generic error. Position values have these meanings:
+- sleep allows the command in any position
+- sit allows the command while sitting or standing
+- stand allows the command only while standing
+
+Validation specific to a command remains in its Do<command> function.
+
+The columns are Name, Admin, Level, Position, Fight, MinWords, MaxWords, and Message.
+CommandTable and DoCommand must remain in exactly the same order; ValidateCommandTable()
+checks that they contain the same number of entries at startup. Abbreviations are
+defined in CommandAliasTable. Data-driven socials are valid commands loaded from
+Library/Social.txt and are handled separately from CommandTable. Level is stored in
+the table but is not currently enforced.
 
 5.6 Sockets
 
 5.6.1 Berkeley sockets
 
-YaGs uses Berkeley (BSD) sockets and all code that uses this API is in the Sockets
+YaGs uses Berkeley (BSD) sockets, with the network code grouped in the Sockets
 section. The primary socket functions are: socket(), bind(), listen(), accept(),
-select(), send(), recv(), and close(). The are a significant number of macros that
+select(), send(), recv(), and close(). There are a significant number of macros that
 are defined in <arpa/inet.h> and <sys/socket.h> and are used as standard practice
 when working with BSD sockets.
 
 5.6.2 Listening
 
-One of very first things a game server like YaGs must do is `listen` on a specific
-URL and port number. For YaGs, as you develop and test, you will most likely be
-using 127.0.0.1 port 3737 or localhost:3737 (either as they are the same). Before
-going live, you will need to modify this. In SocketListen() there is this line:
-SocketAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-change to:
-SocketAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-and put something other than 127.0.0.1!
+One of the first things a game server like YaGs must do is listen on a port.
+SocketListen() binds PORT, currently 3737, to INADDR_ANY. This accepts connections
+on any local network interface. Change the PORT macro when another port is needed,
+and ensure the selected port is allowed through the applicable firewall. To restrict
+development connections to the local computer, bind to 127.0.0.1 instead.
 
 5.6.3 Non-Blocking
 
 A very important part of using BSD sockets is to NOT block when getting input from
-your players, and on the other hand, you need know whether or not there is any 
-input from a player. The code satifies both requirements via settings like
+your players, and on the other hand, you need to know whether or not there is any
+input from a player. The code satisfies both requirements via settings like
 `fcntl(Listen, F_SETFL, FNDELAY);`
 and checks like
 `if (FD_ISSET(Socket, &InpSet))`.
