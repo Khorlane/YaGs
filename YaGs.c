@@ -731,15 +731,14 @@ size_t         Words(char *Str);
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 // Commands is a structure that holds various character pointers representing different attributes
-// related to commands, such as name, admin status, level, position, social interactions,
-// fight commands, words, parts, and messages.
+// related to commands, such as name, admin status, level, position, fight commands,
+// words, parts, and messages.
 struct sCommands
 {
   char               *Name;                              // Command name
   char               *Admin;                             // This is an admin command
   char               *Level;                             // Player must be at this level to use the command
   char               *Position;                          // Player must be, at least, in this position to use the command
-  char               *Social;                            // Is this a social command
   char               *Fight;                             // Can this command be issued during a fight
   char               *MinWords;                          // Minimum number of words in the command
   char               *MaxWords;                          // Maximum number of words in the command
@@ -852,66 +851,65 @@ struct sWearPosition WearPositionTable[] =
 #define CMD_ADMIN      1
 #define CMD_LEVEL      2
 #define CMD_POSITION   3
-#define CMD_SOCIAL     4
-#define CMD_FIGHT      5
-#define CMD_MIN_WORDS  6
-#define CMD_MAX_WORDS  7
-#define CMD_MESSAGE    8
+#define CMD_FIGHT      4
+#define CMD_MIN_WORDS  5
+#define CMD_MAX_WORDS  6
+#define CMD_MESSAGE    7
 
 // CommandTable is a two - dimensional array of character pointers that stores command information,
-// including command names, admin levels, positions, social interactions, fight options, word counts,
+// including command names, admin levels, positions, fight options, word counts,
 // and associated messages.
-char *CommandTable[][9] =
+char *CommandTable[][8] =
 {
-  //                                                   MIN  MAX
-  // Name          Admin Level Position  Social Fight Words Words Message
-    {"advance",    "Y",  "1",  "sleep",  "N",   "N",  "3",  "3",  "Advance who and to what level?"} ,
-    {"afk",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"born",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"buy",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Buy what?"},
-    {"chat",       "N",  "1",  "sleep",  "N",   "Y",  "2",  "999", "Chat what?"},
-    {"color",      "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
-    {"consider",   "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Consider what?"},
-    {"destroy",    "N",  "1",  "sit",    "N",   "N",  "2",  "3",  "Destroy what?"},
-    {"drink",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drink what?"},
-    {"drop",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Drop what?"},
-    {"eat",        "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Eat what?"},
-    {"emote",      "N",  "1",  "sit",    "N",   "Y",  "2",  "999", "Emote what?"},
-    {"equipment",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
-    {"examine",    "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Examine what?"},
-    {"flee",       "N",  "1",  "stand",  "N",   "Y",  "1",  "1",  "None"},
-    {"get",         "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Get what?"},
-    {"give",        "N",  "1",  "sit",    "N",   "N",  "3",  "3",  "Give what to whom?"},
-    {"go",         "N",  "1",  "stand",  "N",   "N",  "2",  "2",  "Go where?"},
-    {"goto",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Goto which room?"},
-    {"group",      "N",  "1",  "sleep",  "N",   "Y",  "2",  "2",  "Group what?"},
-    {"gsay",       "N",  "1",  "sleep",  "N",   "Y",  "2",  "999", "Gsay what?"},
-    {"help",       "N",  "1",  "sleep",  "N",   "N",  "1",  "2",  "None"},
-    {"inventory",  "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
-    {"kill",       "N",  "1",  "stand",  "N",   "Y",  "2",  "2",  "Kill what?"},
-    {"list",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
-    {"load",       "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Load what?"},
-    {"look",       "N",  "1",  "sit",    "N",   "N",  "1",  "1",  "None"},
-    {"money",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"playerfile", "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"quit",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"remove",     "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Remove what?"},
-    {"restore",    "Y",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Restore whom?"},
-    {"say",        "N",  "1",  "sit",    "N",   "Y",  "2",  "999", "Say what?"},
-    {"sell",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Sell what?"},
-    {"show",       "N",  "1",  "sleep",  "N",   "N",  "2",  "2",  "Show COMMANDS, HELP, or SOCIALS."},
-    {"shutdown",   "Y",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"sit",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"sleep",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"stand",      "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"status",     "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"tell",       "N",  "1",  "sleep",  "N",   "Y",  "3",  "999", "Tell whom what?"},
-    {"time",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"wake",       "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {"wear",       "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wear what?"},
-    {"wield",      "N",  "1",  "sit",    "N",   "N",  "2",  "2",  "Wield what?"},
-    {"who",        "N",  "1",  "sleep",  "N",   "N",  "1",  "1",  "None"},
-    {NULL,         NULL, NULL, NULL,     NULL,  NULL, NULL, NULL, NULL}
+  //                                           MIN   MAX
+  // Name          Admin Level Position  Fight Words Words  Message
+    {"advance",    "Y",  "1",  "sleep",  "N",  "3",  "3",   "Advance who and to what level?"} ,
+    {"afk",        "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"born",       "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"buy",        "N",  "1",  "sit",    "N",  "2",  "2",   "Buy what?"},
+    {"chat",       "N",  "1",  "sleep",  "Y",  "2",  "999", "Chat what?"},
+    {"color",      "N",  "1",  "sleep",  "N",  "1",  "2",   "None"},
+    {"consider",   "N",  "1",  "sit",    "N",  "2",  "2",   "Consider what?"},
+    {"destroy",    "N",  "1",  "sit",    "N",  "2",  "3",   "Destroy what?"},
+    {"drink",      "N",  "1",  "sit",    "N",  "2",  "2",   "Drink what?"},
+    {"drop",       "N",  "1",  "sit",    "N",  "2",  "2",   "Drop what?"},
+    {"eat",        "N",  "1",  "sit",    "N",  "2",  "2",   "Eat what?"},
+    {"emote",      "N",  "1",  "sit",    "Y",  "2",  "999", "Emote what?"},
+    {"equipment",  "N",  "1",  "sit",    "N",  "1",  "1",   "None"},
+    {"examine",    "N",  "1",  "sit",    "N",  "2",  "2",   "Examine what?"},
+    {"flee",       "N",  "1",  "stand",  "Y",  "1",  "1",   "None"},
+    {"get",        "N",  "1",  "sit",    "N",  "2",  "2",   "Get what?"},
+    {"give",       "N",  "1",  "sit",    "N",  "3",  "3",   "Give what to whom?"},
+    {"go",         "N",  "1",  "stand",  "N",  "2",  "2",   "Go where?"},
+    {"goto",       "Y",  "1",  "sleep",  "N",  "2",  "2",   "Goto which room?"},
+    {"group",      "N",  "1",  "sleep",  "Y",  "2",  "2",   "Group what?"},
+    {"gsay",       "N",  "1",  "sleep",  "Y",  "2",  "999", "Gsay what?"},
+    {"help",       "N",  "1",  "sleep",  "N",  "1",  "2",   "None"},
+    {"inventory",  "N",  "1",  "sit",    "N",  "1",  "1",   "None"},
+    {"kill",       "N",  "1",  "stand",  "Y",  "2",  "2",   "Kill what?"},
+    {"list",       "N",  "1",  "sit",    "N",  "1",  "1",   "None"},
+    {"load",       "Y",  "1",  "sleep",  "N",  "2",  "2",   "Load what?"},
+    {"look",       "N",  "1",  "sit",    "N",  "1",  "1",   "None"},
+    {"money",      "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"playerfile", "Y",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"quit",       "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"remove",     "N",  "1",  "sit",    "N",  "2",  "2",   "Remove what?"},
+    {"restore",    "Y",  "1",  "sleep",  "N",  "2",  "2",   "Restore whom?"},
+    {"say",        "N",  "1",  "sit",    "Y",  "2",  "999", "Say what?"},
+    {"sell",       "N",  "1",  "sit",    "N",  "2",  "2",   "Sell what?"},
+    {"show",       "N",  "1",  "sleep",  "N",  "2",  "2",   "Show COMMANDS, HELP, or SOCIALS."},
+    {"shutdown",   "Y",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"sit",        "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"sleep",      "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"stand",      "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"status",     "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"tell",       "N",  "1",  "sleep",  "Y",  "3",  "999", "Tell whom what?"},
+    {"time",       "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"wake",       "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {"wear",       "N",  "1",  "sit",    "N",  "2",  "2",   "Wear what?"},
+    {"wield",      "N",  "1",  "sit",    "N",  "2",  "2",   "Wield what?"},
+    {"who",        "N",  "1",  "sleep",  "N",  "1",  "1",   "None"},
+    {NULL,         NULL, NULL, NULL,     NULL, NULL, NULL,  NULL}
 };
 
 // DoCommand is an array of function pointers, each pointing to a function that takes no parameters
@@ -1204,7 +1202,6 @@ bool MudCmdOk()
       Commands.Admin    = (char*)CommandTable[i][CMD_ADMIN];
       Commands.Level    = (char*)CommandTable[i][CMD_LEVEL];
       Commands.Position = (char*)CommandTable[i][CMD_POSITION];
-      Commands.Social   = (char*)CommandTable[i][CMD_SOCIAL];
       Commands.Fight    = (char*)CommandTable[i][CMD_FIGHT];
       Commands.MinWords = (char*)CommandTable[i][CMD_MIN_WORDS];
       Commands.MaxWords = (char*)CommandTable[i][CMD_MAX_WORDS];
