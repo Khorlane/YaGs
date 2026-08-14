@@ -62,6 +62,7 @@ static inline void __builtin_free(void *Ptr)             //   while parsing newe
 #define GREETING_FILE           "Greeting.txt"           // Greeting file
 #define HELP_FILE               "Help.txt"               // Help file
 #define MOTD_FILE               "Motd.txt"               // Message of the day file
+#define SOCIAL_FILE             "Social.txt"             // Social definitions file
 #define VALID_NAMES_FILE        "ValidNames.txt"         // Valid names file
 // Log directory contents
 #define LOG_FILE                "Log.txt"                // Log file
@@ -217,6 +218,7 @@ FILE                 *PlayerFile;                        // Player file
 FILE                 *PlayerInvFile;                     // Player inventory file
 FILE                 *RoomFile;                          // Room file
 FILE                 *ShopFile;                          // Shop file
+FILE                 *SocialFile;                        // Social definitions file
 FILE                 *SpawnFile;                         // Spawn file
 FILE                 *ValidNamesFile;                    // Valid names file
 
@@ -289,6 +291,8 @@ typedef struct RoomObjectList RoomObjectList;
 typedef struct Shop           Shop;
 typedef struct ShopList       ShopList;
 typedef struct ShopObjectList ShopObjectList;
+typedef struct Social         Social;
+typedef struct SocialList     SocialList;
 typedef struct Spawn          Spawn;
 typedef struct SpawnList      SpawnList;
 
@@ -483,6 +487,26 @@ struct ShopObjectList
   ShopObjectList     *pNextShopObject;                   // Pointer to the next shop object list node
 };
 
+struct Social
+{
+  char               *Name;                              // Social command name
+  char               *MinPosition;                       // Minimum player position
+  int                 Lines;                             // Number of message lines
+  char               *NoTargetPlayer;                    // Message to acting player without a target
+  char               *NoTargetRoom;                      // Message to room without a target
+  char               *SelfTarget;                        // Message when targeting yourself
+  char               *TargetNotFound;                    // Message when target is not in the room
+  char               *TargetPlayer;                      // Message to acting player with a target
+  char               *TargetTarget;                      // Message to targeted player
+  char               *TargetRoom;                        // Message to room with a target
+};
+
+struct SocialList
+{
+  Social             *pSocial;                           // Pointer to a Social struct
+  SocialList         *pNextSocial;                       // Pointer to the next social list node
+};
+
 struct Spawn
 {
   Mobile             *pMobile;                           // Pointer to the mobile definition
@@ -530,6 +554,10 @@ ShopList             *pShopListHead        = NULL;       // Pointer to the head 
 ShopList             *pShopListTail        = NULL;       // Pointer to the tail of the shop list
 ShopObjectList       *pShopObjectList      = NULL;       // Pointer to found shop object list node
 ShopObjectList       *pShopObjectListCurr  = NULL;       // Pointer to the current shop object list node
+Social               *pSocial              = NULL;       // Pointer to the current social definition
+SocialList           *pSocialListCurr      = NULL;       // Pointer to the current social list node
+SocialList           *pSocialListHead      = NULL;       // Pointer to the head of the social list
+SocialList           *pSocialListTail      = NULL;       // Pointer to the tail of the social list
 Spawn                *pSpawn               = NULL;       // Pointer to the current spawn definition
 SpawnList            *pSpawnListCurr       = NULL;       // Pointer to the current spawn list node
 SpawnList            *pSpawnListHead       = NULL;       // Pointer to the head of the spawn list
@@ -672,6 +700,11 @@ void           ShopObjectLookUp(char *Id);
 void           ShopReadFile();
 void           ShutItDown();
 void           Sleep();
+bool           SocialCommand();
+void           SocialFormat(char *Template);
+void           SocialLookUp(char *Name);
+void           SocialReadFile();
+void           SocialSendToRoom(char *Template);
 void           SocketAcceptNewPlayer();
 void           SocketGetPlayerInput();
 void           SocketDisconnectPlayers();
@@ -1219,6 +1252,10 @@ bool MudCmdOk()
     i++;
   }
   // Command is none of the above
+  if (SocialCommand())
+  {
+    return false;
+  }
   strcat(pConn->Output, "Huh?\r\n\r\n");
   Prompt(pConn);
   return false;
@@ -3746,6 +3783,7 @@ void StartItUp()
   ValidateCommandTable();
   SocketListen();
   PlayerOpenFile();
+  SocialReadFile();
   MobileReadFile();
   ObjectReadFile();
   RoomReadFile();
@@ -5798,6 +5836,222 @@ void ShopReadFile()
     }
   }
   fclose(ShopFile);
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Socials
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Execute a social matching the current command.
+bool SocialCommand()
+{
+  DEBUGIT(1)
+  SocialLookUp(MudCmd);
+  if (pSocial == NULL)
+  {
+    return false;
+  }
+  if (Equal(pSocial->MinPosition, "stand") && pConn->Position != Standing)
+  {
+    strcat(pConn->Output, "You must be standing to do that.\r\n\r\n");
+    Prompt(pConn);
+    return true;
+  }
+  if (Equal(pSocial->MinPosition, "sit") && pConn->Position == Sleeping)
+  {
+    strcat(pConn->Output, "You must be sitting or standing to do that.\r\n\r\n");
+    Prompt(pConn);
+    return true;
+  }
+  pActor = pConn;
+  pTarget = NULL;
+  if (pSocial->Lines == 2 || Words(Command) == 1)
+  {
+    SocialFormat(pSocial->NoTargetPlayer);
+    strcat(pActor->Output, MsgTxt);
+    SocialSendToRoom(pSocial->NoTargetRoom);
+    Prompt(pActor);
+    return true;
+  }
+  Word(2, Command, CmdParm1);
+  NormalizePlayerName(CmdParm1);
+  pConnCurrSave = pConnCurr;
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr->State == Online && pConnCurr->pPlayer->RoomNbr == pActor->pPlayer->RoomNbr && Equal(pConnCurr->pPlayer->Name, CmdParm1))
+    {
+      pTarget = pConnCurr;
+      break;
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConnCurr = pConnCurrSave;
+  if (pTarget == NULL)
+  {
+    SocialFormat(pSocial->TargetNotFound);
+    strcat(pActor->Output, MsgTxt);
+    Prompt(pActor);
+    return true;
+  }
+  if (pTarget == pActor)
+  {
+    SocialFormat(pSocial->SelfTarget);
+    strcat(pActor->Output, MsgTxt);
+    Prompt(pActor);
+    return true;
+  }
+  SocialFormat(pSocial->TargetPlayer);
+  strcat(pActor->Output, MsgTxt);
+  SocialFormat(pSocial->TargetTarget);
+  strcat(pTarget->Output, "\r\n");
+  strcat(pTarget->Output, MsgTxt);
+  Prompt(pTarget);
+  SocialSendToRoom(pSocial->TargetRoom);
+  Prompt(pActor);
+  return true;
+}
+
+// Expand player and target placeholders in a social message.
+void SocialFormat(char *Template)
+{
+  DEBUGIT(1)
+  MsgTxt[0] = '\0';
+  i = 0;
+  while (Template[i] != '\0')
+  {
+    if (strncmp(Template + i, "$P", 2) == 0)
+    {
+      StrAppend(MsgTxt, pActor->pPlayer->Name);
+      i += 2;
+    }
+    else if (strncmp(Template + i, "$T", 2) == 0)
+    {
+      StrAppend(MsgTxt, pTarget->pPlayer->Name);
+      i += 2;
+    }
+    else if (strncmp(Template + i, "$pHeShe", 7) == 0)
+    {
+      StrAppend(MsgTxt, pActor->pPlayer->Sex == 'M' ? "he" : "she");
+      i += 7;
+    }
+    else if (strncmp(Template + i, "$tHimHer", 8) == 0)
+    {
+      StrAppend(MsgTxt, pTarget->pPlayer->Sex == 'M' ? "him" : "her");
+      i += 8;
+    }
+    else
+    {
+      Buffer[0] = Template[i];
+      Buffer[1] = '\0';
+      StrAppend(MsgTxt, Buffer);
+      i++;
+    }
+  }
+  StrAppend(MsgTxt, "\r\n\r\n");
+}
+
+// Find a social definition by command name.
+void SocialLookUp(char *Name)
+{
+  DEBUGIT(1)
+  pSocialListCurr = pSocialListHead;
+  while (pSocialListCurr != NULL)
+  {
+    if (strcasecmp(Name, pSocialListCurr->pSocial->Name) == 0)
+    {
+      pSocial = pSocialListCurr->pSocial;
+      return;
+    }
+    pSocialListCurr = pSocialListCurr->pNextSocial;
+  }
+  pSocial = NULL;
+}
+
+// Read social definitions and build the permanent social list.
+void SocialReadFile()
+{
+  DEBUGIT(1)
+  sprintf(TmpStr, "%s/%s/%s", YAGS_DIR, LIB_DIR, SOCIAL_FILE);
+  SocialFile = fopen(TmpStr, "r");
+  if (SocialFile == NULL)
+  {
+    sprintf(LogMsg, "ERROR: Open %s failed: %s", SOCIAL_FILE, strerror(errno));
+    AbortIt();
+  }
+  while (fgets(Buffer, sizeof(Buffer), SocialFile) != NULL)
+  {
+    TrimRight(Buffer);
+    if (Buffer[0] == '\0')
+    {
+      continue;
+    }
+    if (Equal(Buffer, "End of Socials"))
+    {
+      break;
+    }
+    if (pSocialListHead == NULL)
+    {
+      pSocialListHead = (SocialList *)calloc(1, sizeof(SocialList));
+      pSocialListTail = pSocialListHead;
+    }
+    else
+    {
+      pSocialListTail->pNextSocial = (SocialList *)calloc(1, sizeof(SocialList));
+      pSocialListTail = pSocialListTail->pNextSocial;
+    }
+    pSocialListTail->pSocial = (Social *)calloc(1, sizeof(Social));
+    pSocial = pSocialListTail->pSocial;
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pSocial->Name = strdup(TmpStr);
+    fgets(Buffer, sizeof(Buffer), SocialFile);
+    TrimRight(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pSocial->MinPosition = strdup(TmpStr);
+    fgets(Buffer, sizeof(Buffer), SocialFile);
+    TrimRight(Buffer);
+    strcpy(TmpStr, strchr(Buffer, ':') + 1);
+    Trim(TmpStr);
+    pSocial->Lines = atoi(TmpStr);
+    for (k = 0; k < (size_t)pSocial->Lines; k++)
+    {
+      fgets(Buffer, sizeof(Buffer), SocialFile);
+      TrimRight(Buffer);
+      if (k == 0) pSocial->NoTargetPlayer = strdup(Buffer);
+      if (k == 1) pSocial->NoTargetRoom   = strdup(Buffer);
+      if (k == 2) pSocial->SelfTarget     = strdup(Buffer);
+      if (k == 3) pSocial->TargetNotFound = strdup(Buffer);
+      if (k == 4) pSocial->TargetPlayer   = strdup(Buffer);
+      if (k == 5) pSocial->TargetTarget   = strdup(Buffer);
+      if (k == 6) pSocial->TargetRoom     = strdup(Buffer);
+    }
+  }
+  fclose(SocialFile);
+}
+
+// Send a formatted social message to other players in the room.
+void SocialSendToRoom(char *Template)
+{
+  DEBUGIT(1)
+  SocialFormat(Template);
+  pConnSave = pConn;
+  pConnCurrSave = pConnCurr;
+  pConnCurr = pConnHead;
+  while (pConnCurr != NULL)
+  {
+    if (pConnCurr != pActor && pConnCurr != pTarget && pConnCurr->State == Online && pConnCurr->pPlayer->RoomNbr == pActor->pPlayer->RoomNbr)
+    {
+      pConn = pConnCurr;
+      strcat(pConn->Output, "\r\n");
+      strcat(pConn->Output, MsgTxt);
+      Prompt(pConn);
+    }
+    pConnCurr = pConnCurr->pConnNext;
+  }
+  pConn = pConnSave;
+  pConnCurr = pConnCurrSave;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$

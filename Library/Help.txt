@@ -899,15 +899,13 @@ Help:Social
 ***************
 * Help Social *
 ***************&N
-Use this command for non-verbal communication with other
-players in the same room. To see a complete list of all
+Socials provide non-verbal communication with other players
+in the same room. To see a complete list of all
 socials, use the 'show socials' command.
 
 Usage: <social> {<target>}
 Example: &Ybow&N
      or: &Ybow Joab&N
-
-&YNot Implemented Yet&N
 
 Related help: Say Gsay Tell Emote Chat Show
 
